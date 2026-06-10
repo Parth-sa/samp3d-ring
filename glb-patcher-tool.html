@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGI Diamond Patcher Tool</title>
+    <style>
+        :root {
+            --bg-primary: #f8f4ef;
+            --bg-card: #ffffff;
+            --border: #e0d6cc;
+            --text-primary: #2a2118;
+            --text-muted: #7a6b5a;
+            --accent: #a06a2b;
+            --accent-hover: #8a5a23;
+            --accent-light: #f5ebe0;
+            --success: #2e7d4a;
+            --success-bg: #e8f5ec;
+            --error: #c44;
+            --error-bg: #fde8e8;
+            --radius: 10px;
+            --shadow: 0 4px 24px rgba(42, 33, 24, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-primary);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .drop-zone-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .drop-zone p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .drop-zone .browse-link {
+            color: var(--accent);
+            text-decoration: underline;
+            font-weight: 500;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .file-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--accent-light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .file-details { flex: 1; }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+
+        .file-size {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        .file-remove {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            transition: all 0.15s;
+        }
+
+        .file-remove:hover {
+            background: var(--error-bg);
+            color: var(--error);
+        }
+
+        .options {
+            display: grid;
+            gap: 14px;
+        }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            min-width: 140px;
+        }
+
+        .option-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .option-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .option-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            background: #c9b8a8;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .output-section {
+            display: none;
+        }
+
+        .output-section.visible { display: block; }
+
+        .log {
+            background: #1a1a1a;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.85rem;
+            max-height: 280px;
+            overflow: auto;
+            line-height: 1.6;
+        }
+
+        .log-line { margin-bottom: 2px; }
+        .log-info { color: #6fb3e0; }
+        .log-success { color: #7ec87e; }
+        .log-warn { color: #e0c46b; }
+        .log-error { color: #e06b6b; }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .result-item {
+            background: var(--bg-primary);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .result-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .result-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .download-btn {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .download-btn.visible { display: flex; }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .alert-info {
+            background: var(--accent-light);
+            border: 1px solid #d4c4a8;
+            color: var(--accent-strong);
+        }
+
+        .detection-preview {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .detection-preview.visible { display: block; }
+
+        .detection-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .detection-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: var(--bg-card);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .detection-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-diamond {
+            background: #e8f5ec;
+            color: var(--success);
+        }
+
+        .badge-metal {
+            background: #f0e8f5;
+            color: #7a5a8a;
+        }
+
+        .badge-detected {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+            .card { padding: 20px; }
+            .results { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Diamond Patcher</h1>
+        <p class="subtitle">Add WebGI diamond material metadata to your GLB files</p>
+
+        <div class="card">
+            <div class="card-title">
+                <span>1</span> Select GLB File
+            </div>
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">📦</div>
+                <p>Drag & drop a .glb file here, or <span class="browse-link">browse</span></p>
+                <p style="margin-top:8px; font-size:0.85rem;">GLB or 3DM file (3DM requires Node.js backend conversion)</p>
+            </div>
+            <input type="file" class="file-input" id="fileInput" accept=".glb,.3dm">
+
+            <div class="file-info" id="fileInfo" style="display:none;">
+                <div class="file-icon">💎</div>
+                <div class="file-details">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                </div>
+                <button class="file-remove" id="fileRemove" title="Remove">✕</button>
+            </div>
+
+            <div class="detection-preview" id="detectionPreview">
+                <div class="detection-title">Detected Materials</div>
+                <div id="detectionList"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>2</span> Options
+            </div>
+            <div class="options">
+                <div>
+                    <div class="option-row">
+                        <span class="option-label">Background Image URL</span>
+                        <input type="text" class="option-input" id="bgImageUrl" placeholder="https://example.com/bg.jpg">
+                    </div>
+                    <div class="option-hint">Set background image for the viewer (optional)</div>
+                </div>
+                <div>
+                    <div class="option-row">
+                        <span class="option-label">Override Detection</span>
+                        <input type="number" class="option-input" id="overrideCount" min="0" max="100" placeholder="Auto">
+                    </div>
+                    <div class="option-hint">Manually set number of diamond materials to patch</div>
+                </div>
+                <div>
+                    <div class="option-row">
+                        <span class="option-label">Size Threshold</span>
+                        <input type="number" class="option-input" id="sizeThreshold" min="0" max="5000" value="500" step="50">
+                    </div>
+                    <div class="option-hint">Max vertex count for auto-detecting small gems (lower = fewer detected)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>3</span> Patch & Download
+            </div>
+            <div class="alert alert-info">
+                The patched file will automatically download when ready. Upload the patched file to Shopify as your 3D model.
+            </div>
+            <button class="btn btn-primary" id="patchBtn" disabled>
+                <span>Patch GLB File</span>
+            </button>
+        </div>
+
+        <div class="card output-section" id="outputSection">
+            <div class="card-title">
+                <span>✓</span> Results
+            </div>
+            <div class="log" id="log"></div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="result-value" id="resMaterials">0</div>
+                    <div class="result-label">Materials Found</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-value" id="resDiamonds">0</div>
+                    <div class="result-label">Diamonds Patched</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-value" id="resMeshes">0</div>
+                    <div class="result-label">Small Meshes</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary download-btn" id="downloadBtn">
+                <span>⬇</span> Download Patched GLB
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileRemove = document.getElementById('fileRemove');
+        const patchBtn = document.getElementById('patchBtn');
+        const outputSection = document.getElementById('outputSection');
+        const logEl = document.getElementById('log');
+        const detectionPreview = document.getElementById('detectionPreview');
+        const detectionList = document.getElementById('detectionList');
+        const overrideCount = document.getElementById('overrideCount');
+        const sizeThreshold = document.getElementById('sizeThreshold');
+
+        let selectedFile = null;
+        let parsedGLB = null;
+        let patchedBuffer = null;
+        let outputFileName = '';
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        function log(msg, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        const metalNames = [
+            'gold', 'silver', 'platinum', 'rose_gold', 'yellow_gold', 'white_gold',
+            'metal', 'band', 'shank', 'prong', 'setting', 'base', 'base_metal',
+            'ring_metal', 'metal_a', 'metal_b', 'ring_band', '14k', '18k', '10k',
+            '14ct', '18ct', '10ct', '24k', '925', 'sterling', 'paladium', 'rhodium','body'
+        ];
+
+        const gemPatterns = [
+            'diamond', 'gem', 'stone', 'accent', 'small', 'tiny', 'micro', 'brilliant',
+            'diamond_a', 'diamond_b', 'default', 'princess', 'round', 'emerald', 'pear',
+            'oval', 'cushion', 'marquise', 'radiant', 'asscher', 'heart', 'trillion',
+            'cluster', 'pave', 'halo', 'side', 'eternity', 'center', 'main', 'solitaire',
+            ' baguette', ' trillion', 'marquise', 'hexagon', 'pentagon', 'octagon'
+        ];
+
+        function isMetalMaterial(name) {
+            const nameLower = name.toLowerCase();
+            return metalNames.some(m => nameLower.includes(m));
+        }
+
+        function isGemMaterial(name, material, buffer) {
+            const nameLower = name.toLowerCase();
+
+            if (gemPatterns.some(g => nameLower.includes(g))) return true;
+
+            const threshold = parseInt(sizeThreshold.value) || 500;
+            if (material.pbrMetallicRoughness?.baseColorTexture?.index !== undefined) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function findMetalMaterial(materials) {
+            for (let i = 0; i < materials.length; i++) {
+                const name = materials[i].name || `material_${i}`;
+                if (isMetalMaterial(name)) {
+                    return { index: i, name };
+                }
+            }
+            return null;
+        }
+
+        function analyzeGLB(buffer) {
+            const view = new DataView(buffer);
+            const magic = view.getUint32(0, true);
+            if (magic !== 0x46546C67) throw new Error('Not a valid GLB file');
+
+            const version = view.getUint32(4, true);
+            const length = view.getUint32(8, true);
+
+            let offset = 12;
+            let jsonLength = view.getUint32(offset, true);
+            offset += 4;
+            let jsonType = view.getUint32(offset, true);
+            offset += 4;
+            
+            const jsonBytes = new Uint8Array(buffer, offset, jsonLength);
+            const jsonStr = new TextDecoder('utf-8').decode(jsonBytes);
+            
+            let gltf;
+            try {
+                gltf = JSON.parse(jsonStr);
+            } catch (e) {
+                const trimmedJson = jsonStr.trim();
+                gltf = JSON.parse(trimmedJson);
+            }
+
+            const materials = gltf.materials || [];
+            const meshes = gltf.meshes || [];
+            const images = gltf.images || [];
+
+            const diamondMaterials = [];
+            const smallMeshes = [];
+            const metalMaterial = findMetalMaterial(materials);
+
+            for (let i = 0; i < materials.length; i++) {
+                const mat = materials[i];
+                const name = mat.name || `material_${i}`;
+
+                if (metalMaterial && metalMaterial.index === i) continue;
+
+                if (isGemMaterial(name, mat, buffer)) {
+                    diamondMaterials.push({ index: i, name });
+                }
+            }
+
+            for (let i = 0; i < meshes.length; i++) {
+                const mesh = meshes[i];
+                const threshold = parseInt(sizeThreshold.value) || 500;
+
+                if (mesh.primitives && mesh.primitives.length > 0) {
+                    const prim = mesh.primitives[0];
+                    if (prim.attributes && prim.attributes.POSITION !== undefined) {
+                        const accessorIdx = prim.attributes.POSITION;
+                        const accessor = gltf.accessors ? gltf.accessors[accessorIdx] : null;
+                        if (accessor && accessor.count <= threshold) {
+                            smallMeshes.push({
+                                index: i,
+                                name: mesh.name || `mesh_${i}`,
+                                vertices: accessor.count
+                            });
+                        }
+                    }
+                }
+            }
+
+            const override = parseInt(overrideCount.value);
+            if (override > 0) {
+                const needed = Math.min(override, materials.length);
+                diamondMaterials.length = 0;
+                for (let i = 0; i < needed; i++) {
+                    diamondMaterials.push({
+                        index: i,
+                        name: materials[i]?.name || `material_${i}`,
+                        forced: true
+                    });
+                }
+            }
+
+            return {
+                gltf,
+                materials,
+                meshes,
+                images,
+                diamondMaterials,
+                smallMeshes,
+                metalMaterial,
+                jsonStr
+            };
+        }
+
+        function patchGLB(buffer, analysis) {
+            const { gltf, diamondMaterials } = analysis;
+
+            if (!gltf.materials || gltf.materials.length === 0) {
+                throw new Error('No materials found in GLB file');
+            }
+
+            const existingExtensions = gltf.extensions || {};
+            const existingExtras = gltf.extras || {};
+
+            let diamondIndex = existingExtensions['WEBGI_materials_diamond']?.diamond || 0;
+            let patched = [];
+
+            diamondMaterials.forEach(mat => {
+                if (!gltf.materials[mat.index]) {
+                    log(`Material at index ${mat.index} not found, skipping`, 'warn');
+                    return;
+                }
+
+                const matUuid = generateUUID();
+                const material = gltf.materials[mat.index];
+                material.extensions = material.extensions || {};
+                material.extensions['WEBGI_materials_diamond'] = {
+                    uuid: matUuid,
+                    diamond: diamondIndex,
+                    color: [1, 1, 1, 1],
+                    colorMap: 0,
+                    metalness: 0,
+                    roughness: 0.02,
+                    fresnel: 0.04,
+                    caustic: 1,
+                    refraction: 1.8,
+                    bump: 0.1,
+                    attenuationDist: 1,
+                    attenuationColor: [1, 1, 1],
+                    dispersion: 0.3,
+                    isBundle: false
+                };
+
+                diamondIndex++;
+                patched.push(mat.index);
+            });
+
+            if (patched.length > 0) {
+                gltf.extensions['WEBGI_materials_diamond'] = {
+                    diamond: diamondIndex
+                };
+                gltf.extensionsUsed = gltf.extensionsUsed || [];
+                if (!gltf.extensionsUsed.includes('WEBGI_materials_diamond')) {
+                    gltf.extensionsUsed.push('WEBGI_materials_diamond');
+                }
+            }
+
+            const bgImageUrl = document.getElementById('bgImageUrl').value;
+            if (bgImageUrl) {
+                gltf.extras = gltf.extras || {};
+                gltf.extras.webgiBackground = bgImageUrl;
+            }
+
+            return buildGlbBuffer(buffer, gltf);
+        }
+
+        function findBinChunk(buffer) {
+            const view = new DataView(buffer);
+            let offset = 12;
+            
+            while (offset < buffer.byteLength - 8) {
+                const chunkLength = view.getUint32(offset, true);
+                const chunkType = view.getUint32(offset + 4, true);
+                
+                if (chunkType === 0x004E4942) {
+                    return { offset: offset + 8, length: chunkLength };
+                }
+                
+                offset += 8 + chunkLength;
+                if (offset % 4 !== 0) {
+                    offset += 4 - (offset % 4);
+                }
+            }
+            return null;
+        }
+
+        function buildGlbBuffer(buffer, gltf) {
+            const encoder = new TextEncoder();
+            const patchedJson = encoder.encode(JSON.stringify(gltf));
+            const jsonChunkLength = patchedJson.length;
+            
+            const binChunkInfo = findBinChunk(buffer);
+            const hasBin = binChunkInfo !== null;
+
+            const crcSize = 4;
+            const resultBufferSize = 12 + 4 + 4 + jsonChunkLength + (hasBin ? (4 + 4 + binChunkInfo.length) : 0) + crcSize;
+            const resultBuffer = new ArrayBuffer(resultBufferSize);
+            const resultView = new DataView(resultBuffer);
+            const resultBytes = new Uint8Array(resultBuffer);
+
+            resultView.setUint32(0, 0x46546C67, true);
+            resultView.setUint32(4, 2, true);
+            resultView.setUint32(8, resultBufferSize - 12, true);
+
+            let pos = 12;
+            resultView.setUint32(pos, jsonChunkLength, true);
+            pos += 4;
+            resultView.setUint32(pos, 0x4E4F534A, true);
+            pos += 4;
+            resultBytes.set(patchedJson, pos);
+            pos += jsonChunkLength;
+
+            if (hasBin && binChunkInfo) {
+                resultView.setUint32(pos, binChunkInfo.length, true);
+                pos += 4;
+                resultView.setUint32(pos, 0x004E4942, true);
+                pos += 4;
+                const binSlice = new Uint8Array(buffer, binChunkInfo.offset, binChunkInfo.length);
+                resultBytes.set(binSlice, pos);
+                pos += binChunkInfo.length;
+            }
+
+            const crc = crc32(resultBytes.subarray(0, pos));
+            resultView.setUint32(pos, crc >>> 0, true);
+
+            return resultBuffer;
+        }
+
+        function crc32(data) {
+            let crc = 0xFFFFFFFF;
+            const table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                table[i] = c;
+            }
+            for (let i = 0; i < data.length; i++) {
+                crc = table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+            }
+            return crc ^ 0xFFFFFFFF;
+        }
+
+        function showDetectionPreview(analysis) {
+            detectionList.innerHTML = '';
+
+            if (analysis.materials.length === 0) {
+                detectionList.innerHTML = '<div class="detection-item">No materials found</div>';
+                detectionPreview.classList.add('visible');
+                return;
+            }
+
+            analysis.materials.forEach((mat, i) => {
+                const isDiamond = analysis.diamondMaterials.some(d => d.index === i);
+                const isMetal = analysis.metalMaterial && analysis.metalMaterial.index === i;
+                const item = document.createElement('div');
+                item.className = 'detection-item';
+                let badgeText = 'MATERIAL';
+                let badgeClass = 'badge-detected';
+                if (isDiamond) {
+                    badgeText = 'DIAMOND';
+                    badgeClass = 'badge-diamond';
+                } else if (isMetal) {
+                    badgeText = 'METAL';
+                    badgeClass = 'badge-metal';
+                }
+                item.innerHTML = `
+                    <span class="detection-badge ${badgeClass}">
+                        ${badgeText}
+                    </span>
+                    <span>${mat.name || `material_${i}`}</span>
+                `;
+                detectionList.appendChild(item);
+            });
+
+            detectionPreview.classList.add('visible');
+        }
+
+        async function handleFile(file) {
+            const is3dm = file.name.toLowerCase().endsWith('.3dm');
+            const isGlb = file.name.toLowerCase().endsWith('.glb');
+            
+            if (!isGlb && !is3dm) {
+                log('Please select a valid .glb or .3dm file', 'error');
+                return;
+            }
+
+            if (is3dm) {
+                log('3DM file detected. Converting to GLB using Node.js...', 'warn');
+                log('Run this command in a terminal:', 'info');
+                log(`node glb-patcher.js "${file.name}" output.glb`, 'info');
+                log('Then upload the output GLB file to this tool.', 'info');
+                return;
+            }
+
+            selectedFile = file;
+            outputFileName = file.name.replace('.glb', '-patched.glb');
+
+            fileName.textContent = file.name;
+            fileSize.textContent = formatBytes(file.size);
+            fileInfo.style.display = 'flex';
+            patchBtn.disabled = false;
+
+            log(`File selected: ${file.name} (${formatBytes(file.size)})`, 'info');
+
+            try {
+                const buffer = await file.arrayBuffer();
+                parsedGLB = analyzeGLB(buffer);
+
+                log(`Found ${parsedGLB.materials.length} materials`, 'info');
+                if (parsedGLB.metalMaterial) {
+                    log(`Metal detected: "${parsedGLB.metalMaterial.name}" (index ${parsedGLB.metalMaterial.index})`, 'info');
+                }
+                log(`Detected ${parsedGLB.diamondMaterials.length} diamond materials`, 'success');
+
+                showDetectionPreview(parsedGLB);
+
+                document.getElementById('resMaterials').textContent = parsedGLB.materials.length;
+                document.getElementById('resDiamonds').textContent = parsedGLB.diamondMaterials.length;
+                document.getElementById('resMeshes').textContent = parsedGLB.smallMeshes.length;
+
+            } catch (err) {
+                log(`Error parsing GLB: ${err.message}`, 'error');
+            }
+        }
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileRemove.addEventListener('click', () => {
+            selectedFile = null;
+            parsedGLB = null;
+            patchedBuffer = null;
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            detectionPreview.classList.remove('visible');
+            patchBtn.disabled = true;
+            outputSection.classList.remove('visible');
+            logEl.innerHTML = '';
+        });
+
+        patchBtn.addEventListener('click', async () => {
+            if (!selectedFile || !parsedGLB) return;
+
+            patchBtn.disabled = true;
+            patchBtn.querySelector('span').textContent = 'Patching...';
+            outputSection.classList.add('visible');
+            logEl.innerHTML = '';
+
+            try {
+                log('Reading file...', 'info');
+                const buffer = await selectedFile.arrayBuffer();
+
+                log('Analyzing GLB structure...', 'info');
+                const analysis = analyzeGLB(buffer);
+                log(`Found ${analysis.materials.length} materials`, 'info');
+
+                if (analysis.diamondMaterials.length === 0) {
+                    log('No diamond materials detected. Use "Override Detection" to force patch.', 'warn');
+                } else {
+                    log(`Detected ${analysis.diamondMaterials.length} diamond materials:`, 'success');
+                    analysis.diamondMaterials.forEach(m => {
+                        log(`  - ${m.name} (index ${m.index})`, 'success');
+                    });
+                }
+
+                log('Patching materials with WebGI diamond metadata...', 'info');
+                patchedBuffer = patchGLB(buffer, analysis);
+
+                log('Patching complete!', 'success');
+                log(`Output file: ${outputFileName}`, 'info');
+
+                const dlBtn = document.getElementById('downloadBtn');
+                dlBtn.classList.add('visible');
+                dlBtn.onclick = downloadPatched;
+
+                const blob = new Blob([patchedBuffer], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = outputFileName;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                log('File downloaded automatically!', 'success');
+
+            } catch (err) {
+                log(`Error: ${err.message}`, 'error');
+                console.error(err);
+            }
+
+            patchBtn.disabled = false;
+            patchBtn.querySelector('span').textContent = 'Patch GLB File';
+        });
+
+        function downloadPatched() {
+            if (!patchedBuffer) return;
+            const blob = new Blob([patchedBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = outputFileName;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+    </script>
+</body>
+</html>

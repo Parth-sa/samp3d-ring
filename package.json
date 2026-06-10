@@ -1,0 +1,39 @@
+{
+  "name": "webgi-ring-360-viewer",
+  "version": "1.0.0",
+  "description": "Offline 360° ring viewer using WebGI with anchor-based diamond placement",
+  "main": "index.html",
+  "scripts": {
+    "start": "parcel index.html",
+    "start:patcher": "parcel glb-patcher.html",
+    "start:anchor": "parcel anchordiamond.html",
+    "start:combiner": "parcel ring-combiner.html",
+    "start:ring": "parcel ring-combiner.html",
+    "build": "parcel build index.html --no-minify --public-url ./",
+    "build:anchor": "parcel build anchordiamond.html --no-minify --public-url ./",
+    "build:combiner": "parcel build ring-combiner.html --no-minify --public-url ./",
+    "build:ring": "parcel build ring-combiner.html --no-minify --public-url ./",
+    "merge": "node glb-ring-merger.js",
+    "build:shopify": "npm run build && node -e \"require('fs').cpSync('dist/src.32b885bd.js','shopify-bundle/assets/webgi-viewer.js'); console.log('Shopify bundle updated')\""
+  },
+  "devDependencies": {
+    "@types/three": "^0.139.0",
+    "@types/webgi": "https://storage.googleapis.com/dist.pixotronics.com/webgi/runtime/bundle-types-0.6.4.tgz",
+    "parcel-bundler": "^1.6.1",
+    "parcel-plugin-static-files-copy": "^2.6.0",
+    "typescript": "4.4.4",
+    "webgi": "https://storage.googleapis.com/dist.pixotronics.com/webgi/runtime/bundle-0.6.4.tgz"
+  },
+  "staticFiles": {
+    "staticPath": [
+      {
+        "staticPath": "assets",
+        "staticOutDir": "assets"
+      }
+    ]
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "rhino3dm": "^8.17.0"
+  }
+}

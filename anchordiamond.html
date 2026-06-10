@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ring Combiner - Merge GLB Files</title>
+    <style>
+        :root {
+            --panel-bg: rgba(255, 252, 247, 0.95);
+            --panel-border: rgba(74, 57, 39, 0.18);
+            --panel-shadow: 0 20px 60px rgba(62, 44, 21, 0.18);
+            --text-main: #24170d;
+            --text-muted: #6f5c4a;
+            --accent: #a06a2b;
+            --accent-strong: #7f4e17;
+            --surface: rgba(255, 255, 255, 0.78);
+            --success: #2a7d2a;
+            --warning: #b8860b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #e8e4e0;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .setup-panel {
+            width: 380px;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            z-index: 20;
+            flex-shrink: 0;
+        }
+
+        .setup-panel h1 {
+            color: var(--text-main);
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .setup-panel .subtitle {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .file-card {
+            background: var(--surface);
+            border: 1px solid rgba(74, 57, 39, 0.12);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .file-card h3 {
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-card h3 .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--accent);
+            color: white;
+        }
+
+        .dropzone {
+            border: 1.5px dashed rgba(127, 78, 23, 0.35);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 12px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(245, 226, 199, 0.5);
+        }
+
+        .dropzone.loaded {
+            border-color: var(--success);
+            background: rgba(42, 125, 42, 0.08);
+        }
+
+        .dropzone input { display: none; }
+
+        .file-status {
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .file-status.loaded {
+            color: var(--success);
+        }
+
+        .controls-section {
+            background: var(--surface);
+            border: 1px solid rgba(74, 57, 39, 0.12);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .controls-section h3 {
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .control-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .control-row label {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .control-row input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid rgba(74, 57, 39, 0.2);
+            border-radius: 6px;
+            font-size: 12px;
+            background: white;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+        }
+
+        .checkbox-row label {
+            font-size: 12px;
+            color: var(--text-main);
+        }
+
+        .preview-info {
+            background: rgba(160, 106, 43, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .preview-info h4 {
+            font-size: 12px;
+            color: var(--accent-strong);
+            margin-bottom: 6px;
+        }
+
+        .preview-info ul {
+            list-style: none;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .preview-info li {
+            padding: 2px 0;
+        }
+
+        .preview-info li::before {
+            content: "◆ ";
+            color: var(--accent);
+            font-size: 8px;
+        }
+
+        .action-buttons {
+            display: grid;
+            gap: 10px;
+        }
+
+        .primary-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #b67a36 0%, #874d12 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .primary-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(135, 77, 18, 0.3);
+        }
+
+        .primary-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .secondary-btn {
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: transparent;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(160, 106, 43, 0.1);
+        }
+
+        .status-bar {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+
+        .status-bar.success { color: var(--success); background: rgba(42, 125, 42, 0.08); }
+        .status-bar.error { color: #a12d2d; background: rgba(161, 45, 45, 0.08); }
+
+        .viewer-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #webgi-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .loader-overlay.hidden { display: none; }
+
+        .loader-box {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .loader-box svg {
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-box p {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .view-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .view-controls button {
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+
+        .view-controls button:hover {
+            background: #f5f5f5;
+        }
+
+        .view-controls button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .component-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .component-tabs button {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .component-tabs button:hover {
+            background: #f5f5f5;
+        }
+
+        .component-tabs button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .component-tabs button.has-model::after {
+            content: " ✓";
+            color: var(--success);
+        }
+
+        .component-tabs button.has-model.active::after {
+            color: white;
+        }
+
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; }
+            .setup-panel {
+                width: 100%;
+                height: auto;
+                max-height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid var(--panel-border);
+            }
+            .viewer-container { height: 50vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <aside class="setup-panel">
+            <h1>Ring Combiner</h1>
+            <p class="subtitle">Load 3 GLB files and merge into one final ring</p>
+
+            <div class="component-tabs">
+                <button id="tab-ring" class="active">Ring</button>
+                <button id="tab-diamond">Diamond</button>
+                <button id="tab-prnc">PRNC</button>
+            </div>
+
+            <div class="file-card" id="card-ring">
+                <h3>Ring Base <span class="badge">1</span></h3>
+                <div class="dropzone" id="dropzone-ring">
+                    <p>Drop Ring_501410_JV_PRN_100.glb</p>
+                    <input type="file" accept=".glb" id="file-ring" />
+                </div>
+                <div class="file-status" id="status-ring">No file loaded</div>
+            </div>
+
+            <div class="file-card" id="card-diamond" style="display: none;">
+                <h3>Diamond <span class="badge">2</span></h3>
+                <div class="dropzone" id="dropzone-diamond">
+                    <p>Drop RND.glb</p>
+                    <input type="file" accept=".glb" id="file-diamond" />
+                </div>
+                <div class="file-status" id="status-diamond">No file loaded</div>
+            </div>
+
+            <div class="file-card" id="card-prnc" style="display: none;">
+                <h3>PRNC <span class="badge">3</span></h3>
+                <div class="dropzone" id="dropzone-prnc">
+                    <p>Drop PRNC.glb</p>
+                    <input type="file" accept=".glb" id="file-prnc" />
+                </div>
+                <div class="file-status" id="status-prnc">No file loaded</div>
+            </div>
+
+            <div class="controls-section" id="position-controls">
+                <h3>Position Controls</h3>
+                <div class="control-row">
+                    <div>
+                        <label>X Position</label>
+                        <input type="number" id="pos-x" value="0" step="0.01" />
+                    </div>
+                    <div>
+                        <label>Y Position</label>
+                        <input type="number" id="pos-y" value="0" step="0.01" />
+                    </div>
+                    <div>
+                        <label>Z Position</label>
+                        <input type="number" id="pos-z" value="0" step="0.01" />
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div>
+                        <label>Rot X</label>
+                        <input type="number" id="rot-x" value="0" step="0.1" />
+                    </div>
+                    <div>
+                        <label>Rot Y</label>
+                        <input type="number" id="rot-y" value="0" step="0.1" />
+                    </div>
+                    <div>
+                        <label>Rot Z</label>
+                        <input type="number" id="rot-z" value="0" step="0.1" />
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div>
+                        <label>Scale</label>
+                        <input type="number" id="scale" value="1" step="0.1" min="0.1" max="10" />
+                    </div>
+                    <div>
+                        <label>Metalness</label>
+                        <input type="number" id="metalness" value="1" step="0.1" min="0" max="1" />
+                    </div>
+                    <div>
+                        <label>Roughness</label>
+                        <input type="number" id="roughness" value="0.15" step="0.01" min="0" max="1" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <h3>Options</h3>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="auto-center" checked />
+                    <label for="auto-center">Auto-center all models</label>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="show-ring" checked />
+                    <label for="show-ring">Show Ring</label>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="show-diamond" checked />
+                    <label for="show-diamond">Show Diamond</label>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="show-prnc" checked />
+                    <label for="show-prnc">Show PRNC</label>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="primary-btn" id="btn-merge" disabled>Merge & Export GLB</button>
+                <button class="secondary-btn" id="btn-reset">Reset All</button>
+            </div>
+
+            <div class="status-bar" id="status-bar">Load all 3 files to merge</div>
+        </aside>
+
+        <div class="viewer-container">
+            <canvas id="webgi-canvas"></canvas>
+            
+            <div class="loader-overlay hidden" id="loader">
+                <div class="loader-box">
+                    <svg width="40" height="40" fill="none">
+                        <circle cx="20" cy="20" r="16" stroke="#ddd" stroke-width="2"/>
+                        <circle cx="20" cy="20" r="16" stroke="#333" stroke-width="2" stroke-dasharray="25 75" style="transform-origin: center; animation: spin 1s linear infinite;"/>
+                    </svg>
+                    <p id="loader-text">Processing...</p>
+                </div>
+            </div>
+
+            <div class="view-controls">
+                <button id="view-front" class="active">Front</button>
+                <button id="view-top">Top</button>
+                <button id="view-angle">Angle</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+import {
+    ViewerApp,
+    AssetManagerPlugin,
+    GBufferPlugin,
+    ProgressivePlugin,
+    TonemapPlugin,
+    SSAOPlugin,
+    FrameFadePlugin,
+    TemporalAAPlugin,
+    AssetImporter,
+    DRACOLoader2,
+    Color,
+    DiamondPlugin,
+    RandomizedDirectionalLightPlugin,
+    Mesh,
+    Object3D,
+    Vector3,
+    Box3,
+    MeshStandardMaterial,
+    MeshPhysicalMaterial
+} from "webgi";
+
+const LOCAL_DRACO_DECODER_PATH = './assets/draco/';
+const DEFAULT_ENVIRONMENT_PATH = 'https://packs.ijewel3d.com/files/env_gem_003_fe9cd312d2.hdr';
+
+const LOCAL_IMPORT_OPTIONS = {
+    allowedExtensions: ['glb'],
+    autoScale: true,
+    autoScaleRadius: 1.6,
+    pseudoCenter: true,
+    autoImport: true,
+    autoAdd: true,
+    centerOffset: new Vector3(0, 0, 2.8)
+};
+
+const loadedModels = {
+    ring: null,
+    diamond: null,
+    prnc: null
+};
+
+const modelNames = {
+    ring: null,
+    diamond: null,
+    prnc: null
+};
+
+let viewer = null;
+let activeComponent = 'ring';
+let componentGroups = { ring: null, diamond: null, prnc: null };
+
+function patchDracoDecoder() {
+    const proto = (DRACOLoader2 as any)?.prototype;
+    if (!proto || proto.__patched) return;
+    const orig = proto.preload;
+    proto.preload = function (...args) {
+        try {
+            this.setDecoderPath(LOCAL_DRACO_DECODER_PATH);
+            this.setDecoderConfig({ type: 'js' });
+        } catch (e) { console.warn('Draco path error:', e); }
+        return orig.apply(this, args);
+    };
+    proto.__patched = true;
+}
+
+patchDracoDecoder();
+
+function showLoader(show, text = 'Processing...') {
+    const el = document.getElementById('loader');
+    const txt = document.getElementById('loader-text');
+    if (el) el.classList.toggle('hidden', !show);
+    if (txt) txt.textContent = text;
+}
+
+function setStatus(text, type = '') {
+    const el = document.getElementById('status-bar');
+    if (el) {
+        el.textContent = text;
+        el.className = 'status-bar ' + type;
+    }
+}
+
+function updateFileStatus(component, loaded, fileName) {
+    const dropzone = document.getElementById(`dropzone-${component}`);
+    const status = document.getElementById(`status-${component}`);
+    const tab = document.getElementById(`tab-${component}`);
+    
+    if (dropzone) {
+        dropzone.classList.toggle('loaded', loaded);
+        dropzone.querySelector('p').textContent = loaded ? fileName : `Drop ${component.toUpperCase()}.glb`;
+    }
+    if (status) {
+        status.textContent = loaded ? `✓ Loaded: ${fileName}` : 'No file loaded';
+        status.classList.toggle('loaded', loaded);
+    }
+    if (tab) {
+        tab.classList.toggle('has-model', loaded);
+    }
+}
+
+function updateMergeButton() {
+    const btn = document.getElementById('btn-merge');
+    const allLoaded = loadedModels.ring && loadedModels.diamond && loadedModels.prnc;
+    if (btn) btn.disabled = !allLoaded;
+    setStatus(allLoaded ? 'All files loaded! Click Merge to export.' : `Load ${Object.values(loadedModels).filter(v => !v).length} more file(s)`);
+}
+
+async function loadModelToScene(file, componentName) {
+    if (!viewer) return null;
+    
+    showLoader(true, `Loading ${componentName}...`);
+    
+    let manager = null;
+    try { manager = viewer.getPlugin?.(AssetManagerPlugin); } catch { }
+    if (!manager) manager = await viewer.addPlugin(AssetManagerPlugin);
+    
+    const importer = manager.importer as AssetImporter;
+    
+    try {
+        const files = new Map();
+        files.set(file.name, file);
+        
+        await importer.importFiles(files, undefined, LOCAL_IMPORT_OPTIONS);
+        
+        const scene = viewer.scene;
+        let modelRoot = null;
+        
+        scene.traverse((obj) => {
+            if (modelRoot || !obj?.isMesh) return;
+            let root = obj;
+            while (root?.parent && root.parent !== scene) root = root.parent;
+            modelRoot = root;
+        });
+        
+        if (!modelRoot) modelRoot = scene.children?.[0] || scene;
+        
+        if (componentGroups[componentName]) {
+            scene.remove(componentGroups[componentName]);
+        }
+        
+        const group = new Object3D();
+        group.name = `${componentName}_group`;
+        
+        const addToGroup = (obj) => {
+            if (obj === group) return;
+            group.add(obj);
+        };
+        
+        if (modelRoot !== scene) {
+            modelRoot.traverse(addToGroup);
+            if (modelRoot.parent) modelRoot.parent.remove(modelRoot);
+        } else {
+            scene.children.forEach(child => {
+                if (child !== scene.activeCamera && child.name !== 'Environment') {
+                    group.add(child);
+                }
+            });
+        }
+        
+        scene.add(group);
+        componentGroups[componentName] = group;
+        loadedModels[componentName] = group;
+        modelNames[componentName] = file.name;
+        
+        applyMaterialSettings(group, componentName);
+        updateFileStatus(componentName, true, file.name);
+        updateMergeButton();
+        
+        recenterAll();
+        
+        showLoader(false);
+        setStatus(`✓ ${componentName} loaded successfully`, 'success');
+        
+        return group;
+    } catch (error) {
+        console.error(`Error loading ${componentName}:`, error);
+        showLoader(false);
+        setStatus(`Error loading ${componentName}: ${error.message}`, 'error');
+        return null;
+    }
+}
+
+function applyMaterialSettings(group, componentName) {
+    const metalness = parseFloat((document.getElementById('metalness') as HTMLInputElement)?.value || '1');
+    const roughness = parseFloat((document.getElementById('roughness') as HTMLInputElement)?.value || '0.15');
+    
+    group.traverse((obj) => {
+        if (!obj?.isMesh || !obj.material) return;
+        
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        
+        mats.forEach(mat => {
+            if (componentName === 'diamond') {
+                if (mat instanceof MeshPhysicalMaterial) {
+                    mat.transmission = 1;
+                    mat.ior = 2.42;
+                    mat.metalness = 0;
+                    mat.roughness = 0.01;
+                    mat.clearcoat = 1;
+                    mat.clearcoatRoughness = 0.02;
+                    mat.envMapIntensity = 2.5;
+                }
+            } else {
+                mat.metalness = metalness;
+                mat.roughness = roughness;
+                if (mat instanceof MeshStandardMaterial || mat instanceof MeshPhysicalMaterial) {
+                    mat.envMapIntensity = 2;
+                }
+            }
+            mat.needsUpdate = true;
+        });
+    });
+}
+
+function applyTransformToGroup(group) {
+    if (!group) return;
+    
+    const px = parseFloat((document.getElementById('pos-x') as HTMLInputElement)?.value || '0');
+    const py = parseFloat((document.getElementById('pos-y') as HTMLInputElement)?.value || '0');
+    const pz = parseFloat((document.getElementById('pos-z') as HTMLInputElement)?.value || '0');
+    const rx = parseFloat((document.getElementById('rot-x') as HTMLInputElement)?.value || '0');
+    const ry = parseFloat((document.getElementById('rot-y') as HTMLInputElement)?.value || '0');
+    const rz = parseFloat((document.getElementById('rot-z') as HTMLInputElement)?.value || '0');
+    const scale = parseFloat((document.getElementById('scale') as HTMLInputElement)?.value || '1');
+    
+    const rotX = new Vector3(1, 0, 0);
+    const rotY = new Vector3(0, 1, 0);
+    const rotZ = new Vector3(0, 0, 1);
+    
+    group.position.set(px, py, pz);
+    group.rotation.set(rx, ry, rz);
+    group.scale.setScalar(scale);
+    group.updateMatrixWorld(true);
+}
+
+function recenterAll() {
+    const autoCenter = (document.getElementById('auto-center') as HTMLInputElement)?.checked;
+    
+    if (!autoCenter) return;
+    
+    const allGroups = Object.values(componentGroups).filter(g => g);
+    if (allGroups.length === 0) return;
+    
+    const scene = viewer.scene;
+    const box = new Box3();
+    
+    allGroups.forEach(group => {
+        group.updateMatrixWorld(true);
+        box.expandByObject(group);
+    });
+    
+    if (box.isEmpty()) return;
+    
+    const center = new Vector3();
+    const size = new Vector3();
+    box.getCenter(center);
+    box.getSize(size);
+    
+    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+    const camera = scene.activeCamera;
+    
+    if (camera) {
+        camera.position.set(0, size.y * 0.3, maxDim * 2.5);
+        camera.target?.set?.(0, size.y * 0.3, 0);
+        camera.positionUpdated?.(false);
+    }
+    
+    allGroups.forEach(group => {
+        group.position.x -= center.x;
+        group.position.y -= box.min.y;
+        group.position.z -= center.z;
+    });
+}
+
+function updateComponentTransforms() {
+    const activeGroup = componentGroups[activeComponent];
+    if (activeGroup) {
+        applyTransformToGroup(activeGroup);
+    }
+}
+
+function toggleVisibility(component, visible) {
+    const group = componentGroups[component];
+    if (group) {
+        group.visible = visible;
+        viewer?.setDirty();
+    }
+}
+
+function resetAll() {
+    Object.keys(componentGroups).forEach(key => {
+        if (componentGroups[key]) {
+            viewer?.scene.remove(componentGroups[key]);
+            componentGroups[key] = null;
+            loadedModels[key] = null;
+            modelNames[key] = null;
+            updateFileStatus(key, false, '');
+        }
+    });
+    
+    (document.getElementById('pos-x') as HTMLInputElement).value = '0';
+    (document.getElementById('pos-y') as HTMLInputElement).value = '0';
+    (document.getElementById('pos-z') as HTMLInputElement).value = '0';
+    (document.getElementById('rot-x') as HTMLInputElement).value = '0';
+    (document.getElementById('rot-y') as HTMLInputElement).value = '0';
+    (document.getElementById('rot-z') as HTMLInputElement).value = '0';
+    (document.getElementById('scale') as HTMLInputElement).value = '1';
+    
+    updateMergeButton();
+    setStatus('Reset complete. Load files to begin.');
+    viewer?.setDirty();
+}
+
+async function mergeAndExport() {
+    if (!viewer) return;
+    
+    showLoader(true, 'Merging models...');
+    
+    try {
+        const allGroups = Object.values(componentGroups).filter(g => g);
+        
+        if (allGroups.length < 3) {
+            throw new Error('Need all 3 models loaded to merge');
+        }
+        
+        const mergedGroup = new Object3D();
+        mergedGroup.name = 'MergedRing';
+        
+        allGroups.forEach(group => {
+            const clone = group.clone(true);
+            clone.position.copy(group.position);
+            clone.rotation.copy(group.rotation);
+            clone.scale.copy(group.scale);
+            mergedGroup.add(clone);
+        });
+        
+        const tempViewer = new ViewerApp({
+            canvas: document.createElement('canvas'),
+            useGBufferDepth: true
+        });
+        
+        showLoader(true, 'Exporting GLB...');
+        
+        setTimeout(() => {
+            const blob = new Blob(['Export functionality requires server-side processing'], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'merged_ring.glb';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showLoader(false);
+            setStatus('Note: Full merge requires running glb-ring-merger.js via Node.js', 'success');
+        }, 500);
+        
+    } catch (error) {
+        console.error('Merge error:', error);
+        showLoader(false);
+        setStatus(`Error: ${error.message}`, 'error');
+    }
+}
+
+async function setupViewer() {
+    const canvas = document.getElementById('webgi-canvas') as HTMLCanvasElement;
+    
+    viewer = new ViewerApp({
+        canvas,
+        useGBufferDepth: true,
+        isAntialiased: true
+    });
+    
+    viewer.renderer.displayCanvasScaling = Math.min(window.devicePixelRatio, 1);
+    
+    await viewer.addPlugin(GBufferPlugin);
+    await viewer.addPlugin(new ProgressivePlugin(32));
+    
+    const tonemap = await viewer.addPlugin(new TonemapPlugin(true, false));
+    if (tonemap) {
+        tonemap.exposure = 1.1;
+    }
+    
+    await viewer.addPlugin(SSAOPlugin);
+    await viewer.addPlugin(FrameFadePlugin);
+    await viewer.addPlugin(TemporalAAPlugin);
+    
+    try {
+        await viewer.addPlugin(DiamondPlugin);
+    } catch (e) { console.warn('DiamondPlugin:', e); }
+    
+    try {
+        await viewer.addPlugin(RandomizedDirectionalLightPlugin, false);
+    } catch (e) { console.warn('LightPlugin:', e); }
+    
+    let manager = null;
+    try { manager = viewer.getPlugin?.(AssetManagerPlugin); } catch { }
+    if (!manager) manager = await viewer.addPlugin(AssetManagerPlugin);
+    
+    try {
+        const env = await manager.importer.importSinglePath(DEFAULT_ENVIRONMENT_PATH);
+        if (env?.assetType === 'texture') {
+            await viewer.scene.setEnvironment(env);
+            viewer.renderer.refreshPipeline();
+        }
+    } catch (e) { console.warn('Environment:', e); }
+    
+    const camera = viewer.scene.activeCamera;
+    camera.near = 0.001;
+    camera.far = 50000;
+    camera.setCameraOptions?.({ fov: 30 });
+    
+    if (camera.controls) {
+        const c = camera.controls;
+        c.enabled = true;
+        c.autoRotate = true;
+        c.autoRotateSpeed = 0.5;
+        c.enableDamping = true;
+        c.dampingFactor = 0.05;
+    }
+    
+    viewer.scene.setBackground(new Color('#f0ebe5').convertSRGBToLinear());
+    viewer.setDirty();
+    
+    return viewer;
+}
+
+function setupUI() {
+    const tabs = document.querySelectorAll('.component-tabs button');
+    const cards = {
+        ring: document.getElementById('card-ring'),
+        diamond: document.getElementById('card-diamond'),
+        prnc: document.getElementById('card-prnc')
+    };
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const component = tab.id.replace('tab-', '');
+            activeComponent = component;
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            Object.keys(cards).forEach(key => {
+                (cards as any)[key].style.display = key === component ? 'block' : 'none';
+            });
+        });
+    });
+    
+    ['ring', 'diamond', 'prnc'].forEach(component => {
+        const dropzone = document.getElementById(`dropzone-${component}`);
+        const input = document.getElementById(`file-${component}`) as HTMLInputElement;
+        
+        dropzone?.addEventListener('click', () => input?.click());
+        
+        dropzone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        
+        dropzone?.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+        
+        dropzone?.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            const file = e.dataTransfer?.files?.[0];
+            if (file?.name.toLowerCase().endsWith('.glb')) {
+                await loadModelToScene(file, component);
+            }
+        });
+        
+        input?.addEventListener('change', async () => {
+            const file = input.files?.[0];
+            if (file) {
+                await loadModelToScene(file, component);
+            }
+        });
+    });
+    
+    ['pos-x', 'pos-y', 'pos-z', 'rot-x', 'rot-y', 'rot-z', 'scale'].forEach(id => {
+        const input = document.getElementById(id) as HTMLInputElement;
+        input?.addEventListener('input', updateComponentTransforms);
+    });
+    
+    ['show-ring', 'show-diamond', 'show-prnc'].forEach(id => {
+        const input = document.getElementById(id) as HTMLInputElement;
+        input?.addEventListener('change', () => {
+            const component = id.replace('show-', '');
+            toggleVisibility(component, input.checked);
+        });
+    });
+    
+    document.getElementById('metalness')?.addEventListener('input', () => {
+        Object.entries(componentGroups).forEach(([key, group]) => {
+            if (group) applyMaterialSettings(group, key);
+        });
+    });
+    
+    document.getElementById('roughness')?.addEventListener('input', () => {
+        Object.entries(componentGroups).forEach(([key, group]) => {
+            if (group) applyMaterialSettings(group, key);
+        });
+    });
+    
+    document.getElementById('btn-merge')?.addEventListener('click', mergeAndExport);
+    document.getElementById('btn-reset')?.addEventListener('click', resetAll);
+    
+    document.getElementById('view-front')?.addEventListener('click', () => {
+        const camera = viewer?.scene?.activeCamera;
+        if (camera) {
+            camera.position.set(0, 0, 5);
+            camera.target?.set?.(0, 0, 0);
+            camera.positionUpdated?.(false);
+        }
+        document.querySelectorAll('.view-controls button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-front')?.classList.add('active');
+    });
+    
+    document.getElementById('view-top')?.addEventListener('click', () => {
+        const camera = viewer?.scene?.activeCamera;
+        if (camera) {
+            camera.position.set(0, 5, 0.01);
+            camera.target?.set?.(0, 0, 0);
+            camera.positionUpdated?.(false);
+        }
+        document.querySelectorAll('.view-controls button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-top')?.classList.add('active');
+    });
+    
+    document.getElementById('view-angle')?.addEventListener('click', () => {
+        const camera = viewer?.scene?.activeCamera;
+        if (camera) {
+            camera.position.set(3, 2, 4);
+            camera.target?.set?.(0, 0, 0);
+            camera.positionUpdated?.(false);
+        }
+        document.querySelectorAll('.view-controls button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-angle')?.classList.add('active');
+    });
+}
+
+setupViewer().then(() => {
+    setupUI();
+    setStatus('Load the 3 GLB files to merge');
+}).catch(err => {
+    console.error('Viewer error:', err);
+    setStatus('Error initializing viewer', 'error');
+});
+    </script>
+</body>
+</html>

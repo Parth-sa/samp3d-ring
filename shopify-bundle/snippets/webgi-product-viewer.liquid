@@ -1,0 +1,35 @@
+<link rel="stylesheet" href="{{ 'webgi-viewer.css' | asset_url }}">
+
+{%- assign model_url = product.metafields.glb.model | default: '' -%}
+{%- for media in product.media -%}
+  {%- if media.media_type == 'model' -%}
+    {%- assign model_url = media.sources[0].url | default: media.url -%}
+  {%- endif -%}
+{%- endfor -%}
+
+<div id="webgi-viewer-container" style="position:relative;width:100%;height:500px;overflow:hidden;background:#fff;border-radius:12px;">
+    <canvas id="webgi-canvas" style="width:100%;height:100%;display:block;"></canvas>
+
+    <div class="loader" id="loader">
+        <svg width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="20" stroke="#ddd" stroke-width="2" fill="none"/>
+            <circle cx="24" cy="24" r="20" stroke="#7f4e17" stroke-width="2" fill="none" stroke-dasharray="31.4 125.6" style="transform-origin:center;animation:spin 1s linear infinite;"/>
+        </svg>
+        <p>Loading 3D viewer...</p>
+    </div>
+
+    <div class="status-bar" id="setup-status" style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(255,255,255,0.85);backdrop-filter:blur(8px);padding:6px 16px;border-radius:999px;border:1px solid rgba(74,57,39,0.12);font-size:11px;white-space:nowrap;">Loading...</div>
+
+    <div id="frontend-error" class="error-banner" hidden></div>
+</div>
+
+<script>
+    window.WEBGI_VIEWER_CONFIG = {
+        modelPath: {% if model_url != '' %}'{{ model_url }}'{% else %}'{{ "assets/main.glb" | asset_url }}'{% endif %},
+        environmentPath: '{{ "assets/env_gem.hdr" | asset_url }}',
+        dracoDecoderPath: '{{ "assets/" | asset_url }}',
+        backgroundColor: '#ffffff',
+        initialZoomPercent: 60
+    };
+</script>
+<script src="{{ 'webgi-viewer.js' | asset_url }}" defer></script>

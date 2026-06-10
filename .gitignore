@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.parcel-cache/
+.cache/
+*.log
+.DS_Store
+nul
+_temp_*.glb
+test-*.glb
+diamonds-*.glb
+*-patched.glb
+*-full.glb
+parcel_err.txt
+parcel_out.txt
+temp_check_webgi/

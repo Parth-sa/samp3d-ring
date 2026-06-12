@@ -21,6 +21,7 @@ import {
     ShadowMaterial,
     EquirectangularReflectionMapping,
     Rhino3dmLoader2,
+    EXRLoadPlugin,
 } from './webgi-re-exports'
 import { patchGlbWithDiamondMetadata } from './webgiDiamondPatch'
 import { DiamondPlacementSystem } from './anchorDiamondPlacement'
@@ -202,6 +203,8 @@ export class IjewelViewer {
         if (ssao) (ssao as any).intensity = 0.25
         await this.viewer.addPlugin(FrameFadePlugin)
         await this.viewer.addPlugin(TemporalAAPlugin)
+        // Registers the .exr importer — without it env_gem_002.exr cannot load
+        try { await this.viewer.addPlugin(EXRLoadPlugin) } catch (e) { console.warn('EXRLoadPlugin failed', e) }
 
         try {
             const dp = await this.viewer.addPlugin(DiamondPlugin)

@@ -44,6 +44,18 @@ No lint, typecheck, or test scripts exist. No CI.
 | `glb-patcher.html` / `glb-patcher-tool.html` | Browser-based GLB diamond metadata patcher |
 | `glb-patcher.js` | Node.js CLI for same |
 | `anchorDiamondPlacement.ts` | `DiamondPlacementSystem` class — detects anchors (`MainAnchor`, `RND_SIDE_Anchor_*`), places diamond meshes |
+| `ring-builder.html` | Ring builder page — user selects shape/size/prong/band/shank/metal, loads 3 combined GLBs |
+| `src/ring-builder.ts` | WebGI logic for the ring builder — loads catalog.json, combines head+band+shank GLBs. Uses the same pipeline as the main viewer: fetches each part GLB, patches it via `patchGlbWithDiamondMetadata()` (with `fallbackToFirst: false`), then imports with `importSingle({path, file})` |
+| `assets/catalog.json` | Auto-generated catalog of all head/band/shank GLB files from `G:\3ddemo\signi` |
+
+### Ring-builder asset gotchas
+
+- **`assets/signi/sigli` heads are AES-GCM encrypted** (`WebGiGLBWrapper` — JSON chunk has only an `asset` key, BIN chunk is ciphertext). They cannot be loaded locally. The unencrypted Draco versions live in **`assets/signi/sigli headss`** (402 files) — `generate-catalog.py` scans that folder.
+- **`.exr` environment maps need `EXRLoadPlugin`** added to the viewer (`viewer.addPlugin(EXRLoadPlugin)`) — without it `importSinglePath('*.exr')` throws "Unable to find loader". `.hdr` works out of the box. `index.ts`/`ijewel-viewer.ts` do NOT add it, so their default `env_gem_002.exr` load silently fails and the scene runs on lights only.
+- Diamond meshes in the part GLBs are consistently named `Diamond_*` (nodes) with gem-named materials (`Small Diamond Band`, `Small Gem`, `Emerald_CS`, …), so the diamond name regex matches reliably.
+- **Never set `GroundPlugin.groundReflection = true`** — the Reflector2 mirror pass throws `Cannot read properties of undefined (reading 'flipX')` every frame in the diamond material's `onBeforeRender` and webgi sets `viewer.enabled = false` permanently (re-enabling doesn't stick). Baked shadows (`bakedShadows = true`) work fine.
+- The ring builder uses **two separate environments**: scene env (`setMetalEnvironment`) lights the metal, `DiamondPlugin.envMap` (`setGemEnvironment`, with `forceSceneEnvMap = false`) drives gem sparkle. Debug API on `window.__ringBuilder`.
+| `assets/signi/` | Junction to `G:\3ddemo\signi` — serves GLB files via dev server |
 
 ## Stale docs
 

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ring-builder",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["parcel", "ring-builder.html", "--port", "1234"],
+      "port": 1234
+    },
+    {
+      "name": "ring-builder-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "dist-ring-builder", "-p", "8123", "-c-1"],
+      "port": 8123
+    }
+  ]
+}

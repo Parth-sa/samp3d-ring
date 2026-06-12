@@ -143,7 +143,7 @@ function collectMaterialUsageNames(json: any) {
     return usage
 }
 
-export async function patchGlbWithDiamondMetadata(file: File, backgroundUrl?: string) {
+export async function patchGlbWithDiamondMetadata(file: File, backgroundUrl?: string, options?: { fallbackToFirst?: boolean }) {
     const arrayBuffer = await file.arrayBuffer()
     const { json, binChunk } = parseGlb(arrayBuffer)
     const materials = json.materials || []
@@ -157,6 +157,9 @@ export async function patchGlbWithDiamondMetadata(file: File, backgroundUrl?: st
         })
         .filter((index: number) => index >= 0)
 
+    // fallbackToFirst: false skips files with no diamond-named materials
+    // (e.g. all-metal ring parts) instead of guessing material 0
+    if (targetIndices.length === 0 && options?.fallbackToFirst === false) return file
     const patchIndices = targetIndices.length > 0 ? targetIndices : [0]
 
     json.extensionsUsed = Array.from(new Set([...(json.extensionsUsed || []), 'WEBGI_materials_diamond']))

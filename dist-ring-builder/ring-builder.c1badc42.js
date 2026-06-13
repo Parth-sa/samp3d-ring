@@ -72252,6 +72252,12 @@ Object.defineProperty(exports, "Box3", {
     return _webgi.Box3;
   }
 });
+Object.defineProperty(exports, "CanvasTexture", {
+  enumerable: true,
+  get: function () {
+    return _webgi.CanvasTexture;
+  }
+});
 Object.defineProperty(exports, "Color", {
   enumerable: true,
   get: function () {
@@ -72294,6 +72300,12 @@ Object.defineProperty(exports, "DirectionalLight", {
     return _webgi.DirectionalLight;
   }
 });
+Object.defineProperty(exports, "DoubleSide", {
+  enumerable: true,
+  get: function () {
+    return _webgi.DoubleSide;
+  }
+});
 Object.defineProperty(exports, "EXRLoadPlugin", {
   enumerable: true,
   get: function () {
@@ -72330,6 +72342,12 @@ Object.defineProperty(exports, "IcosahedronGeometry", {
     return _webgi.IcosahedronGeometry;
   }
 });
+Object.defineProperty(exports, "Matrix4", {
+  enumerable: true,
+  get: function () {
+    return _webgi.Matrix4;
+  }
+});
 Object.defineProperty(exports, "Mesh", {
   enumerable: true,
   get: function () {
@@ -72340,6 +72358,12 @@ Object.defineProperty(exports, "MeshPhysicalMaterial", {
   enumerable: true,
   get: function () {
     return _webgi.MeshPhysicalMaterial;
+  }
+});
+Object.defineProperty(exports, "MeshStandardMaterial", {
+  enumerable: true,
+  get: function () {
+    return _webgi.MeshStandardMaterial;
   }
 });
 Object.defineProperty(exports, "Object3D", {
@@ -72406,6 +72430,12 @@ Object.defineProperty(exports, "TonemapPlugin", {
   enumerable: true,
   get: function () {
     return _webgi.TonemapPlugin;
+  }
+});
+Object.defineProperty(exports, "TorusGeometry", {
+  enumerable: true,
+  get: function () {
+    return _webgi.TorusGeometry;
   }
 });
 Object.defineProperty(exports, "Vector3", {
@@ -72801,8 +72831,35 @@ var state = {
   prong: '',
   band: '',
   shank: '',
-  metal: 'whiteGold'
+  metal: 'whiteGold',
+  fingerSize: '7',
+  engraving: '',
+  engravingFont: 'script'
 };
+// US ring (finger) sizes — needed to actually manufacture/order the ring
+var FINGER_SIZES = ['4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '11', '12'];
+var ENGRAVING_FONTS = [{
+  id: 'script',
+  label: 'Script',
+  css: "'Segoe Script', 'Brush Script MT', cursive",
+  glyph: 'Aa'
+}, {
+  id: 'serif',
+  label: 'Serif',
+  css: "Georgia, 'Times New Roman', serif",
+  glyph: 'Aa'
+}, {
+  id: 'sans',
+  label: 'Sans',
+  css: "'Segoe UI', Arial, sans-serif",
+  glyph: 'Aa'
+}, {
+  id: 'block',
+  label: 'Block',
+  css: "'Arial Black', Impact, sans-serif",
+  glyph: 'AB'
+}];
+var ENGRAVING_MAX = 20;
 function byId(id) {
   return document.getElementById(id);
 }
@@ -72931,7 +72988,8 @@ function renderRefresh() {
 // Scene environment — lights the metal (and everything except diamonds)
 function setMetalEnvironment(_x2) {
   return _setMetalEnvironment.apply(this, arguments);
-} // DiamondPlugin env map — drives gem sparkle independently of the scene env
+} // Scene env brightness/rotation live on the scene, not on the texture.
+// envMapIntensity auto-calls refreshEnvMapIntensity across all materials.
 function _setMetalEnvironment() {
   _setMetalEnvironment = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(src) {
     var env;
@@ -72949,13 +73007,11 @@ function _setMetalEnvironment() {
           setError('Failed to load metal environment');
           return _context2.a(2);
         case 2:
-          ;
-          env.intensity = metalEnvIntensity;
-          env.rotation = metalEnvRotationDeg * (Math.PI / 180);
           _context2.n = 3;
           return viewer.scene.setEnvironment(env);
         case 3:
           metalEnvironment = env;
+          applyMetalEnvSettings();
           renderRefresh();
         case 4:
           return _context2.a(2);
@@ -72964,6 +73020,15 @@ function _setMetalEnvironment() {
   }));
   return _setMetalEnvironment.apply(this, arguments);
 }
+function applyMetalEnvSettings() {
+  var _viewer2;
+  var scene = (_viewer2 = viewer) === null || _viewer2 === void 0 ? void 0 : _viewer2.scene;
+  if (!scene) return;
+  scene.envMapIntensity = metalEnvIntensity;
+  if (typeof scene.refreshEnvMapIntensity === 'function') scene.refreshEnvMapIntensity();
+  if (metalEnvironment) metalEnvironment.rotation = metalEnvRotationDeg * (Math.PI / 180);
+}
+// DiamondPlugin env map — drives gem sparkle independently of the scene env
 function setGemEnvironment(_x3) {
   return _setGemEnvironment.apply(this, arguments);
 }
@@ -73038,6 +73103,115 @@ function getRingRoot() {
   if (ringModel.scene) return ringModel.scene;
   return ringModel;
 }
+// ── 3D engraving on the band ───────────────────────────────────────────
+// A thin partial torus textured with the engraving text, parented to the
+// ring root so it rotates with the ring and sits on the band's surface.
+var engravingMesh = null;
+// Band circle lies in the model-local XY plane (normal Z); the head inflates
+// +Y so the band centre is below the bbox centre. The text arc is a partial
+// torus in that plane, auto-rotated so its middle sits at the bottom (6 o'clock).
+// radiusScale hugs the band; rotZ is a fine offset. Tunable via __ringBuilder.eng3d.
+var eng3d = {
+  radiusScale: 0.92,
+  tube: 0.12,
+  arc: 1.0,
+  rotZ: 0,
+  yOff: 0
+};
+function computeLocalRingBox(root) {
+  var box = new _webgiReExports.Box3();
+  var inv = new _webgiReExports.Matrix4().copy(root.matrixWorld).invert();
+  var v = new _webgiReExports.Vector3();
+  root.traverse(function (c) {
+    if (!c.geometry || c === engravingMesh) return;
+    if (!c.geometry.boundingBox && c.geometry.computeBoundingBox) c.geometry.computeBoundingBox();
+    var bb = c.geometry.boundingBox;
+    if (!bb) return;
+    for (var i = 0; i < 8; i++) {
+      v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+      v.applyMatrix4(c.matrixWorld).applyMatrix4(inv);
+      box.expandByPoint(v);
+    }
+  });
+  return {
+    center: box.getCenter(new _webgiReExports.Vector3()),
+    size: box.getSize(new _webgiReExports.Vector3())
+  };
+}
+function makeEngravingTexture(text, fontCss) {
+  var canvas = document.createElement('canvas');
+  canvas.width = 2048;
+  canvas.height = 256;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#1a1206';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  var size = 170;
+  do {
+    ctx.font = "".concat(size, "px ").concat(fontCss);
+    if (ctx.measureText(text).width <= canvas.width * 0.92) break;
+    size -= 6;
+  } while (size > 30);
+  ctx.font = "".concat(size, "px ").concat(fontCss);
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 6);
+  var tex = new _webgiReExports.CanvasTexture(canvas);
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  return tex;
+}
+function removeEngraving3D() {
+  var _engravingMesh$parent, _engravingMesh$geomet, _engravingMesh$geomet2, _engravingMesh$materi, _engravingMesh$materi2, _engravingMesh$materi3, _engravingMesh$materi4;
+  if (!engravingMesh) return;
+  (_engravingMesh$parent = engravingMesh.parent) === null || _engravingMesh$parent === void 0 || _engravingMesh$parent.remove(engravingMesh);
+  (_engravingMesh$geomet = engravingMesh.geometry) === null || _engravingMesh$geomet === void 0 || (_engravingMesh$geomet2 = _engravingMesh$geomet.dispose) === null || _engravingMesh$geomet2 === void 0 || _engravingMesh$geomet2.call(_engravingMesh$geomet);
+  (_engravingMesh$materi = engravingMesh.material) === null || _engravingMesh$materi === void 0 || (_engravingMesh$materi = _engravingMesh$materi.map) === null || _engravingMesh$materi === void 0 || (_engravingMesh$materi2 = _engravingMesh$materi.dispose) === null || _engravingMesh$materi2 === void 0 || _engravingMesh$materi2.call(_engravingMesh$materi);
+  (_engravingMesh$materi3 = engravingMesh.material) === null || _engravingMesh$materi3 === void 0 || (_engravingMesh$materi4 = _engravingMesh$materi3.dispose) === null || _engravingMesh$materi4 === void 0 || _engravingMesh$materi4.call(_engravingMesh$materi3);
+  engravingMesh = null;
+}
+function updateEngraving3D() {
+  var _viewer4;
+  removeEngraving3D();
+  var root = getRingRoot();
+  if (!root || !modelLoaded || !state.engraving.trim()) {
+    var _viewer3;
+    (_viewer3 = viewer) === null || _viewer3 === void 0 || _viewer3.setDirty();
+    return;
+  }
+  var _computeLocalRingBox = computeLocalRingBox(root),
+    center = _computeLocalRingBox.center,
+    size = _computeLocalRingBox.size;
+  // Band diameter ≈ left-right extent (size.x); the head only inflates +Y.
+  var ringRadius = size.x / 2;
+  var radius = ringRadius * eng3d.radiusScale;
+  // Band-circle centre sits at the bottom of the bbox + one radius up
+  var yCenter = center.y - size.y / 2 + ringRadius + eng3d.yOff;
+  var fontCss = engravingFontCss(state.engravingFont);
+  var tex = makeEngravingTexture(state.engraving, fontCss);
+  var tubeR = ringRadius * eng3d.tube;
+  var geo = new _webgiReExports.TorusGeometry(radius, tubeR, 24, 256, eng3d.arc);
+  var mat = new _webgiReExports.MeshStandardMaterial({
+    map: tex,
+    transparent: true,
+    metalness: 0,
+    roughness: 0.5,
+    side: _webgiReExports.DoubleSide
+  });
+  mat.polygonOffset = true;
+  mat.polygonOffsetFactor = -1;
+  mat.polygonOffsetUnits = -1;
+  var mesh = new _webgiReExports.Mesh(geo, mat);
+  mesh.position.set(center.x, yCenter, center.z);
+  // Torus already lies in the band's XY plane; rotate within it so the arc
+  // (which starts at +X) is centred at the bottom (-Y).
+  mesh.rotation.set(0, 0, -Math.PI / 2 - eng3d.arc / 2 + eng3d.rotZ);
+  mesh.name = 'engraving-3d';
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
+  root.add(mesh);
+  engravingMesh = mesh;
+  (_viewer4 = viewer) === null || _viewer4 === void 0 || _viewer4.setDirty();
+}
 function applyMetal(mat) {
   if (!mat) return;
   try {
@@ -73062,15 +73236,15 @@ function syncMetalProfileFromPreset(presetId) {
   syncTuningInputs();
 }
 function refreshMaterials() {
-  var _viewer2, _viewer2$getPlugin, _viewer3;
+  var _viewer5, _viewer5$getPlugin, _viewer6;
   var root = getRingRoot();
   if (root) applyMaterials(root);
-  var pp = (_viewer2 = viewer) === null || _viewer2 === void 0 || (_viewer2$getPlugin = _viewer2.getPlugin) === null || _viewer2$getPlugin === void 0 ? void 0 : _viewer2$getPlugin.call(_viewer2, _webgiReExports.ProgressivePlugin);
+  var pp = (_viewer5 = viewer) === null || _viewer5 === void 0 || (_viewer5$getPlugin = _viewer5.getPlugin) === null || _viewer5$getPlugin === void 0 ? void 0 : _viewer5$getPlugin.call(_viewer5, _webgiReExports.ProgressivePlugin);
   if (pp && typeof pp.reset === 'function') pp.reset();
   try {
     viewer.renderer.refreshPipeline();
   } catch (_unused4) {}
-  (_viewer3 = viewer) === null || _viewer3 === void 0 || _viewer3.setDirty();
+  (_viewer6 = viewer) === null || _viewer6 === void 0 || _viewer6.setDirty();
 }
 // Sync the WEBGI_materials_diamond extension data (DiamondPlugin reads this),
 // then set DiamondMaterial-supported properties directly on the shader.
@@ -73385,7 +73559,7 @@ function buildRing() {
 }
 function _buildRing() {
   _buildRing = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
-    var _viewer$getPlugin2, _viewer10, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t4;
+    var _viewer$getPlugin2, _viewer13, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t4;
     return _regenerator().w(function (_context6) {
       while (1) switch (_context6.p = _context6.n) {
         case 0:
@@ -73507,11 +73681,12 @@ function _buildRing() {
         case 12:
           frameModel();
           modelLoaded = true;
-          pp = (_viewer$getPlugin2 = (_viewer10 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer10, _webgiReExports.ProgressivePlugin);
+          updateEngraving3D();
+          pp = (_viewer$getPlugin2 = (_viewer13 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer13, _webgiReExports.ProgressivePlugin);
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
-          } catch (_unused6) {}
+          } catch (_unused7) {}
           viewer.setDirty();
           setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
           updateSummary();
@@ -73557,6 +73732,15 @@ function updateSummary() {
   byId('summary-band').textContent = bl;
   byId('summary-shank').textContent = shl;
   byId('summary-metal').textContent = ml;
+  byId('summary-finger').textContent = "US ".concat(state.fingerSize);
+  var eng = byId('summary-engraving');
+  if (eng) {
+    var _ENGRAVING_FONTS$find;
+    var fontLabel = ((_ENGRAVING_FONTS$find = ENGRAVING_FONTS.find(function (f) {
+      return f.id === state.engravingFont;
+    })) === null || _ENGRAVING_FONTS$find === void 0 ? void 0 : _ENGRAVING_FONTS$find.label) || '';
+    eng.textContent = state.engraving ? "\"".concat(state.engraving, "\" (").concat(fontLabel, ")") : '—';
+  }
 }
 function bindGrid(containerId, items, stateKey, icons) {
   var sm = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
@@ -73594,6 +73778,105 @@ function bindSizes() {
       updateSummary();
     });
   });
+}
+// Finger/ring size — independent of the diamond carat, captured for the order
+function bindFingerSizes() {
+  var grid = byId('finger-size-grid');
+  if (!grid) return;
+  grid.innerHTML = FINGER_SIZES.map(function (s) {
+    return "\n        <div class=\"size-btn".concat(state.fingerSize === s ? ' selected' : '', "\" data-value=\"").concat(s, "\">").concat(s, "</div>\n    ");
+  }).join('');
+  grid.querySelectorAll('.size-btn').forEach(function (el) {
+    el.addEventListener('click', function () {
+      state.fingerSize = el.dataset.value || '7';
+      grid.querySelectorAll('.size-btn').forEach(function (c) {
+        return c.classList.remove('selected');
+      });
+      el.classList.add('selected');
+      updateSummary();
+    });
+  });
+}
+function engravingFontCss(id) {
+  var _ENGRAVING_FONTS$find2;
+  return ((_ENGRAVING_FONTS$find2 = ENGRAVING_FONTS.find(function (f) {
+    return f.id === id;
+  })) === null || _ENGRAVING_FONTS$find2 === void 0 ? void 0 : _ENGRAVING_FONTS$find2.css) || 'inherit';
+}
+function updateEngravingPreview() {
+  var preview = byId('engraving-preview');
+  var txt = byId('engraving-preview-text');
+  var counter = byId('engraving-count');
+  if (counter) counter.textContent = "".concat(state.engraving.length, " / ").concat(ENGRAVING_MAX);
+  if (!preview || !txt) return;
+  if (state.engraving.trim()) {
+    preview.hidden = false;
+    txt.textContent = state.engraving;
+    txt.style.fontFamily = engravingFontCss(state.engravingFont);
+  } else {
+    preview.hidden = true;
+  }
+}
+function bindEngraving() {
+  var input = byId('engraving-input');
+  if (input) {
+    input.value = state.engraving;
+    input.addEventListener('input', function () {
+      state.engraving = input.value.slice(0, ENGRAVING_MAX);
+      updateEngravingPreview();
+      updateSummary();
+      updateEngraving3D();
+    });
+  }
+  var grid = byId('engraving-font-grid');
+  if (grid) {
+    grid.innerHTML = ENGRAVING_FONTS.map(function (f) {
+      return "\n            <div class=\"engraving-font".concat(state.engravingFont === f.id ? ' selected' : '', "\" data-value=\"").concat(f.id, "\" style=\"font-family:").concat(f.css.replace(/"/g, '&quot;'), "\">\n                ").concat(f.glyph, "<span class=\"lbl\">").concat(f.label, "</span>\n            </div>\n        ");
+    }).join('');
+    grid.querySelectorAll('.engraving-font').forEach(function (el) {
+      el.addEventListener('click', function () {
+        state.engravingFont = el.dataset.value || 'script';
+        grid.querySelectorAll('.engraving-font').forEach(function (c) {
+          return c.classList.remove('selected');
+        });
+        el.classList.add('selected');
+        updateEngravingPreview();
+        updateSummary();
+        updateEngraving3D();
+      });
+    });
+  }
+  updateEngravingPreview();
+}
+// Full configuration — the bridge to Shopify "add to cart" (line-item properties)
+function getConfiguration() {
+  var _METAL_PRESETS$find2, _ENGRAVING_FONTS$find3;
+  var label = function label(arr, id) {
+    var _arr$find;
+    return ((_arr$find = arr.find(function (x) {
+      return x.id === id;
+    })) === null || _arr$find === void 0 ? void 0 : _arr$find.label) || id;
+  };
+  return {
+    diamondShape: label(catalog.shapes, state.shape),
+    diamondShapeId: state.shape,
+    caratSize: state.size,
+    prong: label(catalog.prongs, state.prong),
+    prongId: state.prong,
+    bandStyle: label(catalog.bandStyles, state.band),
+    bandId: state.band,
+    shankStyle: label(catalog.shankStyles, state.shank),
+    shankId: state.shank,
+    metal: ((_METAL_PRESETS$find2 = METAL_PRESETS.find(function (m) {
+      return m.id === state.metal;
+    })) === null || _METAL_PRESETS$find2 === void 0 ? void 0 : _METAL_PRESETS$find2.label) || state.metal,
+    metalId: state.metal,
+    ringSize: state.fingerSize,
+    engraving: state.engraving,
+    engravingFont: ((_ENGRAVING_FONTS$find3 = ENGRAVING_FONTS.find(function (f) {
+      return f.id === state.engravingFont;
+    })) === null || _ENGRAVING_FONTS$find3 === void 0 ? void 0 : _ENGRAVING_FONTS$find3.label) || state.engravingFont
+  };
 }
 function fmt(v) {
   var digits = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
@@ -73633,15 +73916,14 @@ function bindCtl(id, onInput) {
   });
 }
 function metalEnvTweaked() {
-  var _viewer4, _viewer4$getPlugin, _viewer5;
-  if (metalEnvironment) {
-    ;
-    metalEnvironment.intensity = metalEnvIntensity;
-    metalEnvironment.rotation = metalEnvRotationDeg * (Math.PI / 180);
-  }
-  var pp = (_viewer4 = viewer) === null || _viewer4 === void 0 || (_viewer4$getPlugin = _viewer4.getPlugin) === null || _viewer4$getPlugin === void 0 ? void 0 : _viewer4$getPlugin.call(_viewer4, _webgiReExports.ProgressivePlugin);
+  var _viewer7, _viewer7$getPlugin, _viewer8;
+  applyMetalEnvSettings();
+  var pp = (_viewer7 = viewer) === null || _viewer7 === void 0 || (_viewer7$getPlugin = _viewer7.getPlugin) === null || _viewer7$getPlugin === void 0 ? void 0 : _viewer7$getPlugin.call(_viewer7, _webgiReExports.ProgressivePlugin);
   if (pp && typeof pp.reset === 'function') pp.reset();
-  (_viewer5 = viewer) === null || _viewer5 === void 0 || _viewer5.setDirty();
+  try {
+    viewer.renderer.refreshPipeline();
+  } catch (_unused6) {}
+  (_viewer8 = viewer) === null || _viewer8 === void 0 || _viewer8.setDirty();
 }
 function setupTuningPanel() {
   // Metal
@@ -73774,26 +74056,26 @@ function setupTuningPanel() {
   });
   // Scene
   bindCtl('tn-bg-color', function (v) {
-    var _viewer6, _viewer7;
-    (_viewer6 = viewer) === null || _viewer6 === void 0 || _viewer6.scene.setBackground(linColor(v));
-    (_viewer7 = viewer) === null || _viewer7 === void 0 || _viewer7.setDirty();
+    var _viewer9, _viewer0;
+    (_viewer9 = viewer) === null || _viewer9 === void 0 || _viewer9.scene.setBackground(linColor(v));
+    (_viewer0 = viewer) === null || _viewer0 === void 0 || _viewer0.setDirty();
   });
   bindCtl('tn-exposure', function (v) {
-    var _viewer8;
+    var _viewer1;
     if (tonemapPlugin) tonemapPlugin.exposure = Number(v);
-    (_viewer8 = viewer) === null || _viewer8 === void 0 || _viewer8.setDirty();
+    (_viewer1 = viewer) === null || _viewer1 === void 0 || _viewer1.setDirty();
     return fmt(Number(v));
   });
   bindCtl('tn-contrast', function (v) {
-    var _viewer9;
+    var _viewer10;
     if (tonemapPlugin) tonemapPlugin.contrast = Number(v);
-    (_viewer9 = viewer) === null || _viewer9 === void 0 || _viewer9.setDirty();
+    (_viewer10 = viewer) === null || _viewer10 === void 0 || _viewer10.setDirty();
     return fmt(Number(v));
   });
   bindCtl('tn-saturation', function (v) {
-    var _viewer0;
+    var _viewer11;
     if (tonemapPlugin) tonemapPlugin.saturation = Number(v);
-    (_viewer0 = viewer) === null || _viewer0 === void 0 || _viewer0.setDirty();
+    (_viewer11 = viewer) === null || _viewer11 === void 0 || _viewer11.setDirty();
     return fmt(Number(v));
   });
   // Shadow strength = contact-shadow ground opacity (white ground on white
@@ -73812,9 +74094,9 @@ function setupTuningPanel() {
   });
   var autoR = document.getElementById('tn-autorotate');
   autoR === null || autoR === void 0 || autoR.addEventListener('change', function () {
-    var _viewer1;
+    var _viewer12;
     autoRotate = !!autoR.checked;
-    (_viewer1 = viewer) === null || _viewer1 === void 0 || _viewer1.setDirty();
+    (_viewer12 = viewer) === null || _viewer12 === void 0 || _viewer12.setDirty();
   });
   bindCtl('tn-autorotate-speed', function (v) {
     autoRotateSpeed = Number(v);
@@ -73868,6 +74150,8 @@ function _init() {
             setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
           });
           syncMetalProfileFromPreset(state.metal);
+          bindFingerSizes();
+          bindEngraving();
           setupTuningPanel();
           updateSummary();
           setLoader('Starting 3D viewer...');
@@ -74032,7 +74316,7 @@ function _init() {
               try {
                 var rr = viewer.renderer.rendererObject;
                 if (rr !== null && rr !== void 0 && rr.shadowMap) rr.shadowMap.needsUpdate = true;
-              } catch (_unused10) {}
+              } catch (_unused11) {}
               viewer.setDirty();
             }
           });
@@ -74140,7 +74424,13 @@ window.__ringBuilder = {
   },
   setMetalEnvironment: setMetalEnvironment,
   setGemEnvironment: setGemEnvironment,
-  buildRing: buildRing
+  buildRing: buildRing,
+  getConfiguration: getConfiguration,
+  eng3d: eng3d,
+  updateEngraving3D: updateEngraving3D,
+  get engravingMesh() {
+    return engravingMesh;
+  }
 };
 },{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"hxGN"}]},{},["QXV9"], null)
-//# sourceMappingURL=ring-builder.19df96b3.js.map
+//# sourceMappingURL=ring-builder.c1badc42.js.map

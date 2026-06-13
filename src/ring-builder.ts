@@ -20,6 +20,11 @@ import {
     FrameFadePlugin,
     TemporalAAPlugin,
     RandomizedDirectionalLightPlugin,
+    TorusGeometry,
+    MeshStandardMaterial,
+    CanvasTexture,
+    Matrix4,
+    DoubleSide,
 } from './webgi-re-exports'
 import { patchGlbWithDiamondMetadata } from './webgiDiamondPatch'
 
@@ -131,7 +136,19 @@ const metalProfile = { color: '#e8e8e8', metalness: 1, roughness: 0.1, envIntens
 
 const state: Record<string, string> = {
     shape: '', size: '', prong: '', band: '', shank: '', metal: 'whiteGold',
+    fingerSize: '7', engraving: '', engravingFont: 'script',
 }
+
+// US ring (finger) sizes — needed to actually manufacture/order the ring
+const FINGER_SIZES = ['4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '11', '12']
+
+const ENGRAVING_FONTS = [
+    { id: 'script', label: 'Script', css: "'Segoe Script', 'Brush Script MT', cursive", glyph: 'Aa' },
+    { id: 'serif', label: 'Serif', css: "Georgia, 'Times New Roman', serif", glyph: 'Aa' },
+    { id: 'sans', label: 'Sans', css: "'Segoe UI', Arial, sans-serif", glyph: 'Aa' },
+    { id: 'block', label: 'Block', css: "'Arial Black', Impact, sans-serif", glyph: 'AB' },
+]
+const ENGRAVING_MAX = 20
 
 function byId(id: string) { return document.getElementById(id) as HTMLElement }
 function setStatus(msg: string, isError = false) {
@@ -192,11 +209,20 @@ function renderRefresh() {
 async function setMetalEnvironment(src: string | File) {
     const env = await importEnvTexture(src)
     if (!env) { setError('Failed to load metal environment'); return }
-    ;(env as any).intensity = metalEnvIntensity
-    ;(env as any).rotation = metalEnvRotationDeg * (Math.PI / 180)
     await viewer.scene.setEnvironment(env)
     metalEnvironment = env
+    applyMetalEnvSettings()
     renderRefresh()
+}
+
+// Scene env brightness/rotation live on the scene, not on the texture.
+// envMapIntensity auto-calls refreshEnvMapIntensity across all materials.
+function applyMetalEnvSettings() {
+    const scene: any = viewer?.scene
+    if (!scene) return
+    scene.envMapIntensity = metalEnvIntensity
+    if (typeof scene.refreshEnvMapIntensity === 'function') scene.refreshEnvMapIntensity()
+    if (metalEnvironment) (metalEnvironment as any).rotation = metalEnvRotationDeg * (Math.PI / 180)
 }
 
 // DiamondPlugin env map — drives gem sparkle independently of the scene env
@@ -227,6 +253,88 @@ function getRingRoot() {
     if ((ringModel as any).modelObject) return (ringModel as any).modelObject
     if ((ringModel as any).scene) return (ringModel as any).scene
     return ringModel
+}
+
+// ── 3D engraving on the band ───────────────────────────────────────────
+// A thin partial torus textured with the engraving text, parented to the
+// ring root so it rotates with the ring and sits on the band's surface.
+let engravingMesh: any = null
+// Band circle lies in the model-local XY plane (normal Z); the head inflates
+// +Y so the band centre is below the bbox centre. The text arc is a partial
+// torus in that plane, auto-rotated so its middle sits at the bottom (6 o'clock).
+// radiusScale hugs the band; rotZ is a fine offset. Tunable via __ringBuilder.eng3d.
+const eng3d = { radiusScale: 0.92, tube: 0.12, arc: 1.0, rotZ: 0, yOff: 0 }
+
+function computeLocalRingBox(root: any): { center: Vector3; size: Vector3 } {
+    const box = new Box3()
+    const inv = new Matrix4().copy(root.matrixWorld).invert()
+    const v = new Vector3()
+    root.traverse((c: any) => {
+        if (!c.geometry || c === engravingMesh) return
+        if (!c.geometry.boundingBox && c.geometry.computeBoundingBox) c.geometry.computeBoundingBox()
+        const bb = c.geometry.boundingBox
+        if (!bb) return
+        for (let i = 0; i < 8; i++) {
+            v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z)
+            v.applyMatrix4(c.matrixWorld).applyMatrix4(inv)
+            box.expandByPoint(v)
+        }
+    })
+    return { center: box.getCenter(new Vector3()), size: box.getSize(new Vector3()) }
+}
+
+function makeEngravingTexture(text: string, fontCss: string) {
+    const canvas = document.createElement('canvas')
+    canvas.width = 2048; canvas.height = 256
+    const ctx = canvas.getContext('2d')!
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#1a1206'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    let size = 170
+    do { ctx.font = `${size}px ${fontCss}`; if (ctx.measureText(text).width <= canvas.width * 0.92) break; size -= 6 } while (size > 30)
+    ctx.font = `${size}px ${fontCss}`
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 6)
+    const tex = new CanvasTexture(canvas)
+    ;(tex as any).anisotropy = 8
+    tex.needsUpdate = true
+    return tex
+}
+
+function removeEngraving3D() {
+    if (!engravingMesh) return
+    engravingMesh.parent?.remove(engravingMesh)
+    engravingMesh.geometry?.dispose?.()
+    engravingMesh.material?.map?.dispose?.()
+    engravingMesh.material?.dispose?.()
+    engravingMesh = null
+}
+
+function updateEngraving3D() {
+    removeEngraving3D()
+    const root = getRingRoot()
+    if (!root || !modelLoaded || !state.engraving.trim()) { viewer?.setDirty(); return }
+    const { center, size } = computeLocalRingBox(root)
+    // Band diameter ≈ left-right extent (size.x); the head only inflates +Y.
+    const ringRadius = size.x / 2
+    const radius = ringRadius * eng3d.radiusScale
+    // Band-circle centre sits at the bottom of the bbox + one radius up
+    const yCenter = center.y - size.y / 2 + ringRadius + eng3d.yOff
+    const fontCss = engravingFontCss(state.engravingFont)
+    const tex = makeEngravingTexture(state.engraving, fontCss)
+    const tubeR = ringRadius * eng3d.tube
+    const geo = new TorusGeometry(radius, tubeR, 24, 256, eng3d.arc)
+    const mat = new MeshStandardMaterial({ map: tex, transparent: true, metalness: 0, roughness: 0.5, side: DoubleSide })
+    ;(mat as any).polygonOffset = true; (mat as any).polygonOffsetFactor = -1; (mat as any).polygonOffsetUnits = -1
+    const mesh = new Mesh(geo, mat)
+    mesh.position.set(center.x, yCenter, center.z)
+    // Torus already lies in the band's XY plane; rotate within it so the arc
+    // (which starts at +X) is centred at the bottom (-Y).
+    mesh.rotation.set(0, 0, -Math.PI / 2 - eng3d.arc / 2 + eng3d.rotZ)
+    mesh.name = 'engraving-3d'
+    mesh.castShadow = false; mesh.receiveShadow = false
+    root.add(mesh)
+    engravingMesh = mesh
+    viewer?.setDirty()
 }
 
 function applyMetal(mat: any) {
@@ -517,6 +625,7 @@ async function buildRing() {
         frameModel()
 
         modelLoaded = true
+        updateEngraving3D()
         const pp = viewer.getPlugin?.(ProgressivePlugin) as any
         if (pp && typeof pp.reset === 'function') pp.reset()
         try { (viewer.renderer as any).refreshPipeline() } catch {}
@@ -545,6 +654,12 @@ function updateSummary() {
     byId('summary-band').textContent = bl
     byId('summary-shank').textContent = shl
     byId('summary-metal').textContent = ml
+    byId('summary-finger').textContent = `US ${state.fingerSize}`
+    const eng = byId('summary-engraving')
+    if (eng) {
+        const fontLabel = ENGRAVING_FONTS.find(f => f.id === state.engravingFont)?.label || ''
+        eng.textContent = state.engraving ? `"${state.engraving}" (${fontLabel})` : '—'
+    }
 }
 
 function bindGrid(containerId: string, items: { id: string; label: string }[], stateKey: string, icons?: Record<string, string>, sm = false, onSelect?: (id: string) => void) {
@@ -581,6 +696,95 @@ function bindSizes() {
             updateSummary()
         })
     })
+}
+
+// Finger/ring size — independent of the diamond carat, captured for the order
+function bindFingerSizes() {
+    const grid = byId('finger-size-grid')
+    if (!grid) return
+    grid.innerHTML = FINGER_SIZES.map(s => `
+        <div class="size-btn${state.fingerSize === s ? ' selected' : ''}" data-value="${s}">${s}</div>
+    `).join('')
+    grid.querySelectorAll('.size-btn').forEach(el => {
+        el.addEventListener('click', () => {
+            state.fingerSize = (el as HTMLElement).dataset.value || '7'
+            grid.querySelectorAll('.size-btn').forEach(c => c.classList.remove('selected'))
+            el.classList.add('selected')
+            updateSummary()
+        })
+    })
+}
+
+function engravingFontCss(id: string) {
+    return ENGRAVING_FONTS.find(f => f.id === id)?.css || 'inherit'
+}
+
+function updateEngravingPreview() {
+    const preview = byId('engraving-preview')
+    const txt = byId('engraving-preview-text')
+    const counter = byId('engraving-count')
+    if (counter) counter.textContent = `${state.engraving.length} / ${ENGRAVING_MAX}`
+    if (!preview || !txt) return
+    if (state.engraving.trim()) {
+        preview.hidden = false
+        txt.textContent = state.engraving
+        ;(txt as HTMLElement).style.fontFamily = engravingFontCss(state.engravingFont)
+    } else {
+        preview.hidden = true
+    }
+}
+
+function bindEngraving() {
+    const input = byId('engraving-input') as HTMLInputElement | null
+    if (input) {
+        input.value = state.engraving
+        input.addEventListener('input', () => {
+            state.engraving = input.value.slice(0, ENGRAVING_MAX)
+            updateEngravingPreview()
+            updateSummary()
+            updateEngraving3D()
+        })
+    }
+    const grid = byId('engraving-font-grid')
+    if (grid) {
+        grid.innerHTML = ENGRAVING_FONTS.map(f => `
+            <div class="engraving-font${state.engravingFont === f.id ? ' selected' : ''}" data-value="${f.id}" style="font-family:${f.css.replace(/"/g, '&quot;')}">
+                ${f.glyph}<span class="lbl">${f.label}</span>
+            </div>
+        `).join('')
+        grid.querySelectorAll('.engraving-font').forEach(el => {
+            el.addEventListener('click', () => {
+                state.engravingFont = (el as HTMLElement).dataset.value || 'script'
+                grid.querySelectorAll('.engraving-font').forEach(c => c.classList.remove('selected'))
+                el.classList.add('selected')
+                updateEngravingPreview()
+                updateSummary()
+                updateEngraving3D()
+            })
+        })
+    }
+    updateEngravingPreview()
+}
+
+// Full configuration — the bridge to Shopify "add to cart" (line-item properties)
+function getConfiguration() {
+    const label = (arr: { id: string; label: string }[], id: string) => arr.find(x => x.id === id)?.label || id
+    return {
+        diamondShape: label(catalog.shapes, state.shape),
+        diamondShapeId: state.shape,
+        caratSize: state.size,
+        prong: label(catalog.prongs, state.prong),
+        prongId: state.prong,
+        bandStyle: label(catalog.bandStyles, state.band),
+        bandId: state.band,
+        shankStyle: label(catalog.shankStyles, state.shank),
+        shankId: state.shank,
+        metal: METAL_PRESETS.find(m => m.id === state.metal)?.label || state.metal,
+        metalId: state.metal,
+        ringSize: state.fingerSize,
+        engraving: state.engraving,
+        engravingFont: ENGRAVING_FONTS.find(f => f.id === state.engravingFont)?.label || state.engravingFont,
+    }
 }
 
 function fmt(v: number, digits = 2) { return v.toFixed(digits) }
@@ -622,12 +826,10 @@ function bindCtl(id: string, onInput: (v: string) => string | void) {
 }
 
 function metalEnvTweaked() {
-    if (metalEnvironment) {
-        ;(metalEnvironment as any).intensity = metalEnvIntensity
-        ;(metalEnvironment as any).rotation = metalEnvRotationDeg * (Math.PI / 180)
-    }
+    applyMetalEnvSettings()
     const pp = viewer?.getPlugin?.(ProgressivePlugin) as any
     if (pp && typeof pp.reset === 'function') pp.reset()
+    try { (viewer.renderer as any).refreshPipeline() } catch {}
     viewer?.setDirty()
 }
 
@@ -726,6 +928,8 @@ async function init() {
         setStatus(`${state.prong} ${state.shape} ${state.size}ct · ${state.metal}`)
     })
     syncMetalProfileFromPreset(state.metal)
+    bindFingerSizes()
+    bindEngraving()
     setupTuningPanel()
     updateSummary()
 
@@ -873,4 +1077,8 @@ init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hi
     setMetalEnvironment,
     setGemEnvironment,
     buildRing,
+    getConfiguration,
+    eng3d,
+    updateEngraving3D,
+    get engravingMesh() { return engravingMesh },
 }

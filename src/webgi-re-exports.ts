@@ -31,4 +31,9 @@ export {
     MeshPhysicalMaterial,
     IcosahedronGeometry,
     CylinderGeometry,
+    TorusGeometry,
+    MeshStandardMaterial,
+    CanvasTexture,
+    Matrix4,
+    DoubleSide,
 } from 'webgi'

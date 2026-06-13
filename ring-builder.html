@@ -101,6 +101,33 @@
         }
         .section-title .count { font-weight: 400; font-size: 10px; color: var(--text-muted); opacity: 0.6; }
 
+        .engraving-input {
+            width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+            border: 1.5px solid var(--surface-border); background: white;
+            font-size: 13px; color: var(--text); margin-bottom: 8px;
+            transition: border-color 0.15s;
+        }
+        .engraving-input:focus { outline: none; border-color: var(--accent); }
+        .engraving-fonts { display: flex; gap: 6px; flex-wrap: wrap; }
+        .engraving-font {
+            flex: 1; min-width: 64px; padding: 8px 6px; border-radius: 8px;
+            border: 1.5px solid var(--surface-border); background: white; cursor: pointer;
+            text-align: center; font-size: 16px; color: var(--text); transition: all 0.15s; user-select: none;
+        }
+        .engraving-font:hover { border-color: var(--accent-light); }
+        .engraving-font.selected { border-color: var(--accent); background: rgba(182,122,54,0.1); box-shadow: 0 0 0 1px var(--accent); }
+        .engraving-font .lbl { display: block; font-size: 9px; font-weight: 600; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .engraving-preview {
+            margin-top: 10px; padding: 14px 12px; border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, #efe9df, #e4dccd);
+            border: 1px solid rgba(74,57,39,0.15);
+            text-align: center; font-size: 22px; color: #5a4a34;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 -1px 1px rgba(0,0,0,0.25);
+            letter-spacing: 1px; word-break: break-word; min-height: 24px;
+        }
+        .engraving-preview[hidden] { display: none; }
+        .engraving-preview .ep-label { display: block; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); text-shadow: none; margin-bottom: 4px; }
+
         .option-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px;
         }
@@ -191,7 +218,9 @@
                 <strong>Prong:</strong> <span id="summary-prong">—</span><br>
                 <strong>Band:</strong> <span id="summary-band">—</span><br>
                 <strong>Shank:</strong> <span id="summary-shank">—</span><br>
-                <strong>Metal:</strong> <span id="summary-metal">—</span>
+                <strong>Metal:</strong> <span id="summary-metal">—</span><br>
+                <strong>Ring size:</strong> <span id="summary-finger">—</span><br>
+                <strong>Engraving:</strong> <span id="summary-engraving">—</span>
             </div>
 
             <!-- Diamond Shape -->
@@ -228,6 +257,20 @@
             <div class="section">
                 <div class="section-title">Metal Type</div>
                 <div class="option-grid" id="metal-grid"></div>
+            </div>
+
+            <!-- Ring Size (finger) -->
+            <div class="section">
+                <div class="section-title">Ring Size (finger)</div>
+                <div class="size-selector" id="finger-size-grid"></div>
+            </div>
+
+            <!-- Engraving -->
+            <div class="section">
+                <div class="section-title">Engraving <span class="count" id="engraving-count">0 / 20</span></div>
+                <input type="text" id="engraving-input" class="engraving-input" maxlength="20" placeholder="e.g. Forever  ·  09.14.25">
+                <div class="engraving-fonts" id="engraving-font-grid"></div>
+                <div class="engraving-preview" id="engraving-preview" hidden><span class="ep-label">Inside band engraving</span><span id="engraving-preview-text"></span></div>
             </div>
 
             <!-- Build Button -->

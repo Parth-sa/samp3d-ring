@@ -25,6 +25,7 @@ import {
     CanvasTexture,
     Matrix4,
     DoubleSide,
+    Rhino3dmLoader2,
 } from './webgi-re-exports'
 import { patchGlbWithDiamondMetadata } from './webgiDiamondPatch'
 
@@ -54,14 +55,19 @@ const SHANKS_BASE = './assets/signi/sigli Shanks'
 // DiamondPlugin gets its own env map for gem sparkle
 const DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr'
 const DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr'
+// iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
+const BG_BONE_COLOR = '#f4f4eb'
 
+// Exact iJewel.design values (from their .pmat files): polished metals are
+// roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
+// iJewel's precise colors; the rest follow the same polished recipe.
 const METAL_PRESETS = [
-    { id: 'yellowGold', label: 'Yellow Gold', color: '#d4af37', metalness: 1, roughness: 0.15, envIntensity: 2.2 },
-    { id: 'whiteGold', label: 'White Gold', color: '#e8e8e8', metalness: 1, roughness: 0.1, envIntensity: 2.5 },
-    { id: 'roseGold', label: 'Rose Gold', color: '#e8b4a0', metalness: 1, roughness: 0.12, envIntensity: 2.2 },
-    { id: 'platinum', label: 'Platinum', color: '#d4d4d8', metalness: 1, roughness: 0.08, envIntensity: 2.8 },
-    { id: 'silver', label: 'Silver', color: '#e2e2e6', metalness: 1, roughness: 0.05, envIntensity: 3.0 },
-    { id: 'gold_14k', label: '14K Gold', color: '#c8a832', metalness: 1, roughness: 0.15, envIntensity: 2.0 },
+    { id: 'whiteGold', label: 'White Gold', color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'yellowGold', label: 'Yellow Gold', color: '#e5b377', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'roseGold', label: 'Rose Gold', color: '#f2af83', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'platinum', label: 'Platinum', color: '#d6d6d9', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.7 },
+    { id: 'silver', label: 'Silver', color: '#e4e4e8', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.8 },
+    { id: 'gold_14k', label: '14K Gold', color: '#d4b15a', metalness: 1, roughness: 0.03, reflectivity: 0.5, envIntensity: 1.5 },
 ]
 
 const SHAPE_ICONS: Record<string, string> = {
@@ -111,6 +117,7 @@ let diamondPluginInstance: any = null
 let catalog: Catalog
 let modelLoaded = false
 let isBuilding = false
+let usingCustomModel = false
 
 let isRotating = false
 let lastX = 0; let lastY = 0
@@ -132,7 +139,7 @@ let metalEnvIntensity = 1.0
 let metalEnvRotationDeg = 0
 
 // Live-tunable metal values (right panel) — initialised from the selected preset
-const metalProfile = { color: '#e8e8e8', metalness: 1, roughness: 0.1, envIntensity: 2.5 }
+const metalProfile = { color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 }
 
 const state: Record<string, string> = {
     shape: '', size: '', prong: '', band: '', shank: '', metal: 'whiteGold',
@@ -344,8 +351,9 @@ function applyMetal(mat: any) {
         if ('metalness' in mat) mat.metalness = metalProfile.metalness
         if ('roughness' in mat) mat.roughness = metalProfile.roughness
         if ('envMapIntensity' in mat) mat.envMapIntensity = metalProfile.envIntensity
-        if ('clearcoat' in mat) mat.clearcoat = Math.max(mat.clearcoat || 0, 0.15)
-        if ('clearcoatRoughness' in mat) mat.clearcoatRoughness = 0.08
+        if ('reflectivity' in mat) mat.reflectivity = metalProfile.reflectivity
+        // iJewel polished metals have no clearcoat — keep the surface a clean mirror
+        if ('clearcoat' in mat) mat.clearcoat = 0
         if ('specularIntensity' in mat) mat.specularIntensity = 1.0
         mat.needsUpdate = true
     } catch {}
@@ -356,6 +364,7 @@ function syncMetalProfileFromPreset(presetId: string) {
     metalProfile.color = p.color
     metalProfile.metalness = p.metalness
     metalProfile.roughness = p.roughness
+    metalProfile.reflectivity = (p as any).reflectivity ?? 0.5
     metalProfile.envIntensity = p.envIntensity
     syncTuningInputs()
 }
@@ -515,6 +524,34 @@ function findBestHead(prong: string, shape: string, size: string): CatEntry | nu
     return best
 }
 
+// Which prong/setting styles actually have a head for the given diamond shape
+function prongsForShape(shape: string): Set<string> {
+    const s = new Set<string>()
+    for (const h of catalog.allHeads) if (h.shape === shape && h.prong) s.add(h.prong)
+    return s
+}
+
+// Grey out prong options with no matching head for the current shape, and if the
+// current prong just became unavailable, switch to the first valid one.
+function refreshProngAvailability() {
+    const grid = byId('prong-grid')
+    if (!grid || !catalog) return
+    const avail = prongsForShape(state.shape)
+    grid.querySelectorAll('.option-card').forEach(el => {
+        const v = (el as HTMLElement).dataset.value || ''
+        el.classList.toggle('disabled', !avail.has(v))
+    })
+    if (!avail.has(state.prong)) {
+        const next = catalog.prongs.find(p => avail.has(p.id))?.id || [...avail][0]
+        if (next) {
+            state.prong = next
+            grid.querySelectorAll('.option-card').forEach(c =>
+                c.classList.toggle('selected', (c as HTMLElement).dataset.value === next))
+        }
+    }
+    updateSummary()
+}
+
 function findBestBand(style: string): CatEntry | null {
     return catalog.allBands.find(b => b.style === style) || null
 }
@@ -560,6 +597,8 @@ async function buildRing() {
     if (!viewer) { setError('Viewer not initialized'); return }
     if (isBuilding) return
     isBuilding = true
+    usingCustomModel = false
+    const nm = byId('model-name'); if (nm) nm.textContent = ''
     setLoader('Finding parts...')
     canvasFade(true)
 
@@ -643,6 +682,87 @@ async function buildRing() {
     }
 }
 
+// ── Custom model upload (GLB / glTF / 3DM) ─────────────────────────────
+// Mirrors the main viewer's pipeline: GLBs are patched with the diamond
+// metadata extension before import (so the DiamondPlugin renders gems),
+// 3DM files load via Rhino3dmLoader2 from the rhino3dm CDN.
+async function loadCustomModel(file: File) {
+    if (!viewer) { setError('Viewer not initialized'); return }
+    if (isBuilding) return
+    isBuilding = true
+    canvasFade(true)
+    setLoader(`Loading ${file.name}...`)
+    disposeModel()
+
+    const manager = viewer.getPlugin(AssetManagerPlugin) as any
+    const importer = manager?.importer
+    if (!importer) { setError('AssetImporter not available'); canvasFade(false); hideLoader(); isBuilding = false; return }
+    patchDraco()
+
+    const name = file.name.toLowerCase()
+    const is3dm = name.endsWith('.3dm')
+    const patchOn = (byId('model-patch') as HTMLInputElement)?.checked !== false
+
+    try {
+        if (is3dm) {
+            const loader = new Rhino3dmLoader2()
+            ;(loader as any).setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@8.17.0/')
+            const url = URL.createObjectURL(file)
+            const model = await loader.loadAsync(url)
+            URL.revokeObjectURL(url)
+            ;(viewer.scene as any).add(model)
+            ringModel = model
+        } else {
+            // Patch diamond metadata into matching materials before import
+            const toLoad = patchOn ? await patchGlbWithDiamondMetadata(file) : file
+            const result = await importer.importSingle({ path: file.name, file: toLoad })
+            if (!result) throw new Error('importSingle returned null')
+            viewer.scene.addSceneObject(result, { autoScale: false })
+            ringModel = result
+        }
+
+        const root = getRingRoot()
+        setLoader('Applying materials...')
+        applyMaterials(root)
+        await new Promise<void>(r => requestAnimationFrame(() => r()))
+        frameModel()
+        modelLoaded = true
+        usingCustomModel = true
+        updateEngraving3D()
+        const pp = viewer.getPlugin?.(ProgressivePlugin) as any
+        if (pp && typeof pp.reset === 'function') pp.reset()
+        try { (viewer.renderer as any).refreshPipeline() } catch {}
+        viewer.setDirty()
+        setStatus(`Custom: ${file.name}`)
+        const nm = byId('model-name'); if (nm) nm.textContent = `Loaded: ${file.name}`
+    } catch (e: any) {
+        console.error('Custom model load failed:', e)
+        setError('Failed to load ' + file.name + ': ' + (e?.message || e))
+    } finally {
+        canvasFade(false)
+        hideLoader()
+        isBuilding = false
+    }
+}
+
+// Snapshot — download a PNG of the current 3D view (iJewel-style export)
+async function downloadSnapshot() {
+    const r = (viewer?.renderer as any)?.rendererObject
+    const canvas: HTMLCanvasElement | undefined = r?.domElement
+    if (!canvas) { setError('Renderer not ready'); return }
+    viewer.setDirty()
+    await new Promise<void>(res => requestAnimationFrame(() => res()))
+    await new Promise<void>(res => requestAnimationFrame(() => res()))
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'))
+    if (!blob) { setError('Could not capture image'); return }
+    const a = document.createElement('a')
+    const tag = usingCustomModel ? 'custom-ring' : `${state.prong}-${state.shape}-${state.size}ct-${state.metal}`
+    a.href = URL.createObjectURL(blob)
+    a.download = `ring-${tag}.png`
+    a.click()
+    URL.revokeObjectURL(a.href)
+}
+
 function updateSummary() {
     const sl = catalog.shapes.find(s => s.id === state.shape)?.label || state.shape
     const pl = catalog.prongs.find(p => p.id === state.prong)?.label || state.prong
@@ -682,6 +802,17 @@ function bindGrid(containerId: string, items: { id: string; label: string }[], s
     })
 }
 
+// Auto-rebuild the ring shortly after any part selection (debounced so rapid
+// taps only trigger one build); waits out any in-progress build.
+let rebuildTimer: any = null
+function scheduleAutoBuild() {
+    clearTimeout(rebuildTimer)
+    rebuildTimer = setTimeout(function run() {
+        if (isBuilding) { rebuildTimer = setTimeout(run, 180); return }
+        buildRing()
+    }, 320)
+}
+
 function bindSizes() {
     const grid = byId('size-grid')
     if (!grid) return
@@ -694,6 +825,7 @@ function bindSizes() {
             grid.querySelectorAll('.size-btn').forEach(c => c.classList.remove('selected'))
             el.classList.add('selected')
             updateSummary()
+            scheduleAutoBuild()
         })
     })
 }
@@ -885,6 +1017,25 @@ function setupTuningPanel() {
 
     // Scene
     bindCtl('tn-bg-color', v => { viewer?.scene.setBackground(linColor(v)); viewer?.setDirty() })
+    // Background image (any image; the bone PNG is just a flat colour so the
+    // picker above reproduces it exactly — this is for real backdrops/gradients)
+    const bgImg = byId('tn-bg-image') as HTMLInputElement | null
+    bgImg?.addEventListener('change', async () => {
+        const f = bgImg.files?.[0]; if (!f) return
+        const manager = viewer.getPlugin(AssetManagerPlugin) as any
+        try {
+            const url = URL.createObjectURL(f)
+            const tex: any = await manager.importer.importSinglePath(url)
+            URL.revokeObjectURL(url)
+            if (tex && tex.assetType === 'texture') { tex.wrapS = 1000; tex.wrapT = 1000; ;(viewer.scene as any).background = tex; viewer.setDirty() }
+            else setError('Not a valid image')
+        } catch { setError('Failed to load background image') }
+        bgImg.value = ''
+    })
+    byId('tn-bg-clear')?.addEventListener('click', () => {
+        const c = (byId('tn-bg-color') as HTMLInputElement)?.value || BG_BONE_COLOR
+        viewer.scene.setBackground(linColor(c)); viewer.setDirty()
+    })
     bindCtl('tn-exposure', v => { if (tonemapPlugin) tonemapPlugin.exposure = Number(v); viewer?.setDirty(); return fmt(Number(v)) })
     bindCtl('tn-contrast', v => { if (tonemapPlugin) tonemapPlugin.contrast = Number(v); viewer?.setDirty(); return fmt(Number(v)) })
     bindCtl('tn-saturation', v => { if (tonemapPlugin) tonemapPlugin.saturation = Number(v); viewer?.setDirty(); return fmt(Number(v)) })
@@ -916,11 +1067,11 @@ async function init() {
     if (!state.band && catalog.bandStyles.length) state.band = catalog.bandStyles[0].id
     if (!state.shank && catalog.shankStyles.length) state.shank = catalog.shankStyles[0].id
 
-    bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS)
+    bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, () => { refreshProngAvailability(); scheduleAutoBuild() })
     bindSizes()
-    bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true)
-    bindGrid('band-grid', catalog.bandStyles, 'band', undefined, true)
-    bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true)
+    bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true, scheduleAutoBuild)
+    bindGrid('band-grid', catalog.bandStyles, 'band', undefined, true, scheduleAutoBuild)
+    bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true, scheduleAutoBuild)
     // Metal preset recolors the loaded ring live — no rebuild needed
     bindGrid('metal-grid', METAL_PRESETS, 'metal', METAL_ICONS, true, id => {
         syncMetalProfileFromPreset(id)
@@ -928,6 +1079,7 @@ async function init() {
         setStatus(`${state.prong} ${state.shape} ${state.size}ct · ${state.metal}`)
     })
     syncMetalProfileFromPreset(state.metal)
+    refreshProngAvailability()
     bindFingerSizes()
     bindEngraving()
     setupTuningPanel()
@@ -994,7 +1146,7 @@ async function init() {
     const ctrl = (cam as any).controls
     if (ctrl) ctrl.enabled = false
 
-    viewer.scene.setBackground(linColor('#ffffff'))
+    viewer.scene.setBackground(linColor(BG_BONE_COLOR))
 
     await loadDefaultEnvironments()
 
@@ -1060,7 +1212,18 @@ async function init() {
 
     hideLoader()
     setStatus('Loading default ring...')
-    byId('build-btn')?.addEventListener('click', buildRing)
+
+    // Custom model upload (GLB / glTF / 3DM) with diamond patch
+    const modelInput = byId('model-input') as HTMLInputElement | null
+    modelInput?.addEventListener('change', () => {
+        const f = modelInput.files?.[0]
+        if (f) loadCustomModel(f)
+        modelInput.value = ''  // allow re-selecting the same file
+    })
+    // "Back to catalog" rebuilds the configured ring
+    byId('reset-catalog-btn')?.addEventListener('click', () => buildRing())
+    // Snapshot / download PNG
+    byId('btn-snapshot')?.addEventListener('click', downloadSnapshot)
 
     await new Promise<void>(r => requestAnimationFrame(() => r()))
     await buildRing()
@@ -1077,8 +1240,11 @@ init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hi
     setMetalEnvironment,
     setGemEnvironment,
     buildRing,
+    loadCustomModel,
+    downloadSnapshot,
     getConfiguration,
     eng3d,
     updateEngraving3D,
     get engravingMesh() { return engravingMesh },
+    get usingCustomModel() { return usingCustomModel },
 }

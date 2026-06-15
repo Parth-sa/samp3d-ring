@@ -99,6 +99,6 @@ Whenever you change the builder:
 1. `npm run build:builder` (rebuilds + auto-prunes `dist-ring-builder/`)
 2. Re-deploy:
    - Dashboard: project → **Create deployment** → drag the folder again, OR
-   - CLI: `npx wrangler pages deploy dist-ring-builder --project-name ring-builder`
+   - CLI: `npm run deploy` (uploads to the `ring-builder-6hm` Cloudflare project)
 
 The `.pages.dev` URL stays the same, so the Shopify page never needs editing.

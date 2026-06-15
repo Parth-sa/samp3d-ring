@@ -139,6 +139,12 @@
         }
         .option-card:hover { border-color: var(--accent-light); background: rgba(182,122,54,0.04); }
         .option-card.selected { border-color: var(--accent); background: rgba(182,122,54,0.1); box-shadow: 0 0 0 1px var(--accent); }
+        .option-card.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(0.6); }
+        /* Developer-only controls — hidden for customers; shown when <body class="admin"> */
+        .admin-only { display: none !important; }
+        body.admin .admin-only { display: initial !important; }
+        body.admin .btn-icon.admin-only { display: inline-block !important; }
+        body.admin .section.admin-only { display: block !important; }
         .option-card .icon { font-size: 22px; display: block; margin-bottom: 4px; }
         .option-card .sub { font-size: 9px; font-weight: 400; color: var(--text-muted); display: block; margin-top: 2px; }
 
@@ -195,9 +201,44 @@
         }
         .error-banner[hidden] { display: none !important; }
 
+        .auto-note {
+            margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-sm);
+            background: rgba(182,122,54,0.08); border: 1px solid rgba(182,122,54,0.18);
+            color: var(--accent-dark); font-size: 11px; font-weight: 600; text-align: center; line-height: 1.4;
+        }
+
+        /* ── Mobile: panels become bottom sheets so the ring stays visible above ── */
         @media (max-width: 720px) {
-            .panel { width: 100%; }
-            .option-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+            .topbar { padding: 8px 12px; gap: 6px; }
+            .topbar .logo { font-size: 14px; }
+            .topbar .logo small { display: none; }
+            .topbar .status { display: none; }
+            .topbar .btn-icon { padding: 7px 10px; font-size: 12px; }
+
+            .panel, .panel-right {
+                top: auto; left: 0; right: 0; bottom: 0; width: 100%;
+                height: 64vh; max-height: 64vh;
+                border: none; border-top: 1px solid var(--surface-border);
+                border-radius: 18px 18px 0 0;
+                box-shadow: 0 -8px 32px rgba(62,44,21,0.18);
+            }
+            /* grab handle */
+            .panel::before, .panel-right::before {
+                content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+                width: 40px; height: 4px; border-radius: 4px; background: var(--surface-border);
+            }
+            .panel-scroll { padding-top: 22px; }
+            .panel.hidden, .panel-right.hidden { transform: translateY(110%); }
+
+            .option-grid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+            .option-card { padding: 12px 6px; font-size: 12px; }
+            .size-btn { padding: 11px 12px; font-size: 12px; min-width: 52px; }
+            .engraving-font { padding: 11px 6px; }
+        }
+
+        @media (max-width: 400px) {
+            .topbar .logo span, .topbar .logo { font-size: 13px; }
+            .topbar .btn-icon { padding: 6px 8px; font-size: 11px; }
         }
     </style>
 </head>
@@ -206,8 +247,9 @@
         <div class="logo">Ring<span>Builder</span> <small>| Custom Design</small></div>
         <div class="spacer"></div>
         <div class="status" id="status-text">Select your options</div>
+        <button class="btn-icon" id="btn-snapshot" title="Download a PNG of the current view">📷 Snapshot</button>
         <button class="btn-icon active" id="toggle-panel">☰ Options</button>
-        <button class="btn-icon" id="toggle-tuning">⚙ Tuning</button>
+        <button class="btn-icon admin-only" id="toggle-tuning">⚙ Tuning</button>
     </div>
 
     <aside class="panel" id="builder-panel">
@@ -221,6 +263,18 @@
                 <strong>Metal:</strong> <span id="summary-metal">—</span><br>
                 <strong>Ring size:</strong> <span id="summary-finger">—</span><br>
                 <strong>Engraving:</strong> <span id="summary-engraving">—</span>
+            </div>
+
+            <!-- Custom Model Upload (admin only) -->
+            <div class="section admin-only" id="custom-model-section">
+                <div class="section-title">Custom Model</div>
+                <label class="ctl-file">Upload .glb / .gltf / .3dm<input type="file" id="model-input" accept=".glb,.gltf,.3dm"></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);cursor:pointer;margin-bottom:6px;">
+                    <input type="checkbox" id="model-patch" checked style="width:15px;height:15px;accent-color:var(--accent);">
+                    Auto-detect &amp; patch diamonds
+                </label>
+                <div id="model-name" style="font-size:10px;color:var(--text-muted);"></div>
+                <button class="build-btn" id="reset-catalog-btn" style="margin-top:8px;padding:9px;font-size:12px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);">↺ Back to Catalog Builder</button>
             </div>
 
             <!-- Diamond Shape -->
@@ -273,11 +327,7 @@
                 <div class="engraving-preview" id="engraving-preview" hidden><span class="ep-label">Inside band engraving</span><span id="engraving-preview-text"></span></div>
             </div>
 
-            <!-- Build Button -->
-            <button class="build-btn" id="build-btn">
-                Build Ring
-                <span class="sub">Combine selected parts into 3D view</span>
-            </button>
+            <div class="auto-note">✨ Your ring updates automatically as you choose options.</div>
         </div>
     </aside>
 
@@ -308,8 +358,12 @@
                 <div class="section-title">Metal Environment (HDR)</div>
                 <div class="ctl-row"><label>Preset</label>
                     <select id="tn-menv-select">
-                        <option value="./assets/env_metal_001.hdr" selected>Metal Studio (HDR)</option>
-                        <option value="./assets/env_gem_002.exr">Gem Studio (EXR)</option>
+                        <option value="./assets/env_metal_001.hdr" selected>Metal Studio 1 (HDR)</option>
+                        <option value="./assets/env_metal_002.exr">Metal Studio 2 (EXR)</option>
+                        <option value="./assets/env_metal_003.hdr">Metal Studio 3 (HDR)</option>
+                        <option value="./assets/env_metal_005.hdr">Metal Studio 5 (HDR)</option>
+                        <option value="./assets/env_metal_008.exr">Metal Studio 8 (EXR)</option>
+                        <option value="./assets/env_metal_009.exr">Metal Studio 9 (EXR)</option>
                         <option value="./assets/map.hdr">Soft Studio (HDR)</option>
                         <option value="./assets/dikhololo_night_1k.hdr">Night (HDR)</option>
                     </select>
@@ -323,9 +377,12 @@
                 <div class="section-title">Diamond Environment (HDR)</div>
                 <div class="ctl-row"><label>Preset</label>
                     <select id="tn-genv-select">
-                        <option value="./assets/env_gem_002.exr" selected>Gem Studio (EXR)</option>
+                        <option value="./assets/env_gem_002.exr" selected>Gem Studio 2 (EXR)</option>
+                        <option value="./assets/env_gem_001.exr">Gem Studio 1 (EXR)</option>
+                        <option value="./assets/env_gem_004.exr">Gem Studio 4 (EXR)</option>
+                        <option value="./assets/env_gem_005.exr">Gem Studio 5 (EXR)</option>
+                        <option value="./assets/env_gem_006.exr">Gem Studio 6 (EXR)</option>
                         <option value="./assets/env_metal_001.hdr">Metal Studio (HDR)</option>
-                        <option value="./assets/map.hdr">Soft Studio (HDR)</option>
                         <option value="./assets/dikhololo_night_1k.hdr">Night (HDR)</option>
                     </select>
                 </div>
@@ -342,7 +399,9 @@
 
             <div class="section">
                 <div class="section-title">Scene</div>
-                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#ffffff"><output></output></div>
+                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#f4f4eb"><output></output></div>
+                <label class="ctl-file">Background image (optional)<input type="file" id="tn-bg-image" accept="image/*"></label>
+                <button class="build-btn" id="tn-bg-clear" style="padding:7px;font-size:11px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);margin-bottom:8px;">Use solid color</button>
                 <div class="ctl-row"><label>Exposure</label><input type="range" id="tn-exposure" min="0" max="3" step="0.01" value="1"><output id="tn-exposure-out">1.00</output></div>
                 <div class="ctl-row"><label>Contrast</label><input type="range" id="tn-contrast" min="0.5" max="2" step="0.01" value="1.1"><output id="tn-contrast-out">1.10</output></div>
                 <div class="ctl-row"><label>Saturation</label><input type="range" id="tn-saturation" min="0" max="2" step="0.01" value="1.1"><output id="tn-saturation-out">1.10</output></div>
@@ -366,6 +425,12 @@
     <canvas id="webgi-canvas"></canvas>
 
     <script>
+        // Admin mode (shows Tuning + Custom Model) only with ?admin in the URL.
+        // Customers / Shopify visitors get the clean configurator without it.
+        (function () {
+            var p = new URLSearchParams(location.search);
+            if (p.has('admin') || p.has('tuning')) document.body.classList.add('admin');
+        })();
         document.getElementById('toggle-panel').addEventListener('click', function() {
             document.getElementById('builder-panel').classList.toggle('hidden');
             this.classList.toggle('active');

@@ -72678,6 +72678,10 @@ var _webgiReExports = require("./webgi-re-exports");
 var _webgiDiamondPatch = require("./webgiDiamondPatch");
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t.return || t.return(); } finally { if (u) throw o; } } }; }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
@@ -72708,48 +72712,59 @@ var SHANKS_BASE = './assets/signi/sigli Shanks';
 // DiamondPlugin gets its own env map for gem sparkle
 var DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr';
 var DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr';
+// iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
+var BG_BONE_COLOR = '#f4f4eb';
+// Exact iJewel.design values (from their .pmat files): polished metals are
+// roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
+// iJewel's precise colors; the rest follow the same polished recipe.
 var METAL_PRESETS = [{
-  id: 'yellowGold',
-  label: 'Yellow Gold',
-  color: '#d4af37',
-  metalness: 1,
-  roughness: 0.15,
-  envIntensity: 2.2
-}, {
   id: 'whiteGold',
   label: 'White Gold',
-  color: '#e8e8e8',
+  color: '#c2c2c3',
   metalness: 1,
-  roughness: 0.1,
-  envIntensity: 2.5
+  roughness: 0,
+  reflectivity: 0.5,
+  envIntensity: 1.6
+}, {
+  id: 'yellowGold',
+  label: 'Yellow Gold',
+  color: '#e5b377',
+  metalness: 1,
+  roughness: 0,
+  reflectivity: 0.5,
+  envIntensity: 1.6
 }, {
   id: 'roseGold',
   label: 'Rose Gold',
-  color: '#e8b4a0',
+  color: '#f2af83',
   metalness: 1,
-  roughness: 0.12,
-  envIntensity: 2.2
+  roughness: 0,
+  reflectivity: 0.5,
+  envIntensity: 1.6
 }, {
   id: 'platinum',
   label: 'Platinum',
-  color: '#d4d4d8',
+  color: '#d6d6d9',
   metalness: 1,
-  roughness: 0.08,
-  envIntensity: 2.8
+  roughness: 0.02,
+  reflectivity: 0.5,
+  envIntensity: 1.7
 }, {
   id: 'silver',
   label: 'Silver',
-  color: '#e2e2e6',
+  color: '#e4e4e8',
   metalness: 1,
-  roughness: 0.05,
-  envIntensity: 3.0
+  roughness: 0.02,
+  reflectivity: 0.5,
+  envIntensity: 1.8
 }, {
   id: 'gold_14k',
   label: '14K Gold',
-  color: '#c8a832',
+  color: '#d4b15a',
   metalness: 1,
-  roughness: 0.15,
-  envIntensity: 2.0
+  roughness: 0.03,
+  reflectivity: 0.5,
+  envIntensity: 1.5
 }];
 var SHAPE_ICONS = {
   RD: '⬤',
@@ -72793,6 +72808,7 @@ var diamondPluginInstance = null;
 var catalog;
 var modelLoaded = false;
 var isBuilding = false;
+var usingCustomModel = false;
 var isRotating = false;
 var lastX = 0;
 var lastY = 0;
@@ -72820,10 +72836,11 @@ var metalEnvIntensity = 1.0;
 var metalEnvRotationDeg = 0;
 // Live-tunable metal values (right panel) — initialised from the selected preset
 var metalProfile = {
-  color: '#e8e8e8',
+  color: '#c2c2c3',
   metalness: 1,
-  roughness: 0.1,
-  envIntensity: 2.5
+  roughness: 0,
+  reflectivity: 0.5,
+  envIntensity: 1.6
 };
 var state = {
   shape: '',
@@ -72924,55 +72941,55 @@ function importEnvTexture(_x) {
   return _importEnvTexture.apply(this, arguments);
 }
 function _importEnvTexture() {
-  _importEnvTexture = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(src) {
-    var manager, env, _t, _t2;
-    return _regenerator().w(function (_context) {
-      while (1) switch (_context.p = _context.n) {
+  _importEnvTexture = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(src) {
+    var manager, env, _t2, _t3;
+    return _regenerator().w(function (_context2) {
+      while (1) switch (_context2.p = _context2.n) {
         case 0:
           manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
           if (manager) {
-            _context.n = 1;
+            _context2.n = 1;
             break;
           }
-          return _context.a(2, null);
+          return _context2.a(2, null);
         case 1:
-          _context.p = 1;
+          _context2.p = 1;
           if (!(src instanceof File)) {
-            _context.n = 3;
+            _context2.n = 3;
             break;
           }
-          _context.n = 2;
+          _context2.n = 2;
           return manager.importer.importSingle({
             path: src.name,
             file: src
           });
         case 2:
-          _t = _context.v;
-          _context.n = 5;
+          _t2 = _context2.v;
+          _context2.n = 5;
           break;
         case 3:
-          _context.n = 4;
+          _context2.n = 4;
           return manager.importer.importSinglePath(src);
         case 4:
-          _t = _context.v;
+          _t2 = _context2.v;
         case 5:
-          env = _t;
+          env = _t2;
           if (!(env && env.assetType === 'texture')) {
-            _context.n = 6;
+            _context2.n = 6;
             break;
           }
-          return _context.a(2, env);
+          return _context2.a(2, env);
         case 6:
-          _context.n = 8;
+          _context2.n = 8;
           break;
         case 7:
-          _context.p = 7;
-          _t2 = _context.v;
-          console.warn('Environment import failed for', src, _t2);
+          _context2.p = 7;
+          _t3 = _context2.v;
+          console.warn('Environment import failed for', src, _t3);
         case 8:
-          return _context.a(2, null);
+          return _context2.a(2, null);
       }
-    }, _callee, null, [[1, 7]]);
+    }, _callee2, null, [[1, 7]]);
   }));
   return _importEnvTexture.apply(this, arguments);
 }
@@ -72991,32 +73008,32 @@ function setMetalEnvironment(_x2) {
 } // Scene env brightness/rotation live on the scene, not on the texture.
 // envMapIntensity auto-calls refreshEnvMapIntensity across all materials.
 function _setMetalEnvironment() {
-  _setMetalEnvironment = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(src) {
+  _setMetalEnvironment = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(src) {
     var env;
-    return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.n) {
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
         case 0:
-          _context2.n = 1;
+          _context3.n = 1;
           return importEnvTexture(src);
         case 1:
-          env = _context2.v;
+          env = _context3.v;
           if (env) {
-            _context2.n = 2;
+            _context3.n = 2;
             break;
           }
           setError('Failed to load metal environment');
-          return _context2.a(2);
+          return _context3.a(2);
         case 2:
-          _context2.n = 3;
+          _context3.n = 3;
           return viewer.scene.setEnvironment(env);
         case 3:
           metalEnvironment = env;
           applyMetalEnvSettings();
           renderRefresh();
         case 4:
-          return _context2.a(2);
+          return _context3.a(2);
       }
-    }, _callee2);
+    }, _callee3);
   }));
   return _setMetalEnvironment.apply(this, arguments);
 }
@@ -73033,21 +73050,21 @@ function setGemEnvironment(_x3) {
   return _setGemEnvironment.apply(this, arguments);
 }
 function _setGemEnvironment() {
-  _setGemEnvironment = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(src) {
+  _setGemEnvironment = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(src) {
     var env;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.n) {
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.n) {
         case 0:
-          _context3.n = 1;
+          _context4.n = 1;
           return importEnvTexture(src);
         case 1:
-          env = _context3.v;
+          env = _context4.v;
           if (env) {
-            _context3.n = 2;
+            _context4.n = 2;
             break;
           }
           setError('Failed to load diamond environment');
-          return _context3.a(2);
+          return _context4.a(2);
         case 2:
           gemEnvironment = env;
           if (diamondPluginInstance) {
@@ -73057,9 +73074,9 @@ function _setGemEnvironment() {
           }
           renderRefresh();
         case 3:
-          return _context3.a(2);
+          return _context4.a(2);
       }
-    }, _callee3);
+    }, _callee4);
   }));
   return _setGemEnvironment.apply(this, arguments);
 }
@@ -73067,33 +73084,33 @@ function loadDefaultEnvironments() {
   return _loadDefaultEnvironments.apply(this, arguments);
 }
 function _loadDefaultEnvironments() {
-  _loadDefaultEnvironments = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.n) {
+  _loadDefaultEnvironments = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.n) {
         case 0:
-          _context4.n = 1;
+          _context5.n = 1;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
               return r();
             });
           });
         case 1:
-          _context4.n = 2;
+          _context5.n = 2;
           return setMetalEnvironment(DEFAULT_METAL_ENV_PATH);
         case 2:
-          _context4.n = 3;
+          _context5.n = 3;
           return setGemEnvironment(DEFAULT_GEM_ENV_PATH);
         case 3:
           if (!(!gemEnvironment && metalEnvironment)) {
-            _context4.n = 4;
+            _context5.n = 4;
             break;
           }
-          _context4.n = 4;
+          _context5.n = 4;
           return setGemEnvironment(DEFAULT_METAL_ENV_PATH);
         case 4:
-          return _context4.a(2);
+          return _context5.a(2);
       }
-    }, _callee4);
+    }, _callee5);
   }));
   return _loadDefaultEnvironments.apply(this, arguments);
 }
@@ -73219,19 +73236,22 @@ function applyMetal(mat) {
     if ('metalness' in mat) mat.metalness = metalProfile.metalness;
     if ('roughness' in mat) mat.roughness = metalProfile.roughness;
     if ('envMapIntensity' in mat) mat.envMapIntensity = metalProfile.envIntensity;
-    if ('clearcoat' in mat) mat.clearcoat = Math.max(mat.clearcoat || 0, 0.15);
-    if ('clearcoatRoughness' in mat) mat.clearcoatRoughness = 0.08;
+    if ('reflectivity' in mat) mat.reflectivity = metalProfile.reflectivity;
+    // iJewel polished metals have no clearcoat — keep the surface a clean mirror
+    if ('clearcoat' in mat) mat.clearcoat = 0;
     if ('specularIntensity' in mat) mat.specularIntensity = 1.0;
     mat.needsUpdate = true;
   } catch (_unused3) {}
 }
 function syncMetalProfileFromPreset(presetId) {
+  var _p$reflectivity;
   var p = METAL_PRESETS.find(function (m) {
     return m.id === presetId;
   }) || METAL_PRESETS[0];
   metalProfile.color = p.color;
   metalProfile.metalness = p.metalness;
   metalProfile.roughness = p.roughness;
+  metalProfile.reflectivity = (_p$reflectivity = p.reflectivity) !== null && _p$reflectivity !== void 0 ? _p$reflectivity : 0.5;
   metalProfile.envIntensity = p.envIntensity;
   syncTuningInputs();
 }
@@ -73461,6 +73481,47 @@ function findBestHead(prong, shape, size) {
   }
   return best;
 }
+// Which prong/setting styles actually have a head for the given diamond shape
+function prongsForShape(shape) {
+  var s = new Set();
+  var _iterator6 = _createForOfIteratorHelper(catalog.allHeads),
+    _step6;
+  try {
+    for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+      var h = _step6.value;
+      if (h.shape === shape && h.prong) s.add(h.prong);
+    }
+  } catch (err) {
+    _iterator6.e(err);
+  } finally {
+    _iterator6.f();
+  }
+  return s;
+}
+// Grey out prong options with no matching head for the current shape, and if the
+// current prong just became unavailable, switch to the first valid one.
+function refreshProngAvailability() {
+  var grid = byId('prong-grid');
+  if (!grid || !catalog) return;
+  var avail = prongsForShape(state.shape);
+  grid.querySelectorAll('.option-card').forEach(function (el) {
+    var v = el.dataset.value || '';
+    el.classList.toggle('disabled', !avail.has(v));
+  });
+  if (!avail.has(state.prong)) {
+    var _catalog$prongs$find;
+    var next = ((_catalog$prongs$find = catalog.prongs.find(function (p) {
+      return avail.has(p.id);
+    })) === null || _catalog$prongs$find === void 0 ? void 0 : _catalog$prongs$find.id) || _toConsumableArray(avail)[0];
+    if (next) {
+      state.prong = next;
+      grid.querySelectorAll('.option-card').forEach(function (c) {
+        return c.classList.toggle('selected', c.dataset.value === next);
+      });
+    }
+  }
+  updateSummary();
+}
 function findBestBand(style) {
   return catalog.allBands.find(function (b) {
     return b.style === style;
@@ -73475,76 +73536,76 @@ function loadGlb(_x4) {
   return _loadGlb.apply(this, arguments);
 }
 function _loadGlb() {
-  _loadGlb = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(path) {
-    var manager, importer, fileName, resp, blob, rawFile, patched, result, _t3;
-    return _regenerator().w(function (_context5) {
-      while (1) switch (_context5.p = _context5.n) {
+  _loadGlb = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(path) {
+    var manager, importer, fileName, resp, blob, rawFile, patched, result, _t4;
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.p = _context6.n) {
         case 0:
           manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
           if (manager) {
-            _context5.n = 1;
+            _context6.n = 1;
             break;
           }
           setError('AssetManager not available');
-          return _context5.a(2, null);
+          return _context6.a(2, null);
         case 1:
           importer = manager.importer;
           if (importer) {
-            _context5.n = 2;
+            _context6.n = 2;
             break;
           }
           setError('AssetImporter not available');
-          return _context5.a(2, null);
+          return _context6.a(2, null);
         case 2:
           patchDraco();
           fileName = path.split('/').pop() || 'part.glb';
-          _context5.p = 3;
-          _context5.n = 4;
+          _context6.p = 3;
+          _context6.n = 4;
           return fetch(encodeURI(path));
         case 4:
-          resp = _context5.v;
+          resp = _context6.v;
           if (resp.ok) {
-            _context5.n = 5;
+            _context6.n = 5;
             break;
           }
           throw new Error("HTTP ".concat(resp.status, " for ").concat(fileName));
         case 5:
-          _context5.n = 6;
+          _context6.n = 6;
           return resp.blob();
         case 6:
-          blob = _context5.v;
+          blob = _context6.v;
           rawFile = new File([blob], fileName, {
             type: 'model/gltf-binary'
           });
-          _context5.n = 7;
+          _context6.n = 7;
           return (0, _webgiDiamondPatch.patchGlbWithDiamondMetadata)(rawFile, undefined, {
             fallbackToFirst: false
           });
         case 7:
-          patched = _context5.v;
-          _context5.n = 8;
+          patched = _context6.v;
+          _context6.n = 8;
           return importer.importSingle({
             path: fileName,
             file: patched
           });
         case 8:
-          result = _context5.v;
+          result = _context6.v;
           if (result) {
-            _context5.n = 9;
+            _context6.n = 9;
             break;
           }
           setError('importSingle returned null');
-          return _context5.a(2, null);
+          return _context6.a(2, null);
         case 9:
-          return _context5.a(2, result);
+          return _context6.a(2, result);
         case 10:
-          _context5.p = 10;
-          _t3 = _context5.v;
-          console.warn('GLB import failed:', _t3);
+          _context6.p = 10;
+          _t4 = _context6.v;
+          console.warn('GLB import failed:', _t4);
           setError('Failed to import: ' + fileName);
-          return _context5.a(2, null);
+          return _context6.a(2, null);
       }
-    }, _callee5, null, [[3, 10]]);
+    }, _callee6, null, [[3, 10]]);
   }));
   return _loadGlb.apply(this, arguments);
 }
@@ -73556,82 +73617,88 @@ function getModelRoot(result) {
 }
 function buildRing() {
   return _buildRing.apply(this, arguments);
-}
+} // ── Custom model upload (GLB / glTF / 3DM) ─────────────────────────────
+// Mirrors the main viewer's pipeline: GLBs are patched with the diamond
+// metadata extension before import (so the DiamondPlugin renders gems),
+// 3DM files load via Rhino3dmLoader2 from the rhino3dm CDN.
 function _buildRing() {
-  _buildRing = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
-    var _viewer$getPlugin2, _viewer13, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t4;
-    return _regenerator().w(function (_context6) {
-      while (1) switch (_context6.p = _context6.n) {
+  _buildRing = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
+    var nm, _viewer$getPlugin2, _viewer13, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t5;
+    return _regenerator().w(function (_context7) {
+      while (1) switch (_context7.p = _context7.n) {
         case 0:
           if (viewer) {
-            _context6.n = 1;
+            _context7.n = 1;
             break;
           }
           setError('Viewer not initialized');
-          return _context6.a(2);
+          return _context7.a(2);
         case 1:
           if (!isBuilding) {
-            _context6.n = 2;
+            _context7.n = 2;
             break;
           }
-          return _context6.a(2);
+          return _context7.a(2);
         case 2:
           isBuilding = true;
+          usingCustomModel = false;
+          nm = byId('model-name');
+          if (nm) nm.textContent = '';
           setLoader('Finding parts...');
           canvasFade(true);
           disposeModel();
-          _context6.p = 3;
+          _context7.p = 3;
           head = findBestHead(state.prong, state.shape, state.size);
           if (head) {
-            _context6.n = 4;
+            _context7.n = 4;
             break;
           }
           setError("No ".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct head found"));
           hideLoader();
           isBuilding = false;
-          return _context6.a(2);
+          return _context7.a(2);
         case 4:
           setLoader('Loading head...');
-          _context6.n = 5;
+          _context7.n = 5;
           return loadGlb("".concat(HEADS_BASE, "/").concat(head.file));
         case 5:
-          headResult = _context6.v;
+          headResult = _context7.v;
           if (headResult) {
-            _context6.n = 6;
+            _context7.n = 6;
             break;
           }
           hideLoader();
           isBuilding = false;
-          return _context6.a(2);
+          return _context7.a(2);
         case 6:
           headRoot = getModelRoot(headResult);
           if (headRoot) {
-            _context6.n = 7;
+            _context7.n = 7;
             break;
           }
           setError('Could not extract head model root');
           hideLoader();
           isBuilding = false;
-          return _context6.a(2);
+          return _context7.a(2);
         case 7:
           // Add head to scene via WebGI pipeline (autoScale: false preserves original sizes)
           viewer.scene.addSceneObject(headResult, {
             autoScale: false
           });
           if (!state.band) {
-            _context6.n = 9;
+            _context7.n = 9;
             break;
           }
           band = findBestBand(state.band);
           if (!band) {
-            _context6.n = 9;
+            _context7.n = 9;
             break;
           }
           setLoader('Loading band...');
-          _context6.n = 8;
+          _context7.n = 8;
           return loadGlb("".concat(BANDS_BASE, "/").concat(band.file));
         case 8:
-          bandResult = _context6.v;
+          bandResult = _context7.v;
           if (bandResult) {
             bandRoot = getModelRoot(bandResult);
             if (bandRoot) {
@@ -73644,19 +73711,19 @@ function _buildRing() {
           }
         case 9:
           if (!state.shank) {
-            _context6.n = 11;
+            _context7.n = 11;
             break;
           }
           shank = findBestShank(state.shank);
           if (!shank) {
-            _context6.n = 11;
+            _context7.n = 11;
             break;
           }
           setLoader('Loading shank...');
-          _context6.n = 10;
+          _context7.n = 10;
           return loadGlb("".concat(SHANKS_BASE, "/").concat(shank.file));
         case 10:
-          shankResult = _context6.v;
+          shankResult = _context7.v;
           if (shankResult) {
             shankRoot = getModelRoot(shankResult);
             if (shankRoot) {
@@ -73672,7 +73739,7 @@ function _buildRing() {
           setLoader('Applying materials...');
           applyMaterials(headRoot);
           setLoader('Framing view...');
-          _context6.n = 12;
+          _context7.n = 12;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
               return r();
@@ -73686,38 +73753,234 @@ function _buildRing() {
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
-          } catch (_unused7) {}
+          } catch (_unused8) {}
           viewer.setDirty();
           setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
           updateSummary();
-          _context6.n = 14;
+          _context7.n = 14;
           break;
         case 13:
-          _context6.p = 13;
-          _t4 = _context6.v;
-          console.error('Build failed:', _t4);
-          setError('Build failed: ' + ((_t4 === null || _t4 === void 0 ? void 0 : _t4.message) || _t4));
+          _context7.p = 13;
+          _t5 = _context7.v;
+          console.error('Build failed:', _t5);
+          setError('Build failed: ' + ((_t5 === null || _t5 === void 0 ? void 0 : _t5.message) || _t5));
         case 14:
-          _context6.p = 14;
+          _context7.p = 14;
           canvasFade(false);
           hideLoader();
           isBuilding = false;
-          return _context6.f(14);
+          return _context7.f(14);
         case 15:
-          return _context6.a(2);
+          return _context7.a(2);
       }
-    }, _callee6, null, [[3, 13, 14, 15]]);
+    }, _callee7, null, [[3, 13, 14, 15]]);
   }));
   return _buildRing.apply(this, arguments);
 }
+function loadCustomModel(_x5) {
+  return _loadCustomModel.apply(this, arguments);
+} // Snapshot — download a PNG of the current 3D view (iJewel-style export)
+function _loadCustomModel() {
+  _loadCustomModel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(file) {
+    var _byId4;
+    var manager, importer, name, is3dm, patchOn, _viewer$getPlugin3, _viewer14, loader, url, model, toLoad, result, root, pp, nm, _t6, _t7;
+    return _regenerator().w(function (_context8) {
+      while (1) switch (_context8.p = _context8.n) {
+        case 0:
+          if (viewer) {
+            _context8.n = 1;
+            break;
+          }
+          setError('Viewer not initialized');
+          return _context8.a(2);
+        case 1:
+          if (!isBuilding) {
+            _context8.n = 2;
+            break;
+          }
+          return _context8.a(2);
+        case 2:
+          isBuilding = true;
+          canvasFade(true);
+          setLoader("Loading ".concat(file.name, "..."));
+          disposeModel();
+          manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
+          importer = manager === null || manager === void 0 ? void 0 : manager.importer;
+          if (importer) {
+            _context8.n = 3;
+            break;
+          }
+          setError('AssetImporter not available');
+          canvasFade(false);
+          hideLoader();
+          isBuilding = false;
+          return _context8.a(2);
+        case 3:
+          patchDraco();
+          name = file.name.toLowerCase();
+          is3dm = name.endsWith('.3dm');
+          patchOn = ((_byId4 = byId('model-patch')) === null || _byId4 === void 0 ? void 0 : _byId4.checked) !== false;
+          _context8.p = 4;
+          if (!is3dm) {
+            _context8.n = 6;
+            break;
+          }
+          loader = new _webgiReExports.Rhino3dmLoader2();
+          loader.setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@8.17.0/');
+          url = URL.createObjectURL(file);
+          _context8.n = 5;
+          return loader.loadAsync(url);
+        case 5:
+          model = _context8.v;
+          URL.revokeObjectURL(url);
+          viewer.scene.add(model);
+          ringModel = model;
+          _context8.n = 12;
+          break;
+        case 6:
+          if (!patchOn) {
+            _context8.n = 8;
+            break;
+          }
+          _context8.n = 7;
+          return (0, _webgiDiamondPatch.patchGlbWithDiamondMetadata)(file);
+        case 7:
+          _t6 = _context8.v;
+          _context8.n = 9;
+          break;
+        case 8:
+          _t6 = file;
+        case 9:
+          toLoad = _t6;
+          _context8.n = 10;
+          return importer.importSingle({
+            path: file.name,
+            file: toLoad
+          });
+        case 10:
+          result = _context8.v;
+          if (result) {
+            _context8.n = 11;
+            break;
+          }
+          throw new Error('importSingle returned null');
+        case 11:
+          viewer.scene.addSceneObject(result, {
+            autoScale: false
+          });
+          ringModel = result;
+        case 12:
+          root = getRingRoot();
+          setLoader('Applying materials...');
+          applyMaterials(root);
+          _context8.n = 13;
+          return new Promise(function (r) {
+            return requestAnimationFrame(function () {
+              return r();
+            });
+          });
+        case 13:
+          frameModel();
+          modelLoaded = true;
+          usingCustomModel = true;
+          updateEngraving3D();
+          pp = (_viewer$getPlugin3 = (_viewer14 = viewer).getPlugin) === null || _viewer$getPlugin3 === void 0 ? void 0 : _viewer$getPlugin3.call(_viewer14, _webgiReExports.ProgressivePlugin);
+          if (pp && typeof pp.reset === 'function') pp.reset();
+          try {
+            viewer.renderer.refreshPipeline();
+          } catch (_unused9) {}
+          viewer.setDirty();
+          setStatus("Custom: ".concat(file.name));
+          nm = byId('model-name');
+          if (nm) nm.textContent = "Loaded: ".concat(file.name);
+          _context8.n = 15;
+          break;
+        case 14:
+          _context8.p = 14;
+          _t7 = _context8.v;
+          console.error('Custom model load failed:', _t7);
+          setError('Failed to load ' + file.name + ': ' + ((_t7 === null || _t7 === void 0 ? void 0 : _t7.message) || _t7));
+        case 15:
+          _context8.p = 15;
+          canvasFade(false);
+          hideLoader();
+          isBuilding = false;
+          return _context8.f(15);
+        case 16:
+          return _context8.a(2);
+      }
+    }, _callee8, null, [[4, 14, 15, 16]]);
+  }));
+  return _loadCustomModel.apply(this, arguments);
+}
+function downloadSnapshot() {
+  return _downloadSnapshot.apply(this, arguments);
+}
+function _downloadSnapshot() {
+  _downloadSnapshot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
+    var _viewer15;
+    var r, canvas, blob, a, tag;
+    return _regenerator().w(function (_context9) {
+      while (1) switch (_context9.n) {
+        case 0:
+          r = (_viewer15 = viewer) === null || _viewer15 === void 0 || (_viewer15 = _viewer15.renderer) === null || _viewer15 === void 0 ? void 0 : _viewer15.rendererObject;
+          canvas = r === null || r === void 0 ? void 0 : r.domElement;
+          if (canvas) {
+            _context9.n = 1;
+            break;
+          }
+          setError('Renderer not ready');
+          return _context9.a(2);
+        case 1:
+          viewer.setDirty();
+          _context9.n = 2;
+          return new Promise(function (res) {
+            return requestAnimationFrame(function () {
+              return res();
+            });
+          });
+        case 2:
+          _context9.n = 3;
+          return new Promise(function (res) {
+            return requestAnimationFrame(function () {
+              return res();
+            });
+          });
+        case 3:
+          _context9.n = 4;
+          return new Promise(function (res) {
+            return canvas.toBlob(res, 'image/png');
+          });
+        case 4:
+          blob = _context9.v;
+          if (blob) {
+            _context9.n = 5;
+            break;
+          }
+          setError('Could not capture image');
+          return _context9.a(2);
+        case 5:
+          a = document.createElement('a');
+          tag = usingCustomModel ? 'custom-ring' : "".concat(state.prong, "-").concat(state.shape, "-").concat(state.size, "ct-").concat(state.metal);
+          a.href = URL.createObjectURL(blob);
+          a.download = "ring-".concat(tag, ".png");
+          a.click();
+          URL.revokeObjectURL(a.href);
+        case 6:
+          return _context9.a(2);
+      }
+    }, _callee9);
+  }));
+  return _downloadSnapshot.apply(this, arguments);
+}
 function updateSummary() {
-  var _catalog$shapes$find, _catalog$prongs$find, _catalog$bandStyles$f, _catalog$shankStyles$, _METAL_PRESETS$find;
+  var _catalog$shapes$find, _catalog$prongs$find2, _catalog$bandStyles$f, _catalog$shankStyles$, _METAL_PRESETS$find;
   var sl = ((_catalog$shapes$find = catalog.shapes.find(function (s) {
     return s.id === state.shape;
   })) === null || _catalog$shapes$find === void 0 ? void 0 : _catalog$shapes$find.label) || state.shape;
-  var pl = ((_catalog$prongs$find = catalog.prongs.find(function (p) {
+  var pl = ((_catalog$prongs$find2 = catalog.prongs.find(function (p) {
     return p.id === state.prong;
-  })) === null || _catalog$prongs$find === void 0 ? void 0 : _catalog$prongs$find.label) || state.prong;
+  })) === null || _catalog$prongs$find2 === void 0 ? void 0 : _catalog$prongs$find2.label) || state.prong;
   var bl = ((_catalog$bandStyles$f = catalog.bandStyles.find(function (b) {
     return b.id === state.band;
   })) === null || _catalog$bandStyles$f === void 0 ? void 0 : _catalog$bandStyles$f.label) || state.band;
@@ -73762,6 +74025,19 @@ function bindGrid(containerId, items, stateKey, icons) {
     });
   });
 }
+// Auto-rebuild the ring shortly after any part selection (debounced so rapid
+// taps only trigger one build); waits out any in-progress build.
+var rebuildTimer = null;
+function scheduleAutoBuild() {
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(function run() {
+    if (isBuilding) {
+      rebuildTimer = setTimeout(run, 180);
+      return;
+    }
+    buildRing();
+  }, 320);
+}
 function bindSizes() {
   var grid = byId('size-grid');
   if (!grid) return;
@@ -73776,6 +74052,7 @@ function bindSizes() {
       });
       el.classList.add('selected');
       updateSummary();
+      scheduleAutoBuild();
     });
   });
 }
@@ -73926,6 +74203,7 @@ function metalEnvTweaked() {
   (_viewer8 = viewer) === null || _viewer8 === void 0 || _viewer8.setDirty();
 }
 function setupTuningPanel() {
+  var _byId2;
   // Metal
   bindCtl('tn-metal-color', function (v) {
     metalProfile.color = v;
@@ -74060,6 +74338,56 @@ function setupTuningPanel() {
     (_viewer9 = viewer) === null || _viewer9 === void 0 || _viewer9.scene.setBackground(linColor(v));
     (_viewer0 = viewer) === null || _viewer0 === void 0 || _viewer0.setDirty();
   });
+  // Background image (any image; the bone PNG is just a flat colour so the
+  // picker above reproduces it exactly — this is for real backdrops/gradients)
+  var bgImg = byId('tn-bg-image');
+  bgImg === null || bgImg === void 0 || bgImg.addEventListener('change', /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
+    var _bgImg$files;
+    var f, manager, url, tex, _t;
+    return _regenerator().w(function (_context) {
+      while (1) switch (_context.p = _context.n) {
+        case 0:
+          f = (_bgImg$files = bgImg.files) === null || _bgImg$files === void 0 ? void 0 : _bgImg$files[0];
+          if (f) {
+            _context.n = 1;
+            break;
+          }
+          return _context.a(2);
+        case 1:
+          manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
+          _context.p = 2;
+          url = URL.createObjectURL(f);
+          _context.n = 3;
+          return manager.importer.importSinglePath(url);
+        case 3:
+          tex = _context.v;
+          URL.revokeObjectURL(url);
+          if (tex && tex.assetType === 'texture') {
+            tex.wrapS = 1000;
+            tex.wrapT = 1000;
+            ;
+            viewer.scene.background = tex;
+            viewer.setDirty();
+          } else setError('Not a valid image');
+          _context.n = 5;
+          break;
+        case 4:
+          _context.p = 4;
+          _t = _context.v;
+          setError('Failed to load background image');
+        case 5:
+          bgImg.value = '';
+        case 6:
+          return _context.a(2);
+      }
+    }, _callee, null, [[2, 4]]);
+  })));
+  (_byId2 = byId('tn-bg-clear')) === null || _byId2 === void 0 || _byId2.addEventListener('click', function () {
+    var _byId3;
+    var c = ((_byId3 = byId('tn-bg-color')) === null || _byId3 === void 0 ? void 0 : _byId3.value) || BG_BONE_COLOR;
+    viewer.scene.setBackground(linColor(c));
+    viewer.setDirty();
+  });
   bindCtl('tn-exposure', function (v) {
     var _viewer1;
     if (tonemapPlugin) tonemapPlugin.exposure = Number(v);
@@ -74108,41 +74436,44 @@ function init() {
   return _init.apply(this, arguments);
 }
 function _init() {
-  _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
-    var _cam$setCameraOptions, _byId2;
-    var resp, canvas, r, pp, tonemap, ssao, dp, dl, cam, ctrl, _t5, _t6, _t7, _t8, _t9, _t0, _t1;
-    return _regenerator().w(function (_context7) {
-      while (1) switch (_context7.p = _context7.n) {
+  _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+    var _cam$setCameraOptions, _byId5, _byId6;
+    var resp, canvas, r, pp, tonemap, ssao, dp, dl, cam, ctrl, modelInput, _t8, _t9, _t0, _t1, _t10, _t11, _t12;
+    return _regenerator().w(function (_context0) {
+      while (1) switch (_context0.p = _context0.n) {
         case 0:
           setLoader('Loading catalog...');
-          _context7.p = 1;
-          _context7.n = 2;
+          _context0.p = 1;
+          _context0.n = 2;
           return fetch('./assets/catalog.json');
         case 2:
-          resp = _context7.v;
-          _context7.n = 3;
+          resp = _context0.v;
+          _context0.n = 3;
           return resp.json();
         case 3:
-          catalog = _context7.v;
-          _context7.n = 5;
+          catalog = _context0.v;
+          _context0.n = 5;
           break;
         case 4:
-          _context7.p = 4;
-          _t5 = _context7.v;
+          _context0.p = 4;
+          _t8 = _context0.v;
           setError('Failed to load catalog');
           hideLoader();
-          return _context7.a(2);
+          return _context0.a(2);
         case 5:
           if (!state.shape && catalog.shapes.length) state.shape = catalog.shapes[0].id;
           if (!state.size && catalog.sizes.length) state.size = catalog.sizes[0];
           if (!state.prong && catalog.prongs.length) state.prong = catalog.prongs[0].id;
           if (!state.band && catalog.bandStyles.length) state.band = catalog.bandStyles[0].id;
           if (!state.shank && catalog.shankStyles.length) state.shank = catalog.shankStyles[0].id;
-          bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS);
+          bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, function () {
+            refreshProngAvailability();
+            scheduleAutoBuild();
+          });
           bindSizes();
-          bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true);
-          bindGrid('band-grid', catalog.bandStyles, 'band', undefined, true);
-          bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true);
+          bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true, scheduleAutoBuild);
+          bindGrid('band-grid', catalog.bandStyles, 'band', undefined, true, scheduleAutoBuild);
+          bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true, scheduleAutoBuild);
           // Metal preset recolors the loaded ring live — no rebuild needed
           bindGrid('metal-grid', METAL_PRESETS, 'metal', METAL_ICONS, true, function (id) {
             syncMetalProfileFromPreset(id);
@@ -74150,6 +74481,7 @@ function _init() {
             setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
           });
           syncMetalProfileFromPreset(state.metal);
+          refreshProngAvailability();
           bindFingerSizes();
           bindEngraving();
           setupTuningPanel();
@@ -74170,102 +74502,102 @@ function _init() {
             r.toneMapping = 4;
             r.toneMappingExposure = 1.2;
           }
-          _context7.n = 6;
+          _context0.n = 6;
           return viewer.addPlugin(_webgiReExports.AssetManagerPlugin);
         case 6:
-          _context7.n = 7;
+          _context0.n = 7;
           return viewer.addPlugin(_webgiReExports.GBufferPlugin);
         case 7:
-          _context7.n = 8;
+          _context0.n = 8;
           return viewer.addPlugin(_webgiReExports.ProgressivePlugin);
         case 8:
-          pp = _context7.v;
-          _context7.n = 9;
+          pp = _context0.v;
+          _context0.n = 9;
           return viewer.addPlugin(_webgiReExports.TonemapPlugin);
         case 9:
-          tonemap = _context7.v;
+          tonemap = _context0.v;
           if (tonemap) {
             tonemap.exposure = 1.0;
             tonemap.saturation = 1.1;
             tonemap.contrast = 1.1;
           }
           tonemapPlugin = tonemap;
-          _context7.n = 10;
+          _context0.n = 10;
           return viewer.addPlugin(_webgiReExports.SSAOPlugin);
         case 10:
-          ssao = _context7.v;
+          ssao = _context0.v;
           if (ssao) ssao.intensity = 0.25;
           // Registers the .exr importer — without it env_gem_002.exr cannot load
-          _context7.p = 11;
-          _context7.n = 12;
+          _context0.p = 11;
+          _context0.n = 12;
           return viewer.addPlugin(_webgiReExports.EXRLoadPlugin);
         case 12:
-          _context7.n = 14;
+          _context0.n = 14;
           break;
         case 13:
-          _context7.p = 13;
-          _t6 = _context7.v;
-          console.warn('EXRLoadPlugin failed', _t6);
+          _context0.p = 13;
+          _t9 = _context0.v;
+          console.warn('EXRLoadPlugin failed', _t9);
         case 14:
-          _context7.p = 14;
-          _context7.n = 15;
+          _context0.p = 14;
+          _context0.n = 15;
           return viewer.addPlugin(_webgiReExports.FrameFadePlugin);
         case 15:
-          _context7.n = 17;
+          _context0.n = 17;
           break;
         case 16:
-          _context7.p = 16;
-          _t7 = _context7.v;
+          _context0.p = 16;
+          _t0 = _context0.v;
         case 17:
-          _context7.p = 17;
-          _context7.n = 18;
+          _context0.p = 17;
+          _context0.n = 18;
           return viewer.addPlugin(_webgiReExports.TemporalAAPlugin);
         case 18:
-          _context7.n = 20;
+          _context0.n = 20;
           break;
         case 19:
-          _context7.p = 19;
-          _t8 = _context7.v;
+          _context0.p = 19;
+          _t1 = _context0.v;
         case 20:
-          _context7.p = 20;
-          _context7.n = 21;
+          _context0.p = 20;
+          _context0.n = 21;
           return viewer.addPlugin(_webgiReExports.DiamondPlugin);
         case 21:
-          dp = _context7.v;
+          dp = _context0.v;
           if (dp) dp.forceSceneEnvMap = false;
           diamondPluginInstance = dp;
-          _context7.n = 23;
+          _context0.n = 23;
           break;
         case 22:
-          _context7.p = 22;
-          _t9 = _context7.v;
+          _context0.p = 22;
+          _t10 = _context0.v;
         case 23:
-          _context7.p = 23;
-          _context7.n = 24;
+          _context0.p = 23;
+          _context0.n = 24;
           return viewer.addPlugin(_webgiReExports.RandomizedDirectionalLightPlugin);
         case 24:
-          _context7.n = 26;
+          _context0.n = 26;
           break;
         case 25:
-          _context7.p = 25;
-          _t0 = _context7.v;
+          _context0.p = 25;
+          _t11 = _context0.v;
         case 26:
-          _context7.p = 26;
-          _context7.n = 27;
+          _context0.p = 26;
+          _context0.n = 27;
           return viewer.addPlugin(_webgiReExports.ContactShadowGroundPlugin);
         case 27:
-          groundPlugin = _context7.v;
+          groundPlugin = _context0.v;
           if (groundPlugin) {
             groundPlugin.visible = groundEnabled;
             groundPlugin.contactShadows = true;
             if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6;
           }
-          _context7.n = 29;
+          _context0.n = 29;
           break;
         case 28:
-          _context7.p = 28;
-          _t1 = _context7.v;
-          console.warn('ContactShadowGroundPlugin failed', _t1);
+          _context0.p = 28;
+          _t12 = _context0.v;
+          console.warn('ContactShadowGroundPlugin failed', _t12);
         case 29:
           dl = new _webgiReExports.DirectionalLight(0xffffff, 3);
           dl.position.set(5, 10, 7);
@@ -74291,8 +74623,8 @@ function _init() {
           });
           ctrl = cam.controls;
           if (ctrl) ctrl.enabled = false;
-          viewer.scene.setBackground(linColor('#ffffff'));
-          _context7.n = 30;
+          viewer.scene.setBackground(linColor(BG_BONE_COLOR));
+          _context0.n = 30;
           return loadDefaultEnvironments();
         case 30:
           viewer.addEventListener('preFrame', function () {
@@ -74316,7 +74648,7 @@ function _init() {
               try {
                 var rr = viewer.renderer.rendererObject;
                 if (rr !== null && rr !== void 0 && rr.shadowMap) rr.shadowMap.needsUpdate = true;
-              } catch (_unused11) {}
+              } catch (_unused13) {}
               viewer.setDirty();
             }
           });
@@ -74387,20 +74719,33 @@ function _init() {
           });
           hideLoader();
           setStatus('Loading default ring...');
-          (_byId2 = byId('build-btn')) === null || _byId2 === void 0 || _byId2.addEventListener('click', buildRing);
-          _context7.n = 31;
+          // Custom model upload (GLB / glTF / 3DM) with diamond patch
+          modelInput = byId('model-input');
+          modelInput === null || modelInput === void 0 || modelInput.addEventListener('change', function () {
+            var _modelInput$files;
+            var f = (_modelInput$files = modelInput.files) === null || _modelInput$files === void 0 ? void 0 : _modelInput$files[0];
+            if (f) loadCustomModel(f);
+            modelInput.value = ''; // allow re-selecting the same file
+          });
+          // "Back to catalog" rebuilds the configured ring
+          (_byId5 = byId('reset-catalog-btn')) === null || _byId5 === void 0 || _byId5.addEventListener('click', function () {
+            return buildRing();
+          });
+          // Snapshot / download PNG
+          (_byId6 = byId('btn-snapshot')) === null || _byId6 === void 0 || _byId6.addEventListener('click', downloadSnapshot);
+          _context0.n = 31;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
               return r();
             });
           });
         case 31:
-          _context7.n = 32;
+          _context0.n = 32;
           return buildRing();
         case 32:
-          return _context7.a(2);
+          return _context0.a(2);
       }
-    }, _callee7, null, [[26, 28], [23, 25], [20, 22], [17, 19], [14, 16], [11, 13], [1, 4]]);
+    }, _callee0, null, [[26, 28], [23, 25], [20, 22], [17, 19], [14, 16], [11, 13], [1, 4]]);
   }));
   return _init.apply(this, arguments);
 }
@@ -74425,12 +74770,17 @@ window.__ringBuilder = {
   setMetalEnvironment: setMetalEnvironment,
   setGemEnvironment: setGemEnvironment,
   buildRing: buildRing,
+  loadCustomModel: loadCustomModel,
+  downloadSnapshot: downloadSnapshot,
   getConfiguration: getConfiguration,
   eng3d: eng3d,
   updateEngraving3D: updateEngraving3D,
   get engravingMesh() {
     return engravingMesh;
+  },
+  get usingCustomModel() {
+    return usingCustomModel;
   }
 };
 },{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"hxGN"}]},{},["QXV9"], null)
-//# sourceMappingURL=ring-builder.c1badc42.js.map
+//# sourceMappingURL=ring-builder.bbb2155a.js.map

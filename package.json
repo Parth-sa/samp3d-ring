@@ -12,7 +12,7 @@
     "start:ring": "parcel ring-combiner.html",
     "build": "parcel build index.html --no-minify --public-url ./",
     "build:builder": "parcel build ring-builder.html --no-minify --public-url ./ --out-dir dist-ring-builder && node prune-builder-dist.js",
-    "deploy": "npm run build:builder && npx wrangler pages deploy dist-ring-builder --project-name ring-builder",
+    "deploy": "npm run build:builder && npx wrangler pages deploy dist-ring-builder --project-name ring-builder-6hm",
     "build:anchor": "parcel build anchordiamond.html --no-minify --public-url ./",
     "build:combiner": "parcel build ring-combiner.html --no-minify --public-url ./",
     "build:ring": "parcel build ring-combiner.html --no-minify --public-url ./",

@@ -1,0 +1,193 @@
+{{ 'webgi-ring-builder.css' | asset_url | stylesheet_tag }}
+
+{%- assign builder_url = section.settings.builder_url | default: 'https://ring-builder-6hm.pages.dev' -%}
+
+<div class="lj-product-page">
+  <div class="lj-product-grid">
+    <!-- Left: 3D Viewer (replaces product images) -->
+    <div class="lj-media-col">
+      <div class="lj-viewer-wrap">
+        <iframe
+          id="lj-iframe"
+          src="{{ builder_url }}?embed"
+          class="lj-iframe"
+          allow="fullscreen"
+          loading="lazy"
+          title="3D Ring Builder"
+        ></iframe>
+      </div>
+    </div>
+
+    <!-- Right: Product Info (native Shopify product form) -->
+    <div class="lj-info-col">
+      {%- form 'product', product, id: 'lj-product-form', class: 'lj-product-form' -%}
+        <!-- Breadcrumb -->
+        <nav class="lj-breadcrumb" role="navigation">
+          <a href="{{ product.collections.first.url | default: '/collections/all' }}">{{ product.collections.first.title | default: 'Shop' }}</a>
+          <span aria-hidden="true">/</span>
+          <span>{{ product.title }}</span>
+        </nav>
+
+        <!-- Title -->
+        <h1 class="lj-product-title">{{ product.title }}</h1>
+
+        <!-- Price -->
+        <div class="lj-price-wrapper">
+          <span class="lj-price" id="lj-price">{{ product.price | money }}</span>
+          {%- if product.compare_at_price > product.price -%}
+            <span class="lj-compare-price">{{ product.compare_at_price | money }}</span>
+          {%- endif -%}
+        </div>
+
+        <!-- Selection Summary (live-updated from iframe) -->
+        <div class="lj-selection-card" id="lj-selection-card">
+          <div class="lj-sel-row">
+            <span class="lj-sel-label">Shape</span>
+            <span class="lj-sel-value" id="lj-val-shape">—</span>
+          </div>
+          <div class="lj-sel-row">
+            <span class="lj-sel-label">Carat</span>
+            <span class="lj-sel-value" id="lj-val-carat">—</span>
+          </div>
+          <div class="lj-sel-row">
+            <span class="lj-sel-label">Prong</span>
+            <span class="lj-sel-value" id="lj-val-prong">—</span>
+          </div>
+          <div class="lj-sel-row">
+            <span class="lj-sel-label">Band</span>
+            <span class="lj-sel-value" id="lj-val-band">—</span>
+          </div>
+          <div class="lj-sel-row">
+            <span class="lj-sel-label">Shank</span>
+            <span class="lj-sel-value" id="lj-val-shank">—</span>
+          </div>
+          <div class="lj-sel-row">
+            <span class="lj-sel-label">Metal</span>
+            <span class="lj-sel-value" id="lj-val-metal">—</span>
+          </div>
+          <div class="lj-sel-row" id="lj-engraving-row" hidden>
+            <span class="lj-sel-label">Engraving</span>
+            <span class="lj-sel-value" id="lj-val-engraving">—</span>
+          </div>
+        </div>
+
+        <!-- Quantity -->
+        <div class="lj-qty-wrapper">
+          <label class="lj-qty-label" for="lj-qty">Quantity</label>
+          <div class="lj-qty-controls">
+            <button type="button" class="lj-qty-btn" onclick="this.parentNode.querySelector('input').stepDown(); this.parentNode.querySelector('input').dispatchEvent(new Event('change'))">−</button>
+            <input type="number" id="lj-qty" name="quantity" value="1" min="1" class="lj-qty-input" readonly>
+            <button type="button" class="lj-qty-btn" onclick="this.parentNode.querySelector('input').stepUp(); this.parentNode.querySelector('input').dispatchEvent(new Event('change'))">+</button>
+          </div>
+        </div>
+
+        <!-- Hidden line-item property inputs (auto-filled by JS) -->
+        <input type="hidden" name="properties[Diamond Shape]" id="lj-prop-shape" value="">
+        <input type="hidden" name="properties[Carat Size]" id="lj-prop-carat" value="">
+        <input type="hidden" name="properties[Prong Setting]" id="lj-prop-prong" value="">
+        <input type="hidden" name="properties[Band Style]" id="lj-prop-band" value="">
+        <input type="hidden" name="properties[Shank Style]" id="lj-prop-shank" value="">
+        <input type="hidden" name="properties[Metal Type]" id="lj-prop-metal" value="">
+        <input type="hidden" name="properties[Engraving]" id="lj-prop-engraving" value="">
+        <input type="hidden" name="properties[Engraving Font]" id="lj-prop-engraving-font" value="">
+
+        <!-- Add to Cart -->
+        <button type="submit" name="add" class="lj-atc-btn" id="lj-atc" disabled>
+          <span class="lj-atc-text" id="lj-atc-text">Select your options</span>
+        </button>
+
+        <!-- Payment badges -->
+        <div class="lj-payment-badges">
+          <span>🔒 Secure checkout</span>
+          <span>Shop Pay · PayPal · GPay</span>
+        </div>
+      {%- endform -%}
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var iframe = document.getElementById('lj-iframe');
+  var atcBtn = document.getElementById('lj-atc');
+  var atcText = document.getElementById('lj-atc-text');
+  var currentConfig = {};
+
+  // Map from getConfiguration() keys to DOM element IDs and property input IDs
+  var fieldMap = {
+    diamondShape: { el: 'lj-val-shape', prop: 'lj-prop-shape' },
+    caratSize:    { el: 'lj-val-carat', prop: 'lj-prop-carat' },
+    prong:        { el: 'lj-val-prong', prop: 'lj-prop-prong' },
+    bandStyle:    { el: 'lj-val-band',  prop: 'lj-prop-band' },
+    shankStyle:   { el: 'lj-val-shank', prop: 'lj-prop-shank' },
+    metal:        { el: 'lj-val-metal', prop: 'lj-prop-metal' },
+    engraving:    { el: 'lj-val-engraving', prop: 'lj-prop-engraving' },
+    engravingFont: { prop: 'lj-prop-engraving-font' }
+  };
+
+  function updateUI(config) {
+    if (!config) return;
+    currentConfig = config;
+
+    // Update each visible field + hidden property input
+    Object.keys(fieldMap).forEach(function(key) {
+      var value = config[key] || '';
+      var map = fieldMap[key];
+      if (map.el) document.getElementById(map.el).textContent = value;
+      if (map.prop) document.getElementById(map.prop).value = value;
+    });
+
+    // Show/hide engraving row
+    if (config.engraving) {
+      document.getElementById('lj-engraving-row').hidden = false;
+    }
+
+    // Enable Add to Cart
+    atcBtn.disabled = false;
+    atcText.textContent = 'Add to Cart';
+  }
+
+  window.addEventListener('message', function(e) {
+    if (e.source !== iframe.contentWindow) return;
+    var data = e.data;
+    if (!data || !data.type) return;
+    if (data.type === 'rb:optionChange' || data.type === 'rb:ringLoaded') {
+      if (data.config) updateUI(data.config);
+    }
+  });
+
+  // Intercept form submit to show loading state
+  document.getElementById('lj-product-form').addEventListener('submit', function() {
+    atcBtn.disabled = true;
+    atcText.textContent = 'Adding…';
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "WebGI Ring Builder",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Builder Source"
+    },
+    {
+      "type": "text",
+      "id": "builder_url",
+      "label": "Ring builder URL",
+      "info": "Your deployed Cloudflare Pages URL.",
+      "default": "https://ring-builder-6hm.pages.dev"
+    }
+  ],
+  "presets": [
+    {
+      "name": "WebGI Ring Builder",
+      "settings": {
+        "builder_url": "https://ring-builder-6hm.pages.dev"
+      }
+    }
+  ]
+}
+{% endschema %}

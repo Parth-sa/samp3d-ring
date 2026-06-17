@@ -72678,6 +72678,10 @@ var _webgiReExports = require("./webgi-re-exports");
 var _webgiDiamondPatch = require("./webgiDiamondPatch");
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
+function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
@@ -72714,6 +72718,8 @@ var DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr';
 var DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr';
 // iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
 var BG_BONE_COLOR = '#f4f4eb';
+// Ground plane size = maxDim * this (bigger = wider shadow plane under the ring)
+var GROUND_SIZE_FACTOR = 4.5;
 // Exact iJewel.design values (from their .pmat files): polished metals are
 // roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
 // iJewel's precise colors; the rest follow the same polished recipe.
@@ -72749,22 +72755,6 @@ var METAL_PRESETS = [{
   roughness: 0.02,
   reflectivity: 0.5,
   envIntensity: 1.7
-}, {
-  id: 'silver',
-  label: 'Silver',
-  color: '#e4e4e8',
-  metalness: 1,
-  roughness: 0.02,
-  reflectivity: 0.5,
-  envIntensity: 1.8
-}, {
-  id: 'gold_14k',
-  label: '14K Gold',
-  color: '#d4b15a',
-  metalness: 1,
-  roughness: 0.03,
-  reflectivity: 0.5,
-  envIntensity: 1.5
 }];
 var SHAPE_ICONS = {
   RD: '⬤',
@@ -72809,6 +72799,7 @@ var catalog;
 var modelLoaded = false;
 var isBuilding = false;
 var usingCustomModel = false;
+var firstBuildDone = false;
 var isRotating = false;
 var lastX = 0;
 var lastY = 0;
@@ -72853,7 +72844,7 @@ var state = {
   engraving: '',
   engravingFont: 'script'
 };
-// US ring (finger) sizes — needed to actually manufacture/order the ring
+// US ring (finger) sizes — line-item property, not a Shopify variant
 var FINGER_SIZES = ['4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '11', '12'];
 var ENGRAVING_FONTS = [{
   id: 'script',
@@ -73391,6 +73382,7 @@ function computeBounds() {
 }
 function frameModel() {
   var _root$updateMatrixWor;
+  var firstLoad = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
   if (!viewer || !ringModel) return;
   var box = computeBounds();
   if (box.isEmpty()) return;
@@ -73403,15 +73395,23 @@ function frameModel() {
   (_root$updateMatrixWor = root.updateMatrixWorld) === null || _root$updateMatrixWor === void 0 || _root$updateMatrixWor.call(root, true);
   zoomMin = maxDim * 1.5;
   zoomMax = maxDim * 6;
-  targetZoom = maxDim * 3.2;
-  // Entrance animation: start pulled back + turned away, ease into place
-  cameraZoom = maxDim * 4.4;
-  rotationY = -0.9;
-  targetRotationY = 0;
-  rotationX = -0.4;
-  targetRotationX = -0.05;
-  rotationZ = 0;
-  targetRotationZ = 0;
+  // Bigger ground so the shadow/plane reads under the whole ring
+  if (groundPlugin && 'size' in groundPlugin) groundPlugin.size = maxDim * GROUND_SIZE_FACTOR;
+  if (firstLoad) {
+    // First load only: entrance animation (pulled back + turned away → ease in)
+    targetZoom = maxDim * 3.2;
+    cameraZoom = maxDim * 4.4;
+    rotationY = -0.9;
+    targetRotationY = 0;
+    rotationX = -0.4;
+    targetRotationX = -0.05;
+    rotationZ = 0;
+    targetRotationZ = 0;
+  } else {
+    // Rebuild on option change: keep the customer's current angle & zoom,
+    // just keep zoom within the new limits. preFrame eases everything.
+    targetZoom = Math.min(Math.max(targetZoom, zoomMin), zoomMax);
+  }
   var cam = viewer.scene.activeCamera;
   cam.position.set(0, 0, cameraZoom);
   if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false);
@@ -73746,17 +73746,25 @@ function _buildRing() {
             });
           });
         case 12:
-          frameModel();
+          frameModel(!firstBuildDone);
+          firstBuildDone = true;
           modelLoaded = true;
           updateEngraving3D();
           pp = (_viewer$getPlugin2 = (_viewer13 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer13, _webgiReExports.ProgressivePlugin);
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
-          } catch (_unused8) {}
+          } catch (_unused0) {}
           viewer.setDirty();
           setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
           updateSummary();
+          // Notify Shopify parent that the ring is fully loaded
+          try {
+            window.parent.postMessage({
+              type: 'rb:ringLoaded',
+              config: getConfiguration()
+            }, '*');
+          } catch (_unused1) {}
           _context7.n = 14;
           break;
         case 13:
@@ -73880,7 +73888,7 @@ function _loadCustomModel() {
             });
           });
         case 13:
-          frameModel();
+          frameModel(true); // custom upload = fresh model, reframe
           modelLoaded = true;
           usingCustomModel = true;
           updateEngraving3D();
@@ -73888,7 +73896,7 @@ function _loadCustomModel() {
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
-          } catch (_unused9) {}
+          } catch (_unused10) {}
           viewer.setDirty();
           setStatus("Custom: ".concat(file.name));
           nm = byId('model-name');
@@ -73981,7 +73989,7 @@ function updateSummary() {
   var pl = ((_catalog$prongs$find2 = catalog.prongs.find(function (p) {
     return p.id === state.prong;
   })) === null || _catalog$prongs$find2 === void 0 ? void 0 : _catalog$prongs$find2.label) || state.prong;
-  var bl = ((_catalog$bandStyles$f = catalog.bandStyles.find(function (b) {
+  var bl = state.band === 'NONE' ? 'None' : ((_catalog$bandStyles$f = catalog.bandStyles.find(function (b) {
     return b.id === state.band;
   })) === null || _catalog$bandStyles$f === void 0 ? void 0 : _catalog$bandStyles$f.label) || state.band;
   var shl = ((_catalog$shankStyles$ = catalog.shankStyles.find(function (s) {
@@ -73995,7 +74003,8 @@ function updateSummary() {
   byId('summary-band').textContent = bl;
   byId('summary-shank').textContent = shl;
   byId('summary-metal').textContent = ml;
-  byId('summary-finger').textContent = "US ".concat(state.fingerSize);
+  var fin = byId('summary-finger');
+  if (fin) fin.textContent = "US ".concat(state.fingerSize);
   var eng = byId('summary-engraving');
   if (eng) {
     var _ENGRAVING_FONTS$find;
@@ -74021,7 +74030,28 @@ function bindGrid(containerId, items, stateKey, icons) {
       });
       el.classList.add('selected');
       updateSummary();
+      postOptionChange(stateKey, el.dataset.value || '');
       onSelect === null || onSelect === void 0 || onSelect(state[stateKey]);
+    });
+  });
+}
+// Metal grid with real color swatches (cleaner than emoji on mobile)
+function bindMetalGrid(onSelect) {
+  var grid = byId('metal-grid');
+  if (!grid) return;
+  grid.innerHTML = METAL_PRESETS.map(function (m) {
+    return "\n        <div class=\"option-card option-card-sm".concat(state.metal === m.id ? ' selected' : '', "\" data-value=\"").concat(m.id, "\">\n            <span class=\"metal-swatch\" style=\"background:").concat(m.color, "\"></span>\n            ").concat(m.label, "\n        </div>\n    ");
+  }).join('');
+  grid.querySelectorAll('.option-card').forEach(function (el) {
+    el.addEventListener('click', function () {
+      state.metal = el.dataset.value || 'whiteGold';
+      grid.querySelectorAll('.option-card').forEach(function (c) {
+        return c.classList.remove('selected');
+      });
+      el.classList.add('selected');
+      updateSummary();
+      postOptionChange('metal', state.metal);
+      onSelect(state.metal);
     });
   });
 }
@@ -74052,11 +74082,12 @@ function bindSizes() {
       });
       el.classList.add('selected');
       updateSummary();
+      postOptionChange('size', state.size);
       scheduleAutoBuild();
     });
   });
 }
-// Finger/ring size — independent of the diamond carat, captured for the order
+// Finger/ring size — line-item property, not a variant (no rebuild needed)
 function bindFingerSizes() {
   var grid = byId('finger-size-grid');
   if (!grid) return;
@@ -74071,6 +74102,7 @@ function bindFingerSizes() {
       });
       el.classList.add('selected');
       updateSummary();
+      postOptionChange('fingerSize', state.fingerSize);
     });
   });
 }
@@ -74102,6 +74134,7 @@ function bindEngraving() {
       state.engraving = input.value.slice(0, ENGRAVING_MAX);
       updateEngravingPreview();
       updateSummary();
+      postOptionChange('engraving', state.engraving);
       updateEngraving3D();
     });
   }
@@ -74119,6 +74152,7 @@ function bindEngraving() {
         el.classList.add('selected');
         updateEngravingPreview();
         updateSummary();
+        postOptionChange('engravingFont', state.engravingFont);
         updateEngraving3D();
       });
     });
@@ -74140,7 +74174,7 @@ function getConfiguration() {
     caratSize: state.size,
     prong: label(catalog.prongs, state.prong),
     prongId: state.prong,
-    bandStyle: label(catalog.bandStyles, state.band),
+    bandStyle: state.band === 'NONE' ? 'None' : label(catalog.bandStyles, state.band),
     bandId: state.band,
     shankStyle: label(catalog.shankStyles, state.shank),
     shankId: state.shank,
@@ -74154,6 +74188,116 @@ function getConfiguration() {
       return f.id === state.engravingFont;
     })) === null || _ENGRAVING_FONTS$find3 === void 0 ? void 0 : _ENGRAVING_FONTS$find3.label) || state.engravingFont
   };
+}
+// ── Shopify add-to-cart ────────────────────────────────────────────────
+// Real variants by metal (price from Shopify). Ring size + engraving + other
+// parts ride along as line-item properties (NOT variants). Config in the HTML
+// (window.SHOPIFY_RING_CONFIG) — filled after products are created.
+var SHOPIFY_CFG = window.SHOPIFY_RING_CONFIG || {
+  domain: '',
+  variantByMetal: {}
+};
+function cartVariantId() {
+  return SHOPIFY_CFG.variantByMetal && SHOPIFY_CFG.variantByMetal[state.metal] || '';
+}
+function addToCart() {
+  var variant = cartVariantId();
+  if (!SHOPIFY_CFG.domain || !variant) {
+    setError('Checkout not set up yet — add your Shopify store + variant IDs in the config, then re-deploy.');
+    return;
+  }
+  var c = getConfiguration();
+  var props = {
+    'Diamond Shape': c.diamondShape,
+    'Carat': "".concat(c.caratSize, "ct"),
+    'Prong': c.prong,
+    'Band': c.bandStyle,
+    'Shank': c.shankStyle,
+    'Metal': c.metal,
+    'Ring Size': "US ".concat(c.ringSize)
+  };
+  if (c.engraving) {
+    props['Engraving'] = c.engraving;
+    props['Engraving Font'] = c.engravingFont;
+  }
+  var qs = Object.entries(props).map(function (_ref) {
+    var _ref2 = _slicedToArray(_ref, 2),
+      k = _ref2[0],
+      v = _ref2[1];
+    return "properties[".concat(encodeURIComponent(k), "]=").concat(encodeURIComponent(v));
+  }).join('&');
+  // Cart permalink works cross-origin from the iframe; break out to the store cart
+  var url = "https://".concat(SHOPIFY_CFG.domain, "/cart/").concat(variant, ":1?").concat(qs);
+  try {
+    (window.top || window).location.href = url;
+  } catch (_unused6) {
+    window.location.href = url;
+  }
+}
+// ── Shopify embed: postMessage bridge ─────────────────────────────
+// Sends the current selection to the parent Shopify page whenever
+// an option changes, so line-item properties can be updated.
+function postOptionChange(key, label) {
+  try {
+    var cfg = getConfiguration();
+    window.parent.postMessage({
+      type: 'rb:optionChange',
+      key: key,
+      value: state[key],
+      label: label,
+      config: cfg
+    }, '*');
+  } catch (_unused7) {}
+}
+// Listen for external option changes from the Shopify parent page
+// (e.g. when a native variant selector is used).
+function setupEmbedMessageListener() {
+  var handler = function handler(e) {
+    var _e$data;
+    if (((_e$data = e.data) === null || _e$data === void 0 ? void 0 : _e$data.type) !== 'rb:setOption') return;
+    var _e$data2 = e.data,
+      key = _e$data2.key,
+      value = _e$data2.value;
+    if (!key || value === undefined) return;
+    if (state[key] === value) return;
+    state[key] = value;
+    // Update the corresponding UI element
+    var prop = key;
+    var gridMap = {
+      shape: 'shape-grid',
+      prong: 'prong-grid',
+      band: 'band-grid',
+      shank: 'shank-grid',
+      metal: 'metal-grid'
+    };
+    var gridId = gridMap[prop];
+    if (gridId) {
+      var grid = byId(gridId);
+      if (grid) {
+        grid.querySelectorAll('.option-card').forEach(function (c) {
+          return c.classList.toggle('selected', c.dataset.value === value);
+        });
+      }
+    }
+    if (prop === 'size') {
+      var _grid = byId('size-grid');
+      if (_grid) {
+        _grid.querySelectorAll('.size-btn').forEach(function (c) {
+          return c.classList.toggle('selected', c.dataset.value === value);
+        });
+      }
+    }
+    updateSummary();
+    // Trigger appropriate action
+    if (prop === 'shape') {
+      refreshProngAvailability();
+      scheduleAutoBuild();
+    } else if (prop === 'prong' || prop === 'band' || prop === 'shank') scheduleAutoBuild();else if (prop === 'metal') {
+      syncMetalProfileFromPreset(value);
+      refreshMaterials();
+    } else if (prop === 'engraving' || prop === 'engravingFont') updateEngraving3D();
+  };
+  window.addEventListener('message', handler);
 }
 function fmt(v) {
   var digits = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
@@ -74199,7 +74343,7 @@ function metalEnvTweaked() {
   if (pp && typeof pp.reset === 'function') pp.reset();
   try {
     viewer.renderer.refreshPipeline();
-  } catch (_unused6) {}
+  } catch (_unused8) {}
   (_viewer8 = viewer) === null || _viewer8 === void 0 || _viewer8.setDirty();
 }
 function setupTuningPanel() {
@@ -74437,7 +74581,7 @@ function init() {
 }
 function _init() {
   _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
-    var _cam$setCameraOptions, _byId5, _byId6;
+    var _cam$setCameraOptions, _byId5, _byId6, _byId7;
     var resp, canvas, r, pp, tonemap, ssao, dp, dl, cam, ctrl, modelInput, _t8, _t9, _t0, _t1, _t10, _t11, _t12;
     return _regenerator().w(function (_context0) {
       while (1) switch (_context0.p = _context0.n) {
@@ -74472,10 +74616,14 @@ function _init() {
           });
           bindSizes();
           bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true, scheduleAutoBuild);
-          bindGrid('band-grid', catalog.bandStyles, 'band', undefined, true, scheduleAutoBuild);
+          // 'NONE' = ring without an accent band (findBestBand returns null → skipped in buildRing)
+          bindGrid('band-grid', [{
+            id: 'NONE',
+            label: 'None'
+          }].concat(_toConsumableArray(catalog.bandStyles)), 'band', undefined, true, scheduleAutoBuild);
           bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true, scheduleAutoBuild);
           // Metal preset recolors the loaded ring live — no rebuild needed
-          bindGrid('metal-grid', METAL_PRESETS, 'metal', METAL_ICONS, true, function (id) {
+          bindMetalGrid(function (id) {
             syncMetalProfileFromPreset(id);
             refreshMaterials();
             setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
@@ -74485,6 +74633,7 @@ function _init() {
           bindFingerSizes();
           bindEngraving();
           setupTuningPanel();
+          setupEmbedMessageListener();
           updateSummary();
           setLoader('Starting 3D viewer...');
           canvas = byId('webgi-canvas');
@@ -74502,6 +74651,12 @@ function _init() {
             r.toneMapping = 4;
             r.toneMappingExposure = 1.2;
           }
+          // Render at full sharpness on high-DPI screens (up to 2x for performance)
+          ;
+          viewer.renderer.displayCanvasScaling = Math.min(window.devicePixelRatio, 2);
+          window.addEventListener('resize', function () {
+            return viewer.setDirty();
+          });
           _context0.n = 6;
           return viewer.addPlugin(_webgiReExports.AssetManagerPlugin);
         case 6:
@@ -74591,6 +74746,7 @@ function _init() {
             groundPlugin.visible = groundEnabled;
             groundPlugin.contactShadows = true;
             if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6;
+            if ('size' in groundPlugin) groundPlugin.size = 48; // big default; frameModel refines per-model
           }
           _context0.n = 29;
           break;
@@ -74648,7 +74804,7 @@ function _init() {
               try {
                 var rr = viewer.renderer.rendererObject;
                 if (rr !== null && rr !== void 0 && rr.shadowMap) rr.shadowMap.needsUpdate = true;
-              } catch (_unused13) {}
+              } catch (_unused16) {}
               viewer.setDirty();
             }
           });
@@ -74733,6 +74889,8 @@ function _init() {
           });
           // Snapshot / download PNG
           (_byId6 = byId('btn-snapshot')) === null || _byId6 === void 0 || _byId6.addEventListener('click', downloadSnapshot);
+          // Add to Cart (Shopify)
+          (_byId7 = byId('add-cart-btn')) === null || _byId7 === void 0 || _byId7.addEventListener('click', addToCart);
           _context0.n = 31;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
@@ -74772,6 +74930,7 @@ window.__ringBuilder = {
   buildRing: buildRing,
   loadCustomModel: loadCustomModel,
   downloadSnapshot: downloadSnapshot,
+  addToCart: addToCart,
   getConfiguration: getConfiguration,
   eng3d: eng3d,
   updateEngraving3D: updateEngraving3D,
@@ -74783,4 +74942,4 @@ window.__ringBuilder = {
   }
 };
 },{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"hxGN"}]},{},["QXV9"], null)
-//# sourceMappingURL=ring-builder.bbb2155a.js.map
+//# sourceMappingURL=ring-builder.55472934.js.map

@@ -57,6 +57,8 @@ const DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr'
 const DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr'
 // iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
 const BG_BONE_COLOR = '#f4f4eb'
+// Ground plane size = maxDim * this (bigger = wider shadow plane under the ring)
+const GROUND_SIZE_FACTOR = 4.5
 
 // Exact iJewel.design values (from their .pmat files): polished metals are
 // roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
@@ -66,8 +68,6 @@ const METAL_PRESETS = [
     { id: 'yellowGold', label: 'Yellow Gold', color: '#e5b377', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
     { id: 'roseGold', label: 'Rose Gold', color: '#f2af83', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
     { id: 'platinum', label: 'Platinum', color: '#d6d6d9', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.7 },
-    { id: 'silver', label: 'Silver', color: '#e4e4e8', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.8 },
-    { id: 'gold_14k', label: '14K Gold', color: '#d4b15a', metalness: 1, roughness: 0.03, reflectivity: 0.5, envIntensity: 1.5 },
 ]
 
 const SHAPE_ICONS: Record<string, string> = {
@@ -118,6 +118,7 @@ let catalog: Catalog
 let modelLoaded = false
 let isBuilding = false
 let usingCustomModel = false
+let firstBuildDone = false
 
 let isRotating = false
 let lastX = 0; let lastY = 0
@@ -146,7 +147,7 @@ const state: Record<string, string> = {
     fingerSize: '7', engraving: '', engravingFont: 'script',
 }
 
-// US ring (finger) sizes — needed to actually manufacture/order the ring
+// US ring (finger) sizes — line-item property, not a Shopify variant
 const FINGER_SIZES = ['4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '11', '12']
 
 const ENGRAVING_FONTS = [
@@ -463,7 +464,7 @@ function computeBounds(): Box3 {
     return box
 }
 
-function frameModel() {
+function frameModel(firstLoad = false) {
     if (!viewer || !ringModel) return
     const box = computeBounds()
     if (box.isEmpty()) return
@@ -476,12 +477,20 @@ function frameModel() {
     root.updateMatrixWorld?.(true)
     zoomMin = maxDim * 1.5
     zoomMax = maxDim * 6
-    targetZoom = maxDim * 3.2
-    // Entrance animation: start pulled back + turned away, ease into place
-    cameraZoom = maxDim * 4.4
-    rotationY = -0.9; targetRotationY = 0
-    rotationX = -0.4; targetRotationX = -0.05
-    rotationZ = 0; targetRotationZ = 0
+    // Bigger ground so the shadow/plane reads under the whole ring
+    if (groundPlugin && 'size' in groundPlugin) groundPlugin.size = maxDim * GROUND_SIZE_FACTOR
+    if (firstLoad) {
+        // First load only: entrance animation (pulled back + turned away → ease in)
+        targetZoom = maxDim * 3.2
+        cameraZoom = maxDim * 4.4
+        rotationY = -0.9; targetRotationY = 0
+        rotationX = -0.4; targetRotationX = -0.05
+        rotationZ = 0; targetRotationZ = 0
+    } else {
+        // Rebuild on option change: keep the customer's current angle & zoom,
+        // just keep zoom within the new limits. preFrame eases everything.
+        targetZoom = Math.min(Math.max(targetZoom, zoomMin), zoomMax)
+    }
     const cam = viewer.scene.activeCamera
     cam.position.set(0, 0, cameraZoom)
     if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false)
@@ -661,7 +670,8 @@ async function buildRing() {
 
         setLoader('Framing view...')
         await new Promise<void>(r => requestAnimationFrame(() => r()))
-        frameModel()
+        frameModel(!firstBuildDone)
+        firstBuildDone = true
 
         modelLoaded = true
         updateEngraving3D()
@@ -672,6 +682,8 @@ async function buildRing() {
 
         setStatus(`${state.prong} ${state.shape} ${state.size}ct · ${state.metal}`)
         updateSummary()
+        // Notify Shopify parent that the ring is fully loaded
+        try { window.parent.postMessage({ type: 'rb:ringLoaded', config: getConfiguration() }, '*') } catch {}
     } catch (e: any) {
         console.error('Build failed:', e)
         setError('Build failed: ' + (e?.message || e))
@@ -725,7 +737,7 @@ async function loadCustomModel(file: File) {
         setLoader('Applying materials...')
         applyMaterials(root)
         await new Promise<void>(r => requestAnimationFrame(() => r()))
-        frameModel()
+        frameModel(true)  // custom upload = fresh model, reframe
         modelLoaded = true
         usingCustomModel = true
         updateEngraving3D()
@@ -766,7 +778,7 @@ async function downloadSnapshot() {
 function updateSummary() {
     const sl = catalog.shapes.find(s => s.id === state.shape)?.label || state.shape
     const pl = catalog.prongs.find(p => p.id === state.prong)?.label || state.prong
-    const bl = catalog.bandStyles.find(b => b.id === state.band)?.label || state.band
+    const bl = state.band === 'NONE' ? 'None' : (catalog.bandStyles.find(b => b.id === state.band)?.label || state.band)
     const shl = catalog.shankStyles.find(s => s.id === state.shank)?.label || state.shank
     const ml = METAL_PRESETS.find(m => m.id === state.metal)?.label || state.metal
     byId('summary-diamond').textContent = `${sl} · ${state.size}ct`
@@ -774,7 +786,8 @@ function updateSummary() {
     byId('summary-band').textContent = bl
     byId('summary-shank').textContent = shl
     byId('summary-metal').textContent = ml
-    byId('summary-finger').textContent = `US ${state.fingerSize}`
+    const fin = byId('summary-finger')
+    if (fin) fin.textContent = `US ${state.fingerSize}`
     const eng = byId('summary-engraving')
     if (eng) {
         const fontLabel = ENGRAVING_FONTS.find(f => f.id === state.engravingFont)?.label || ''
@@ -797,7 +810,30 @@ function bindGrid(containerId: string, items: { id: string; label: string }[], s
             grid.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'))
             el.classList.add('selected')
             updateSummary()
+            postOptionChange(stateKey, (el as HTMLElement).dataset.value || '')
             onSelect?.(state[stateKey])
+        })
+    })
+}
+
+// Metal grid with real color swatches (cleaner than emoji on mobile)
+function bindMetalGrid(onSelect: (id: string) => void) {
+    const grid = byId('metal-grid')
+    if (!grid) return
+    grid.innerHTML = METAL_PRESETS.map(m => `
+        <div class="option-card option-card-sm${state.metal === m.id ? ' selected' : ''}" data-value="${m.id}">
+            <span class="metal-swatch" style="background:${m.color}"></span>
+            ${m.label}
+        </div>
+    `).join('')
+    grid.querySelectorAll('.option-card').forEach(el => {
+        el.addEventListener('click', () => {
+            state.metal = (el as HTMLElement).dataset.value || 'whiteGold'
+            grid.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'))
+            el.classList.add('selected')
+            updateSummary()
+            postOptionChange('metal', state.metal)
+            onSelect(state.metal)
         })
     })
 }
@@ -825,12 +861,13 @@ function bindSizes() {
             grid.querySelectorAll('.size-btn').forEach(c => c.classList.remove('selected'))
             el.classList.add('selected')
             updateSummary()
+            postOptionChange('size', state.size)
             scheduleAutoBuild()
         })
     })
 }
 
-// Finger/ring size — independent of the diamond carat, captured for the order
+// Finger/ring size — line-item property, not a variant (no rebuild needed)
 function bindFingerSizes() {
     const grid = byId('finger-size-grid')
     if (!grid) return
@@ -843,9 +880,12 @@ function bindFingerSizes() {
             grid.querySelectorAll('.size-btn').forEach(c => c.classList.remove('selected'))
             el.classList.add('selected')
             updateSummary()
+            postOptionChange('fingerSize', state.fingerSize)
         })
     })
 }
+
+
 
 function engravingFontCss(id: string) {
     return ENGRAVING_FONTS.find(f => f.id === id)?.css || 'inherit'
@@ -874,6 +914,7 @@ function bindEngraving() {
             state.engraving = input.value.slice(0, ENGRAVING_MAX)
             updateEngravingPreview()
             updateSummary()
+            postOptionChange('engraving', state.engraving)
             updateEngraving3D()
         })
     }
@@ -891,6 +932,7 @@ function bindEngraving() {
                 el.classList.add('selected')
                 updateEngravingPreview()
                 updateSummary()
+                postOptionChange('engravingFont', state.engravingFont)
                 updateEngraving3D()
             })
         })
@@ -907,7 +949,7 @@ function getConfiguration() {
         caratSize: state.size,
         prong: label(catalog.prongs, state.prong),
         prongId: state.prong,
-        bandStyle: label(catalog.bandStyles, state.band),
+        bandStyle: state.band === 'NONE' ? 'None' : label(catalog.bandStyles, state.band),
         bandId: state.band,
         shankStyle: label(catalog.shankStyles, state.shank),
         shankId: state.shank,
@@ -917,6 +959,106 @@ function getConfiguration() {
         engraving: state.engraving,
         engravingFont: ENGRAVING_FONTS.find(f => f.id === state.engravingFont)?.label || state.engravingFont,
     }
+}
+
+// ── Shopify add-to-cart ────────────────────────────────────────────────
+// Real variants by metal (price from Shopify). Ring size + engraving + other
+// parts ride along as line-item properties (NOT variants). Config in the HTML
+// (window.SHOPIFY_RING_CONFIG) — filled after products are created.
+const SHOPIFY_CFG = (window as any).SHOPIFY_RING_CONFIG || { domain: '', variantByMetal: {} }
+
+function cartVariantId(): string {
+    return (SHOPIFY_CFG.variantByMetal && SHOPIFY_CFG.variantByMetal[state.metal]) || ''
+}
+
+function addToCart() {
+    const variant = cartVariantId()
+    if (!SHOPIFY_CFG.domain || !variant) {
+        setError('Checkout not set up yet — add your Shopify store + variant IDs in the config, then re-deploy.')
+        return
+    }
+    const c = getConfiguration()
+    const props: Record<string, string> = {
+        'Diamond Shape': c.diamondShape,
+        'Carat': `${c.caratSize}ct`,
+        'Prong': c.prong,
+        'Band': c.bandStyle,
+        'Shank': c.shankStyle,
+        'Metal': c.metal,
+        'Ring Size': `US ${c.ringSize}`,
+    }
+    if (c.engraving) { props['Engraving'] = c.engraving; props['Engraving Font'] = c.engravingFont }
+    const qs = Object.entries(props)
+        .map(([k, v]) => `properties[${encodeURIComponent(k)}]=${encodeURIComponent(v)}`)
+        .join('&')
+    // Cart permalink works cross-origin from the iframe; break out to the store cart
+    const url = `https://${SHOPIFY_CFG.domain}/cart/${variant}:1?${qs}`
+    try { (window.top || window)!.location.href = url } catch { window.location.href = url }
+}
+
+// ── Shopify embed: postMessage bridge ─────────────────────────────
+// Sends the current selection to the parent Shopify page whenever
+// an option changes, so line-item properties can be updated.
+function postOptionChange(key: string, label: string) {
+    try {
+        const cfg = getConfiguration()
+        window.parent.postMessage({
+            type: 'rb:optionChange',
+            key,
+            value: state[key],
+            label,
+            config: cfg,
+        }, '*')
+    } catch {}
+}
+
+// Listen for external option changes from the Shopify parent page
+// (e.g. when a native variant selector is used).
+function setupEmbedMessageListener() {
+    const handler = (e: MessageEvent) => {
+        if (e.data?.type !== 'rb:setOption') return
+        const { key, value } = e.data
+        if (!key || value === undefined) return
+        if (state[key] === value) return
+        state[key] = value
+
+        // Update the corresponding UI element
+        const prop = key as string
+        const gridMap: Record<string, string> = {
+            shape: 'shape-grid',
+            prong: 'prong-grid',
+            band: 'band-grid',
+            shank: 'shank-grid',
+            metal: 'metal-grid',
+        }
+        const gridId = gridMap[prop]
+        if (gridId) {
+            const grid = byId(gridId)
+            if (grid) {
+                grid.querySelectorAll('.option-card').forEach(c =>
+                    c.classList.toggle('selected', (c as HTMLElement).dataset.value === value))
+            }
+        }
+        if (prop === 'size') {
+            const grid = byId('size-grid')
+            if (grid) {
+                grid.querySelectorAll('.size-btn').forEach(c =>
+                    c.classList.toggle('selected', (c as HTMLElement).dataset.value === value))
+            }
+        }
+
+        updateSummary()
+
+        // Trigger appropriate action
+        if (prop === 'shape') { refreshProngAvailability(); scheduleAutoBuild() }
+        else if (prop === 'prong' || prop === 'band' || prop === 'shank') scheduleAutoBuild()
+        else if (prop === 'metal') {
+            syncMetalProfileFromPreset(value)
+            refreshMaterials()
+        }
+        else if (prop === 'engraving' || prop === 'engravingFont') updateEngraving3D()
+    }
+    window.addEventListener('message', handler)
 }
 
 function fmt(v: number, digits = 2) { return v.toFixed(digits) }
@@ -1070,10 +1212,11 @@ async function init() {
     bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, () => { refreshProngAvailability(); scheduleAutoBuild() })
     bindSizes()
     bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true, scheduleAutoBuild)
-    bindGrid('band-grid', catalog.bandStyles, 'band', undefined, true, scheduleAutoBuild)
+    // 'NONE' = ring without an accent band (findBestBand returns null → skipped in buildRing)
+    bindGrid('band-grid', [{ id: 'NONE', label: 'None' }, ...catalog.bandStyles], 'band', undefined, true, scheduleAutoBuild)
     bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true, scheduleAutoBuild)
     // Metal preset recolors the loaded ring live — no rebuild needed
-    bindGrid('metal-grid', METAL_PRESETS, 'metal', METAL_ICONS, true, id => {
+    bindMetalGrid(id => {
         syncMetalProfileFromPreset(id)
         refreshMaterials()
         setStatus(`${state.prong} ${state.shape} ${state.size}ct · ${state.metal}`)
@@ -1083,6 +1226,7 @@ async function init() {
     bindFingerSizes()
     bindEngraving()
     setupTuningPanel()
+    setupEmbedMessageListener()
     updateSummary()
 
     setLoader('Starting 3D viewer...')
@@ -1095,6 +1239,9 @@ async function init() {
         r.physicallyCorrectLights = true; r.outputEncoding = 3001
         r.toneMapping = 4; r.toneMappingExposure = 1.2
     }
+    // Render at full sharpness on high-DPI screens (up to 2x for performance)
+    ;(viewer.renderer as any).displayCanvasScaling = Math.min(window.devicePixelRatio, 2)
+    window.addEventListener('resize', () => viewer.setDirty())
 
     await viewer.addPlugin(AssetManagerPlugin)
     await viewer.addPlugin(GBufferPlugin)
@@ -1125,6 +1272,7 @@ async function init() {
             groundPlugin.visible = groundEnabled
             groundPlugin.contactShadows = true
             if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6
+            if ('size' in groundPlugin) groundPlugin.size = 48  // big default; frameModel refines per-model
         }
     } catch (e) { console.warn('ContactShadowGroundPlugin failed', e) }
 
@@ -1224,6 +1372,8 @@ async function init() {
     byId('reset-catalog-btn')?.addEventListener('click', () => buildRing())
     // Snapshot / download PNG
     byId('btn-snapshot')?.addEventListener('click', downloadSnapshot)
+    // Add to Cart (Shopify)
+    byId('add-cart-btn')?.addEventListener('click', addToCart)
 
     await new Promise<void>(r => requestAnimationFrame(() => r()))
     await buildRing()
@@ -1242,6 +1392,7 @@ init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hi
     buildRing,
     loadCustomModel,
     downloadSnapshot,
+    addToCart,
     getConfiguration,
     eng3d,
     updateEngraving3D,

@@ -72676,12 +72676,18 @@ function _patchGlbWithDiamondMetadata() {
 
 var _webgiReExports = require("./webgi-re-exports");
 var _webgiDiamondPatch = require("./webgiDiamondPatch");
-function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
-function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
+function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
@@ -73623,7 +73629,7 @@ function buildRing() {
 // 3DM files load via Rhino3dmLoader2 from the rhino3dm CDN.
 function _buildRing() {
   _buildRing = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
-    var nm, _viewer$getPlugin2, _viewer13, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t5;
+    var nm, _viewer$getPlugin2, _viewer14, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t5;
     return _regenerator().w(function (_context7) {
       while (1) switch (_context7.p = _context7.n) {
         case 0:
@@ -73750,7 +73756,7 @@ function _buildRing() {
           firstBuildDone = true;
           modelLoaded = true;
           updateEngraving3D();
-          pp = (_viewer$getPlugin2 = (_viewer13 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer13, _webgiReExports.ProgressivePlugin);
+          pp = (_viewer$getPlugin2 = (_viewer14 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer14, _webgiReExports.ProgressivePlugin);
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
@@ -73791,7 +73797,7 @@ function loadCustomModel(_x5) {
 function _loadCustomModel() {
   _loadCustomModel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(file) {
     var _byId4;
-    var manager, importer, name, is3dm, patchOn, _viewer$getPlugin3, _viewer14, loader, url, model, toLoad, result, root, pp, nm, _t6, _t7;
+    var manager, importer, name, is3dm, patchOn, _viewer$getPlugin3, _viewer15, loader, url, model, toLoad, result, root, pp, nm, _t6, _t7;
     return _regenerator().w(function (_context8) {
       while (1) switch (_context8.p = _context8.n) {
         case 0:
@@ -73892,7 +73898,7 @@ function _loadCustomModel() {
           modelLoaded = true;
           usingCustomModel = true;
           updateEngraving3D();
-          pp = (_viewer$getPlugin3 = (_viewer14 = viewer).getPlugin) === null || _viewer$getPlugin3 === void 0 ? void 0 : _viewer$getPlugin3.call(_viewer14, _webgiReExports.ProgressivePlugin);
+          pp = (_viewer$getPlugin3 = (_viewer15 = viewer).getPlugin) === null || _viewer$getPlugin3 === void 0 ? void 0 : _viewer$getPlugin3.call(_viewer15, _webgiReExports.ProgressivePlugin);
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
@@ -73926,12 +73932,12 @@ function downloadSnapshot() {
 }
 function _downloadSnapshot() {
   _downloadSnapshot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
-    var _viewer15;
+    var _viewer16;
     var r, canvas, blob, a, tag;
     return _regenerator().w(function (_context9) {
       while (1) switch (_context9.n) {
         case 0:
-          r = (_viewer15 = viewer) === null || _viewer15 === void 0 || (_viewer15 = _viewer15.renderer) === null || _viewer15 === void 0 ? void 0 : _viewer15.rendererObject;
+          r = (_viewer16 = viewer) === null || _viewer16 === void 0 || (_viewer16 = _viewer16.renderer) === null || _viewer16 === void 0 ? void 0 : _viewer16.rendererObject;
           canvas = r === null || r === void 0 ? void 0 : r.domElement;
           if (canvas) {
             _context9.n = 1;
@@ -74190,53 +74196,187 @@ function getConfiguration() {
   };
 }
 // ── Shopify add-to-cart ────────────────────────────────────────────────
-// Real variants by metal (price from Shopify). Ring size + engraving + other
-// parts ride along as line-item properties (NOT variants). Config in the HTML
-// (window.SHOPIFY_RING_CONFIG) — filled after products are created.
+// Shape = a separate Shopify product (handle "<shape>-diamond-ring");
+// Metal × Carat = the variant. Variant IDs are resolved live from the
+// storefront product JSON (/products/{handle}.js) so the 72 IDs never need to
+// be hand-copied. Prong, band, shank, ring size and engraving ride along as
+// line-item properties. Only the store domain is configured in the HTML.
 var SHOPIFY_CFG = window.SHOPIFY_RING_CONFIG || {
   domain: '',
   variantByMetal: {}
 };
-function cartVariantId() {
-  return SHOPIFY_CFG.variantByMetal && SHOPIFY_CFG.variantByMetal[state.metal] || '';
+// Shapes that have a live Shopify product. All 7 catalog shapes have products.
+var SHOPIFY_SHAPES = ['Round', 'Oval', 'Princess', 'Emerald', 'Marquise', 'Pear', 'Radiant'];
+function productHandleForShape() {
+  var _catalog$shapes$find2;
+  var label = ((_catalog$shapes$find2 = catalog.shapes.find(function (s) {
+    return s.id === state.shape;
+  })) === null || _catalog$shapes$find2 === void 0 ? void 0 : _catalog$shapes$find2.label) || '';
+  if (!SHOPIFY_SHAPES.includes(label)) return '';
+  return "custom-".concat(label.toLowerCase(), "-diamond-ring");
+}
+var _productCache = {};
+function fetchShopifyProduct(_x6) {
+  return _fetchShopifyProduct.apply(this, arguments);
+} // Variant id for current shape+metal+carat. Metal = option1, carat = option2.
+function _fetchShopifyProduct() {
+  _fetchShopifyProduct = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(handle) {
+    var res, data, _t8;
+    return _regenerator().w(function (_context0) {
+      while (1) switch (_context0.p = _context0.n) {
+        case 0:
+          if (!_productCache[handle]) {
+            _context0.n = 1;
+            break;
+          }
+          return _context0.a(2, _productCache[handle]);
+        case 1:
+          _context0.p = 1;
+          _context0.n = 2;
+          return fetch("https://".concat(SHOPIFY_CFG.domain, "/products/").concat(handle, ".js"));
+        case 2:
+          res = _context0.v;
+          if (res.ok) {
+            _context0.n = 3;
+            break;
+          }
+          return _context0.a(2, null);
+        case 3:
+          _context0.n = 4;
+          return res.json();
+        case 4:
+          data = _context0.v;
+          _productCache[handle] = data;
+          return _context0.a(2, data);
+        case 5:
+          _context0.p = 5;
+          _t8 = _context0.v;
+          return _context0.a(2, null);
+      }
+    }, _callee0, null, [[1, 5]]);
+  }));
+  return _fetchShopifyProduct.apply(this, arguments);
+}
+function resolveVariantId() {
+  return _resolveVariantId.apply(this, arguments);
+}
+function _resolveVariantId() {
+  _resolveVariantId = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1() {
+    var _METAL_PRESETS$find3;
+    var handle, product, metalLabel, v;
+    return _regenerator().w(function (_context1) {
+      while (1) switch (_context1.n) {
+        case 0:
+          if (SHOPIFY_CFG.domain) {
+            _context1.n = 1;
+            break;
+          }
+          return _context1.a(2, '');
+        case 1:
+          handle = productHandleForShape();
+          if (handle) {
+            _context1.n = 2;
+            break;
+          }
+          return _context1.a(2, '');
+        case 2:
+          _context1.n = 3;
+          return fetchShopifyProduct(handle);
+        case 3:
+          product = _context1.v;
+          if (product !== null && product !== void 0 && product.variants) {
+            _context1.n = 4;
+            break;
+          }
+          return _context1.a(2, '');
+        case 4:
+          metalLabel = ((_METAL_PRESETS$find3 = METAL_PRESETS.find(function (m) {
+            return m.id === state.metal;
+          })) === null || _METAL_PRESETS$find3 === void 0 ? void 0 : _METAL_PRESETS$find3.label) || '';
+          v = product.variants.find(function (vr) {
+            return vr.option1 === metalLabel && String(vr.option2) === String(state.size);
+          });
+          return _context1.a(2, v ? String(v.id) : '');
+      }
+    }, _callee1);
+  }));
+  return _resolveVariantId.apply(this, arguments);
 }
 function addToCart() {
-  var variant = cartVariantId();
-  if (!SHOPIFY_CFG.domain || !variant) {
-    setError('Checkout not set up yet — add your Shopify store + variant IDs in the config, then re-deploy.');
-    return;
-  }
-  var c = getConfiguration();
-  var props = {
-    'Diamond Shape': c.diamondShape,
-    'Carat': "".concat(c.caratSize, "ct"),
-    'Prong': c.prong,
-    'Band': c.bandStyle,
-    'Shank': c.shankStyle,
-    'Metal': c.metal,
-    'Ring Size': "US ".concat(c.ringSize)
-  };
-  if (c.engraving) {
-    props['Engraving'] = c.engraving;
-    props['Engraving Font'] = c.engravingFont;
-  }
-  var qs = Object.entries(props).map(function (_ref) {
-    var _ref2 = _slicedToArray(_ref, 2),
-      k = _ref2[0],
-      v = _ref2[1];
-    return "properties[".concat(encodeURIComponent(k), "]=").concat(encodeURIComponent(v));
-  }).join('&');
-  // Cart permalink works cross-origin from the iframe; break out to the store cart
-  var url = "https://".concat(SHOPIFY_CFG.domain, "/cart/").concat(variant, ":1?").concat(qs);
-  try {
-    (window.top || window).location.href = url;
-  } catch (_unused6) {
-    window.location.href = url;
-  }
-}
-// ── Shopify embed: postMessage bridge ─────────────────────────────
+  return _addToCart.apply(this, arguments);
+} // ── Shopify embed: postMessage bridge ─────────────────────────────
 // Sends the current selection to the parent Shopify page whenever
 // an option changes, so line-item properties can be updated.
+function _addToCart() {
+  _addToCart = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
+    var handle, _catalog$shapes$find3, label, variant, c, props, qs, url;
+    return _regenerator().w(function (_context10) {
+      while (1) switch (_context10.n) {
+        case 0:
+          if (SHOPIFY_CFG.domain) {
+            _context10.n = 1;
+            break;
+          }
+          setError('Checkout not set up yet — add your Shopify store domain in the config, then re-deploy.');
+          return _context10.a(2);
+        case 1:
+          handle = productHandleForShape();
+          if (handle) {
+            _context10.n = 2;
+            break;
+          }
+          label = ((_catalog$shapes$find3 = catalog.shapes.find(function (s) {
+            return s.id === state.shape;
+          })) === null || _catalog$shapes$find3 === void 0 ? void 0 : _catalog$shapes$find3.label) || 'this';
+          setError("The ".concat(label, " shape isn't available for purchase yet. Try Oval, Princess or Radiant."));
+          return _context10.a(2);
+        case 2:
+          setStatus('Adding to cart…');
+          _context10.n = 3;
+          return resolveVariantId();
+        case 3:
+          variant = _context10.v;
+          if (variant) {
+            _context10.n = 4;
+            break;
+          }
+          setError('Could not find that ring in the store. Try a different metal or carat.');
+          setStatus('');
+          return _context10.a(2);
+        case 4:
+          c = getConfiguration();
+          props = {
+            'Diamond Shape': c.diamondShape,
+            'Carat': "".concat(c.caratSize, "ct"),
+            'Prong': c.prong,
+            'Band': c.bandStyle,
+            'Shank': c.shankStyle,
+            'Metal': c.metal,
+            'Ring Size': "US ".concat(c.ringSize)
+          };
+          if (c.engraving) {
+            props['Engraving'] = c.engraving;
+            props['Engraving Font'] = c.engravingFont;
+          }
+          qs = Object.entries(props).map(function (_ref2) {
+            var _ref3 = _slicedToArray(_ref2, 2),
+              k = _ref3[0],
+              v = _ref3[1];
+            return "properties[".concat(encodeURIComponent(k), "]=").concat(encodeURIComponent(v));
+          }).join('&'); // Cart permalink works cross-origin from the iframe; break out to the store cart
+          url = "https://".concat(SHOPIFY_CFG.domain, "/cart/").concat(variant, ":1?").concat(qs);
+          try {
+            (window.top || window).location.href = url;
+          } catch (_unused12) {
+            window.location.href = url;
+          }
+        case 5:
+          return _context10.a(2);
+      }
+    }, _callee10);
+  }));
+  return _addToCart.apply(this, arguments);
+}
 function postOptionChange(key, label) {
   try {
     var cfg = getConfiguration();
@@ -74247,17 +74387,65 @@ function postOptionChange(key, label) {
       label: label,
       config: cfg
     }, '*');
+  } catch (_unused6) {}
+}
+// Publishes the full option catalog to the Shopify parent page so it can render
+// native selectors for the non-variant options (prong / band / shank / ring
+// size). Values are the same ids the builder uses, so the parent can echo them
+// straight back as rb:setOption.
+function postCatalogToParent() {
+  try {
+    window.parent.postMessage({
+      type: 'rb:catalog',
+      catalog: {
+        shapes: catalog.shapes,
+        sizes: catalog.sizes,
+        prongs: catalog.prongs,
+        bands: [{
+          id: 'NONE',
+          label: 'None'
+        }].concat(_toConsumableArray(catalog.bandStyles)),
+        shanks: catalog.shankStyles,
+        metals: METAL_PRESETS.map(function (m) {
+          return {
+            id: m.id,
+            label: m.label
+          };
+        }),
+        fingerSizes: FINGER_SIZES,
+        engravingFonts: ENGRAVING_FONTS.map(function (f) {
+          return {
+            id: f.id,
+            label: f.label
+          };
+        }),
+        engravingMax: ENGRAVING_MAX
+      },
+      state: _objectSpread({}, state),
+      config: getConfiguration()
+    }, '*');
   } catch (_unused7) {}
 }
 // Listen for external option changes from the Shopify parent page
 // (e.g. when a native variant selector is used).
 function setupEmbedMessageListener() {
   var handler = function handler(e) {
-    var _e$data;
-    if (((_e$data = e.data) === null || _e$data === void 0 ? void 0 : _e$data.type) !== 'rb:setOption') return;
-    var _e$data2 = e.data,
-      key = _e$data2.key,
-      value = _e$data2.value;
+    var _e$data, _e$data2, _e$data3;
+    if (((_e$data = e.data) === null || _e$data === void 0 ? void 0 : _e$data.type) === 'rb:requestCatalog') {
+      postCatalogToParent();
+      return;
+    }
+    if (((_e$data2 = e.data) === null || _e$data2 === void 0 ? void 0 : _e$data2.type) === 'rb:autorotate') {
+      var _viewer7;
+      autoRotate = !!e.data.value;
+      if (typeof e.data.speed === 'number' && e.data.speed > 0) autoRotateSpeed = e.data.speed;
+      (_viewer7 = viewer) === null || _viewer7 === void 0 || _viewer7.setDirty();
+      return;
+    }
+    if (((_e$data3 = e.data) === null || _e$data3 === void 0 ? void 0 : _e$data3.type) !== 'rb:setOption') return;
+    var _e$data4 = e.data,
+      key = _e$data4.key,
+      value = _e$data4.value;
     if (!key || value === undefined) return;
     if (state[key] === value) return;
     state[key] = value;
@@ -74292,7 +74480,7 @@ function setupEmbedMessageListener() {
     if (prop === 'shape') {
       refreshProngAvailability();
       scheduleAutoBuild();
-    } else if (prop === 'prong' || prop === 'band' || prop === 'shank') scheduleAutoBuild();else if (prop === 'metal') {
+    } else if (prop === 'prong' || prop === 'band' || prop === 'shank' || prop === 'size') scheduleAutoBuild();else if (prop === 'metal') {
       syncMetalProfileFromPreset(value);
       refreshMaterials();
     } else if (prop === 'engraving' || prop === 'engravingFont') updateEngraving3D();
@@ -74337,14 +74525,14 @@ function bindCtl(id, onInput) {
   });
 }
 function metalEnvTweaked() {
-  var _viewer7, _viewer7$getPlugin, _viewer8;
+  var _viewer8, _viewer8$getPlugin, _viewer9;
   applyMetalEnvSettings();
-  var pp = (_viewer7 = viewer) === null || _viewer7 === void 0 || (_viewer7$getPlugin = _viewer7.getPlugin) === null || _viewer7$getPlugin === void 0 ? void 0 : _viewer7$getPlugin.call(_viewer7, _webgiReExports.ProgressivePlugin);
+  var pp = (_viewer8 = viewer) === null || _viewer8 === void 0 || (_viewer8$getPlugin = _viewer8.getPlugin) === null || _viewer8$getPlugin === void 0 ? void 0 : _viewer8$getPlugin.call(_viewer8, _webgiReExports.ProgressivePlugin);
   if (pp && typeof pp.reset === 'function') pp.reset();
   try {
     viewer.renderer.refreshPipeline();
   } catch (_unused8) {}
-  (_viewer8 = viewer) === null || _viewer8 === void 0 || _viewer8.setDirty();
+  (_viewer9 = viewer) === null || _viewer9 === void 0 || _viewer9.setDirty();
 }
 function setupTuningPanel() {
   var _byId2;
@@ -74478,9 +74666,9 @@ function setupTuningPanel() {
   });
   // Scene
   bindCtl('tn-bg-color', function (v) {
-    var _viewer9, _viewer0;
-    (_viewer9 = viewer) === null || _viewer9 === void 0 || _viewer9.scene.setBackground(linColor(v));
-    (_viewer0 = viewer) === null || _viewer0 === void 0 || _viewer0.setDirty();
+    var _viewer0, _viewer1;
+    (_viewer0 = viewer) === null || _viewer0 === void 0 || _viewer0.scene.setBackground(linColor(v));
+    (_viewer1 = viewer) === null || _viewer1 === void 0 || _viewer1.setDirty();
   });
   // Background image (any image; the bone PNG is just a flat colour so the
   // picker above reproduces it exactly — this is for real backdrops/gradients)
@@ -74533,21 +74721,21 @@ function setupTuningPanel() {
     viewer.setDirty();
   });
   bindCtl('tn-exposure', function (v) {
-    var _viewer1;
-    if (tonemapPlugin) tonemapPlugin.exposure = Number(v);
-    (_viewer1 = viewer) === null || _viewer1 === void 0 || _viewer1.setDirty();
-    return fmt(Number(v));
-  });
-  bindCtl('tn-contrast', function (v) {
     var _viewer10;
-    if (tonemapPlugin) tonemapPlugin.contrast = Number(v);
+    if (tonemapPlugin) tonemapPlugin.exposure = Number(v);
     (_viewer10 = viewer) === null || _viewer10 === void 0 || _viewer10.setDirty();
     return fmt(Number(v));
   });
-  bindCtl('tn-saturation', function (v) {
+  bindCtl('tn-contrast', function (v) {
     var _viewer11;
-    if (tonemapPlugin) tonemapPlugin.saturation = Number(v);
+    if (tonemapPlugin) tonemapPlugin.contrast = Number(v);
     (_viewer11 = viewer) === null || _viewer11 === void 0 || _viewer11.setDirty();
+    return fmt(Number(v));
+  });
+  bindCtl('tn-saturation', function (v) {
+    var _viewer12;
+    if (tonemapPlugin) tonemapPlugin.saturation = Number(v);
+    (_viewer12 = viewer) === null || _viewer12 === void 0 || _viewer12.setDirty();
     return fmt(Number(v));
   });
   // Shadow strength = contact-shadow ground opacity (white ground on white
@@ -74566,9 +74754,9 @@ function setupTuningPanel() {
   });
   var autoR = document.getElementById('tn-autorotate');
   autoR === null || autoR === void 0 || autoR.addEventListener('change', function () {
-    var _viewer12;
+    var _viewer13;
     autoRotate = !!autoR.checked;
-    (_viewer12 = viewer) === null || _viewer12 === void 0 || _viewer12.setDirty();
+    (_viewer13 = viewer) === null || _viewer13 === void 0 || _viewer13.setDirty();
   });
   bindCtl('tn-autorotate-speed', function (v) {
     autoRotateSpeed = Number(v);
@@ -74580,36 +74768,54 @@ function init() {
   return _init.apply(this, arguments);
 }
 function _init() {
-  _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+  _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
     var _cam$setCameraOptions, _byId5, _byId6, _byId7;
-    var resp, canvas, r, pp, tonemap, ssao, dp, dl, cam, ctrl, modelInput, _t8, _t9, _t0, _t1, _t10, _t11, _t12;
-    return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.p = _context0.n) {
+    var resp, qp, qShape, qMetal, qCarat, qAuto, qSpeed, canvas, r, pp, tonemap, ssao, dp, dl, cam, ctrl, modelInput, _t9, _t0, _t1, _t10, _t11, _t12, _t13;
+    return _regenerator().w(function (_context11) {
+      while (1) switch (_context11.p = _context11.n) {
         case 0:
           setLoader('Loading catalog...');
-          _context0.p = 1;
-          _context0.n = 2;
+          _context11.p = 1;
+          _context11.n = 2;
           return fetch('./assets/catalog.json');
         case 2:
-          resp = _context0.v;
-          _context0.n = 3;
+          resp = _context11.v;
+          _context11.n = 3;
           return resp.json();
         case 3:
-          catalog = _context0.v;
-          _context0.n = 5;
+          catalog = _context11.v;
+          _context11.n = 5;
           break;
         case 4:
-          _context0.p = 4;
-          _t8 = _context0.v;
+          _context11.p = 4;
+          _t9 = _context11.v;
           setError('Failed to load catalog');
           hideLoader();
-          return _context0.a(2);
+          return _context11.a(2);
         case 5:
           if (!state.shape && catalog.shapes.length) state.shape = catalog.shapes[0].id;
           if (!state.size && catalog.sizes.length) state.size = catalog.sizes[0];
           if (!state.prong && catalog.prongs.length) state.prong = catalog.prongs[0].id;
           if (!state.band && catalog.bandStyles.length) state.band = catalog.bandStyles[0].id;
           if (!state.shank && catalog.shankStyles.length) state.shank = catalog.shankStyles[0].id;
+          // Embed: the Shopify product page can preset the starting selection via URL
+          // params (?shape=OV&metal=whiteGold&carat=1.00). Metal/carat also keep
+          // arriving live as rb:setOption messages when the native selectors change.
+          qp = new URLSearchParams(location.search);
+          qShape = qp.get('shape');
+          if (qShape && catalog.shapes.some(function (s) {
+            return s.id === qShape;
+          })) state.shape = qShape;
+          qMetal = qp.get('metal');
+          if (qMetal && METAL_PRESETS.some(function (m) {
+            return m.id === qMetal;
+          })) state.metal = qMetal;
+          qCarat = qp.get('carat');
+          if (qCarat && catalog.sizes.includes(qCarat)) state.size = qCarat;
+          qAuto = qp.get('autorotate');
+          if (qAuto === '1' || qAuto === 'true') autoRotate = true;
+          qSpeed = parseFloat(qp.get('rotspeed') || '');
+          if (!isNaN(qSpeed) && qSpeed > 0) autoRotateSpeed = qSpeed;
           bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, function () {
             refreshProngAvailability();
             scheduleAutoBuild();
@@ -74657,103 +74863,103 @@ function _init() {
           window.addEventListener('resize', function () {
             return viewer.setDirty();
           });
-          _context0.n = 6;
+          _context11.n = 6;
           return viewer.addPlugin(_webgiReExports.AssetManagerPlugin);
         case 6:
-          _context0.n = 7;
+          _context11.n = 7;
           return viewer.addPlugin(_webgiReExports.GBufferPlugin);
         case 7:
-          _context0.n = 8;
+          _context11.n = 8;
           return viewer.addPlugin(_webgiReExports.ProgressivePlugin);
         case 8:
-          pp = _context0.v;
-          _context0.n = 9;
+          pp = _context11.v;
+          _context11.n = 9;
           return viewer.addPlugin(_webgiReExports.TonemapPlugin);
         case 9:
-          tonemap = _context0.v;
+          tonemap = _context11.v;
           if (tonemap) {
             tonemap.exposure = 1.0;
             tonemap.saturation = 1.1;
             tonemap.contrast = 1.1;
           }
           tonemapPlugin = tonemap;
-          _context0.n = 10;
+          _context11.n = 10;
           return viewer.addPlugin(_webgiReExports.SSAOPlugin);
         case 10:
-          ssao = _context0.v;
+          ssao = _context11.v;
           if (ssao) ssao.intensity = 0.25;
           // Registers the .exr importer — without it env_gem_002.exr cannot load
-          _context0.p = 11;
-          _context0.n = 12;
+          _context11.p = 11;
+          _context11.n = 12;
           return viewer.addPlugin(_webgiReExports.EXRLoadPlugin);
         case 12:
-          _context0.n = 14;
+          _context11.n = 14;
           break;
         case 13:
-          _context0.p = 13;
-          _t9 = _context0.v;
-          console.warn('EXRLoadPlugin failed', _t9);
+          _context11.p = 13;
+          _t0 = _context11.v;
+          console.warn('EXRLoadPlugin failed', _t0);
         case 14:
-          _context0.p = 14;
-          _context0.n = 15;
+          _context11.p = 14;
+          _context11.n = 15;
           return viewer.addPlugin(_webgiReExports.FrameFadePlugin);
         case 15:
-          _context0.n = 17;
+          _context11.n = 17;
           break;
         case 16:
-          _context0.p = 16;
-          _t0 = _context0.v;
+          _context11.p = 16;
+          _t1 = _context11.v;
         case 17:
-          _context0.p = 17;
-          _context0.n = 18;
+          _context11.p = 17;
+          _context11.n = 18;
           return viewer.addPlugin(_webgiReExports.TemporalAAPlugin);
         case 18:
-          _context0.n = 20;
+          _context11.n = 20;
           break;
         case 19:
-          _context0.p = 19;
-          _t1 = _context0.v;
+          _context11.p = 19;
+          _t10 = _context11.v;
         case 20:
-          _context0.p = 20;
-          _context0.n = 21;
+          _context11.p = 20;
+          _context11.n = 21;
           return viewer.addPlugin(_webgiReExports.DiamondPlugin);
         case 21:
-          dp = _context0.v;
+          dp = _context11.v;
           if (dp) dp.forceSceneEnvMap = false;
           diamondPluginInstance = dp;
-          _context0.n = 23;
+          _context11.n = 23;
           break;
         case 22:
-          _context0.p = 22;
-          _t10 = _context0.v;
+          _context11.p = 22;
+          _t11 = _context11.v;
         case 23:
-          _context0.p = 23;
-          _context0.n = 24;
+          _context11.p = 23;
+          _context11.n = 24;
           return viewer.addPlugin(_webgiReExports.RandomizedDirectionalLightPlugin);
         case 24:
-          _context0.n = 26;
+          _context11.n = 26;
           break;
         case 25:
-          _context0.p = 25;
-          _t11 = _context0.v;
+          _context11.p = 25;
+          _t12 = _context11.v;
         case 26:
-          _context0.p = 26;
-          _context0.n = 27;
+          _context11.p = 26;
+          _context11.n = 27;
           return viewer.addPlugin(_webgiReExports.ContactShadowGroundPlugin);
         case 27:
-          groundPlugin = _context0.v;
+          groundPlugin = _context11.v;
           if (groundPlugin) {
             groundPlugin.visible = groundEnabled;
             groundPlugin.contactShadows = true;
             if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6;
             if ('size' in groundPlugin) groundPlugin.size = 48; // big default; frameModel refines per-model
           }
-          _context0.n = 29;
+          _context11.n = 29;
           break;
         case 28:
-          _context0.p = 28;
-          _t12 = _context0.v;
-          console.warn('ContactShadowGroundPlugin failed', _t12);
+          _context11.p = 28;
+          _t13 = _context11.v;
+          console.warn('ContactShadowGroundPlugin failed', _t13);
         case 29:
           dl = new _webgiReExports.DirectionalLight(0xffffff, 3);
           dl.position.set(5, 10, 7);
@@ -74780,7 +74986,7 @@ function _init() {
           ctrl = cam.controls;
           if (ctrl) ctrl.enabled = false;
           viewer.scene.setBackground(linColor(BG_BONE_COLOR));
-          _context0.n = 30;
+          _context11.n = 30;
           return loadDefaultEnvironments();
         case 30:
           viewer.addEventListener('preFrame', function () {
@@ -74804,7 +75010,7 @@ function _init() {
               try {
                 var rr = viewer.renderer.rendererObject;
                 if (rr !== null && rr !== void 0 && rr.shadowMap) rr.shadowMap.needsUpdate = true;
-              } catch (_unused16) {}
+              } catch (_unused18) {}
               viewer.setDirty();
             }
           });
@@ -74891,19 +75097,31 @@ function _init() {
           (_byId6 = byId('btn-snapshot')) === null || _byId6 === void 0 || _byId6.addEventListener('click', downloadSnapshot);
           // Add to Cart (Shopify)
           (_byId7 = byId('add-cart-btn')) === null || _byId7 === void 0 || _byId7.addEventListener('click', addToCart);
-          _context0.n = 31;
+          _context11.n = 31;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
               return r();
             });
           });
         case 31:
-          _context0.n = 32;
+          _context11.n = 32;
           return buildRing();
         case 32:
-          return _context0.a(2);
+          // Embed: announce the starting configuration to the Shopify parent page so
+          // the default prong/band/shank/ring-size become line-item properties even
+          // before the shopper touches anything inside the iframe.
+          try {
+            postOptionChange('init', state.shape);
+          } catch (_unused19) {}
+          // Publish the option catalog so the parent page can render prong/band/shank
+          // selectors. Sent once now; also re-sent on demand via 'rb:requestCatalog'.
+          try {
+            postCatalogToParent();
+          } catch (_unused20) {}
+        case 33:
+          return _context11.a(2);
       }
-    }, _callee0, null, [[26, 28], [23, 25], [20, 22], [17, 19], [14, 16], [11, 13], [1, 4]]);
+    }, _callee11, null, [[26, 28], [23, 25], [20, 22], [17, 19], [14, 16], [11, 13], [1, 4]]);
   }));
   return _init.apply(this, arguments);
 }
@@ -74942,4 +75160,4 @@ window.__ringBuilder = {
   }
 };
 },{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"hxGN"}]},{},["QXV9"], null)
-//# sourceMappingURL=ring-builder.55472934.js.map
+//# sourceMappingURL=ring-builder.5a319406.js.map

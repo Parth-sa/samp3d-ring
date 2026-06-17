@@ -254,20 +254,18 @@
             .topbar .btn-icon { padding: 6px 8px; font-size: 11px; }
         }
 
-        /* ── Embed mode (Shopify product page iframe) ── */
+        /* ── Embed mode (Shopify product page iframe) — viewer only ──
+           All option controls live on the Shopify page now, so the iframe
+           shows just the 3D ring. Panel, cart button and chrome are hidden. */
         body.embed .topbar { display: none; }
+        body.embed .panel { display: none !important; }
+        body.embed .panel-right { display: none !important; }
+        body.embed .cart-btn { display: none !important; }
         body.embed #btn-snapshot { display: none !important; }
         body.embed #toggle-tuning { display: none !important; }
         body.embed #toggle-panel { display: none !important; }
-        body.embed .panel { top: 0; border-right: 1px solid var(--surface-border); }
-        body.embed .panel.hidden { transform: translateX(-110%); }
-        body.embed #finger-size-section { display: none !important; }
-        body.embed #summary-finger-row { display: none !important; }
         body.embed .admin-only { display: none !important; }
-        body.embed .panel { width: 320px; }
-        @media (max-width: 720px) {
-            body.embed .panel { width: 100%; }
-        }</style>
+        body.embed #webgi-canvas { width: 100%; height: 100%; }</style>
 </head>
 <body>
     <div class="topbar">
@@ -472,29 +470,24 @@ document.getElementById('toggle-tuning').addEventListener('click', function () {
 });</script>
 
     <!-- ====================================================================
-         SHOPIFY CART CONFIG  —  FILL THIS AFTER YOU CREATE YOUR PRODUCTS
+         SHOPIFY CART CONFIG
          ====================================================================
-         1. Create your ring products in Shopify with variants by METAL.
-            (Ring size is NOT a variant — it rides along as a note.)
-         2. Put your store domain below (e.g. "your-store.myshopify.com").
-         3. For each metal, paste the Shopify VARIANT ID (number from the
-            variant URL in Shopify admin) of the product you want ordered.
-         4. Re-deploy (npm run deploy). "Add to Cart" then opens the Shopify
-            cart with the chosen variant + all options as line-item notes.
-         Leave blank to keep the builder display-only.
+         Variant IDs are resolved LIVE from the store's product JSON
+         (/products/<shape>-diamond-ring.js), keyed by Metal + Carat — so you
+         only need the store domain here. No variant IDs to paste.
+         Live products: Oval, Princess, Radiant. Other shapes are display-only.
     -->
     <script>window.SHOPIFY_RING_CONFIG = {
-  domain: "",
-  // "your-store.myshopify.com"
+  domain: "larajewels.com",
+  // Legacy fallback (unused now that IDs resolve live) — leave blank.
   variantByMetal: {
     whiteGold: "",
-    // e.g. "44512345678901"
     yellowGold: "",
     roseGold: "",
     platinum: ""
   }
 };</script>
 
-    <script src="ring-builder.55472934.js"></script>
+    <script src="ring-builder.5a319406.js"></script>
 </body>
 </html>

@@ -1,0 +1,405 @@
+{%- comment -%}
+  Ring Builder 3D — product-page section (iJewel-style).
+
+  Replaces the product gallery with the live 3D builder in an iframe and wires
+  the store's native Metal + Carat variant selectors to the 3D view, plus a
+  native add-to-cart that carries the in-iframe choices (prong, band, shank,
+  ring size, engraving) as line-item properties.
+
+  REQUIREMENTS
+  - Product must have exactly two options named "Metal" and "Carat"
+    (this is what generate-shopify-csv.js produces).
+  - Assign this section to the product template for the 3 ring products
+    (Oval / Princess / Radiant) via the theme editor, or add it to
+    templates/product.ring.json.
+
+  SETTINGS (theme editor)
+  - Builder URL:   the deployed Pages URL (no trailing slash).
+  - Shape code:    OV / PR / RA  (auto-detected from the handle if left blank).
+{%- endcomment -%}
+
+{%- liquid
+  assign builder_url = section.settings.builder_url | default: 'https://ring-builder-6hm-91n.pages.dev'
+  assign shape_code = section.settings.shape_code | strip
+  if shape_code == blank
+    assign h = product.handle
+    if h contains 'oval'
+      assign shape_code = 'OV'
+    elsif h contains 'princess'
+      assign shape_code = 'PR'
+    elsif h contains 'radiant'
+      assign shape_code = 'RA'
+    elsif h contains 'round'
+      assign shape_code = 'RD'
+    elsif h contains 'emerald'
+      assign shape_code = 'EM'
+    elsif h contains 'marquise'
+      assign shape_code = 'MQ'
+    elsif h contains 'pear'
+      assign shape_code = 'PE'
+    endif
+  endif
+-%}
+
+<div class="rb3d" id="rb3d-{{ section.id }}" data-builder-url="{{ builder_url }}" data-shape="{{ shape_code }}">
+  <div class="rb3d__viewer">
+    <iframe
+      class="rb3d__iframe"
+      id="rb3d-iframe-{{ section.id }}"
+      title="3D ring preview"
+      allow="xr-spatial-tracking; fullscreen"
+      loading="lazy"></iframe>
+    <button type="button" class="rb3d__spin is-on" id="rb3d-spin-{{ section.id }}"
+            aria-pressed="true" title="Auto-rotate">&#x21bb; Auto-rotate</button>
+  </div>
+
+  <div class="rb3d__panel">
+    <h1 class="rb3d__title">{{ product.title | escape }}</h1>
+    <div class="rb3d__price" id="rb3d-price-{{ section.id }}">{{ product.selected_or_first_available_variant.price | money }}</div>
+
+    {%- form 'product', product, id: 'rb3d-form', class: 'rb3d__form' -%}
+      <input type="hidden" name="id" id="rb3d-variant-{{ section.id }}"
+             value="{{ product.selected_or_first_available_variant.id }}">
+      <input type="hidden" name="quantity" value="1">
+
+      {%- for option in product.options_with_values -%}
+        <div class="rb3d__opt" data-option-index="{{ option.position }}">
+          <label class="rb3d__opt-label">{{ option.name }}</label>
+          <div class="rb3d__opt-values">
+            {%- for value in option.values -%}
+              <button type="button"
+                class="rb3d__chip{% if option.selected_value == value %} is-selected{% endif %}"
+                data-option-position="{{ option.position }}"
+                data-option-value="{{ value | escape }}">{{ value }}</button>
+            {%- endfor -%}
+          </div>
+        </div>
+      {%- endfor -%}
+
+      {%- comment -%} Non-variant options (prong / band / shank) — rendered from
+          the catalog the iframe publishes; they drive the 3D and ride to cart. {%- endcomment -%}
+      <div id="rb3d-extra-{{ section.id }}" class="rb3d__extra"></div>
+
+      {%- comment -%} Line-item properties filled live from the iframe {%- endcomment -%}
+      <div id="rb3d-props-{{ section.id }}"></div>
+
+      <button type="submit" class="rb3d__add" id="rb3d-add-{{ section.id }}">Add to Cart</button>
+    {%- endform -%}
+
+    <p class="rb3d__note">Configure prong, band, shank, ring size & engraving in the 3D view.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('rb3d-{{ section.id }}');
+  if (!root) return;
+  var builderUrl = root.dataset.builderUrl;
+  var origin = (function () { try { return new URL(builderUrl).origin; } catch (e) { return '*'; } })();
+  var shape = root.dataset.shape || '';
+  var iframe = document.getElementById('rb3d-iframe-{{ section.id }}');
+  var variantInput = document.getElementById('rb3d-variant-{{ section.id }}');
+  var priceEl = document.getElementById('rb3d-price-{{ section.id }}');
+  var addBtn = document.getElementById('rb3d-add-{{ section.id }}');
+  var propsBox = document.getElementById('rb3d-props-{{ section.id }}');
+
+  // All variants for this product (option1 = Metal, option2 = Carat).
+  var VARIANTS = {{ product.variants | json }};
+
+  // Current selection per option position (1-based).
+  var selected = {};
+  {%- for option in product.options_with_values -%}
+    selected[{{ option.position }}] = {{ option.selected_value | json }};
+  {%- endfor -%}
+
+  // "White Gold" -> "whiteGold"  (builder metal preset id)
+  function metalToId(label) {
+    if (!label) return '';
+    var t = label.replace(/\s+/g, '');
+    return t.charAt(0).toLowerCase() + t.slice(1);
+  }
+  function money(cents) {
+    try { return (cents / 100).toLocaleString(undefined, { style: 'currency', currency: '{{ cart.currency.iso_code }}' }); }
+    catch (e) { return '$' + (cents / 100).toFixed(2); }
+  }
+  function currentMetalLabel() { return selected[1]; }   // option1 = Metal
+  function currentCarat()      { return selected[2]; }   // option2 = Carat
+
+  function matchVariant() {
+    for (var i = 0; i < VARIANTS.length; i++) {
+      var v = VARIANTS[i];
+      if (v.option1 === selected[1] && String(v.option2) === String(selected[2])) return v;
+    }
+    return null;
+  }
+
+  function syncVariant() {
+    var v = matchVariant();
+    if (v) {
+      variantInput.value = v.id;
+      priceEl.textContent = money(v.price);
+      addBtn.disabled = !v.available;
+      addBtn.textContent = v.available ? 'Add to Cart' : 'Unavailable';
+    }
+  }
+
+  // Tell the 3D iframe to update metal / carat.
+  function postToBuilder(key, value) {
+    if (!iframe.contentWindow) return;
+    iframe.contentWindow.postMessage({ type: 'rb:setOption', key: key, value: value }, origin);
+  }
+
+  // Chip clicks → update selection, variant, and the 3D view.
+  root.querySelectorAll('.rb3d__chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var pos = chip.dataset.optionPosition;
+      var val = chip.dataset.optionValue;
+      selected[pos] = val;
+      root.querySelectorAll('.rb3d__chip[data-option-position="' + pos + '"]').forEach(function (c) {
+        c.classList.toggle('is-selected', c === chip);
+      });
+      syncVariant();
+      if (pos === '1') postToBuilder('metal', metalToId(val));
+      else if (pos === '2') postToBuilder('size', String(val));  // builder state key is "size"
+    });
+  });
+
+  // Line-item properties chosen inside the iframe (prong/band/shank/size/engraving).
+  function setProp(name, value) {
+    var id = 'rb3d-prop-' + name.replace(/[^a-z0-9]/gi, '');
+    var el = document.getElementById(id);
+    if (!value) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('input');
+      el.type = 'hidden';
+      el.id = id;
+      el.name = 'properties[' + name + ']';
+      propsBox.appendChild(el);
+    }
+    el.value = value;
+  }
+
+  var extraBox = document.getElementById('rb3d-extra-{{ section.id }}');
+  var extraSelected = {};   // key -> chosen id (prong/band/shank/fingerSize)
+
+  // Build a chip group for a non-variant option and wire it to the 3D.
+  function renderChipGroup(label, key, items, currentId) {
+    if (!items || !items.length) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'rb3d__opt';
+    var lab = document.createElement('label');
+    lab.className = 'rb3d__opt-label';
+    lab.textContent = label;
+    wrap.appendChild(lab);
+    var vals = document.createElement('div');
+    vals.className = 'rb3d__opt-values';
+    items.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rb3d__chip' + (it.id === currentId ? ' is-selected' : '');
+      b.textContent = it.label;
+      b.addEventListener('click', function () {
+        extraSelected[key] = it.id;
+        vals.querySelectorAll('.rb3d__chip').forEach(function (c) { c.classList.toggle('is-selected', c === b); });
+        postToBuilder(key, it.id);   // 3D rebuilds; iframe echoes config -> properties
+      });
+      vals.appendChild(b);
+    });
+    wrap.appendChild(vals);
+    extraBox.appendChild(wrap);
+  }
+
+  function renderExtraOptions(cat, st) {
+    if (extraBox.dataset.ready) return;   // render once
+    extraBox.dataset.ready = '1';
+
+    // Diamond Shape — each shape is its own Shopify product, so picking another
+    // shape navigates to that product (carrying the current metal + carat).
+    if (cat.shapes && cat.shapes.length) {
+      var sWrap = document.createElement('div');
+      sWrap.className = 'rb3d__opt';
+      var sLab = document.createElement('label');
+      sLab.className = 'rb3d__opt-label';
+      sLab.textContent = 'Diamond Shape';
+      sWrap.appendChild(sLab);
+      var sVals = document.createElement('div');
+      sVals.className = 'rb3d__opt-values';
+      cat.shapes.forEach(function (sh) {
+        var handle = 'custom-' + sh.label.toLowerCase().replace(/\s+/g, '-') + '-diamond-ring';
+        var isCurrent = sh.id === shape;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'rb3d__chip' + (isCurrent ? ' is-selected' : '');
+        b.textContent = sh.label;
+        b.addEventListener('click', function () {
+          if (isCurrent) return;
+          var q = '?metal=' + encodeURIComponent(metalToId(currentMetalLabel())) +
+                  '&carat=' + encodeURIComponent(String(currentCarat()));
+          window.location.href = '/products/' + handle + q;
+        });
+        sVals.appendChild(b);
+      });
+      sWrap.appendChild(sVals);
+      extraBox.appendChild(sWrap);
+    }
+
+    renderChipGroup('Prong', 'prong', cat.prongs, st && st.prong);
+    renderChipGroup('Band', 'band', cat.bands, st && st.band);
+    renderChipGroup('Shank', 'shank', cat.shanks, st && st.shank);
+
+    // Ring size (finger) — chips of plain string values; key is "fingerSize".
+    if (cat.fingerSizes && cat.fingerSizes.length) {
+      var items = cat.fingerSizes.map(function (s) { return { id: s, label: s }; });
+      renderChipGroup('Ring Size', 'fingerSize', items, st && st.fingerSize);
+    }
+
+    // Engraving — free text + font chips.
+    var wrap = document.createElement('div');
+    wrap.className = 'rb3d__opt';
+    var lab = document.createElement('label');
+    lab.className = 'rb3d__opt-label';
+    lab.textContent = 'Engraving';
+    wrap.appendChild(lab);
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'rb3d__engrave';
+    input.maxLength = cat.engravingMax || 20;
+    input.placeholder = 'e.g. Forever';
+    if (st && st.engraving) input.value = st.engraving;
+    var t;
+    input.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(function () { postToBuilder('engraving', input.value); }, 250);
+    });
+    wrap.appendChild(input);
+
+    if (cat.engravingFonts && cat.engravingFonts.length) {
+      var fvals = document.createElement('div');
+      fvals.className = 'rb3d__opt-values';
+      fvals.style.marginTop = '8px';
+      cat.engravingFonts.forEach(function (f) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'rb3d__chip' + (st && st.engravingFont === f.id ? ' is-selected' : '');
+        b.textContent = f.label;
+        b.addEventListener('click', function () {
+          fvals.querySelectorAll('.rb3d__chip').forEach(function (c) { c.classList.toggle('is-selected', c === b); });
+          postToBuilder('engravingFont', f.id);
+        });
+        fvals.appendChild(b);
+      });
+      wrap.appendChild(fvals);
+    }
+    extraBox.appendChild(wrap);
+  }
+
+
+  window.addEventListener('message', function (e) {
+    if (origin !== '*' && e.origin !== origin) return;
+    var d = e.data || {};
+    if (d.type === 'rb:catalog') { renderExtraOptions(d.catalog || {}, d.state || {}); }
+    if (d.type !== 'rb:optionChange' && d.type !== 'rb:config' && d.type !== 'rb:catalog') return;
+    var c = d.config; if (!c) return;
+    setProp('Prong', c.prong);
+    setProp('Band', c.bandStyle);
+    setProp('Shank', c.shankStyle);
+    setProp('Ring Size', c.ringSize ? ('US ' + c.ringSize) : '');
+    setProp('Engraving', c.engraving);
+    setProp('Engraving Font', c.engraving ? c.engravingFont : '');
+  });
+
+  // If arriving from a shape switch, apply the carried ?metal=&carat=.
+  (function applyUrlSelection() {
+    var qp = new URLSearchParams(location.search);
+    var qMetal = qp.get('metal');   // builder id, e.g. "whiteGold"
+    var qCarat = qp.get('carat');
+    if (qMetal) {
+      for (var i = 0; i < VARIANTS.length; i++) {
+        if (metalToId(VARIANTS[i].option1) === qMetal) { selected[1] = VARIANTS[i].option1; break; }
+      }
+    }
+    if (qCarat) {
+      for (var j = 0; j < VARIANTS.length; j++) {
+        if (String(VARIANTS[j].option2) === String(qCarat)) { selected[2] = VARIANTS[j].option2; break; }
+      }
+    }
+    root.querySelectorAll('.rb3d__chip[data-option-position]').forEach(function (c) {
+      c.classList.toggle('is-selected', selected[c.dataset.optionPosition] === c.dataset.optionValue);
+    });
+  })();
+
+  // Boot the iframe on this product's shape + current variant.
+  var src = builderUrl + '/?embed=1&autorotate=1';
+  if (shape) src += '&shape=' + encodeURIComponent(shape);
+  src += '&metal=' + encodeURIComponent(metalToId(currentMetalLabel()));
+  src += '&carat=' + encodeURIComponent(String(currentCarat()));
+  iframe.src = src;
+
+  // Auto-rotate toggle (starts on; pauses automatically while the shopper drags).
+  var spinBtn = document.getElementById('rb3d-spin-{{ section.id }}');
+  var spinning = true;
+  function setSpin(on) {
+    spinning = on;
+    spinBtn.classList.toggle('is-on', on);
+    spinBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    try { iframe.contentWindow.postMessage({ type: 'rb:autorotate', value: on }, origin); } catch (e) {}
+  }
+  spinBtn.addEventListener('click', function () { setSpin(!spinning); });
+
+  // Once loaded, re-sync the variant selection and ask for the option catalog
+  // (covers any timing race with the builder's initial broadcast).
+  iframe.addEventListener('load', function () {
+    postToBuilder('metal', metalToId(currentMetalLabel()));
+    postToBuilder('size', String(currentCarat()));
+    setSpin(spinning);
+    try { iframe.contentWindow.postMessage({ type: 'rb:requestCatalog' }, origin); } catch (e) {}
+  });
+
+  syncVariant();
+})();
+</script>
+
+{%- style -%}
+  .rb3d { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+  .rb3d__viewer { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #f4f4eb; border-radius: 8px; overflow: hidden; }
+  .rb3d__iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .rb3d__spin { position: absolute; bottom: 12px; right: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 12px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.9); color: #555;
+    border-radius: 999px; font-size: 0.8rem; cursor: pointer; backdrop-filter: blur(6px); }
+  .rb3d__spin.is-on { background: #111; color: #fff; border-color: #111; }
+  .rb3d__title { font-size: 1.6rem; margin: 0 0 8px; }
+  .rb3d__price { font-size: 1.3rem; font-weight: 600; margin-bottom: 20px; }
+  .rb3d__opt { margin-bottom: 18px; }
+  .rb3d__extra { margin-top: 4px; }
+  .rb3d__opt-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .rb3d__opt-values { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rb3d__chip { padding: 8px 14px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 999px; font-size: 0.9rem; }
+  .rb3d__chip.is-selected { border-color: #111; background: #111; color: #fff; }
+  .rb3d__engrave { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+  .rb3d__add { width: 100%; margin-top: 12px; padding: 15px; border: 0; background: #111; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; border-radius: 6px; }
+  .rb3d__add:disabled { opacity: 0.4; cursor: not-allowed; }
+  .rb3d__note { margin-top: 12px; font-size: 0.8rem; color: #666; }
+  @media (max-width: 749px) { .rb3d { grid-template-columns: 1fr; } }
+{%- endstyle -%}
+
+{% schema %}
+{
+  "name": "Ring Builder 3D",
+  "settings": [
+    {
+      "type": "url",
+      "id": "builder_url",
+      "label": "Builder URL",
+      "info": "Deployed Pages URL, no trailing slash. e.g. https://ring-builder-6hm-91n.pages.dev"
+    },
+    {
+      "type": "text",
+      "id": "shape_code",
+      "label": "Shape code",
+      "info": "OV, PR, RA, RD, EM, MQ, PE. Leave blank to auto-detect from the product handle."
+    }
+  ],
+  "presets": [{ "name": "Ring Builder 3D" }]
+}
+{% endschema %}

@@ -962,19 +962,63 @@ function getConfiguration() {
 }
 
 // ── Shopify add-to-cart ────────────────────────────────────────────────
-// Real variants by metal (price from Shopify). Ring size + engraving + other
-// parts ride along as line-item properties (NOT variants). Config in the HTML
-// (window.SHOPIFY_RING_CONFIG) — filled after products are created.
+// Shape = a separate Shopify product (handle "<shape>-diamond-ring");
+// Metal × Carat = the variant. Variant IDs are resolved live from the
+// storefront product JSON (/products/{handle}.js) so the 72 IDs never need to
+// be hand-copied. Prong, band, shank, ring size and engraving ride along as
+// line-item properties. Only the store domain is configured in the HTML.
 const SHOPIFY_CFG = (window as any).SHOPIFY_RING_CONFIG || { domain: '', variantByMetal: {} }
 
-function cartVariantId(): string {
-    return (SHOPIFY_CFG.variantByMetal && SHOPIFY_CFG.variantByMetal[state.metal]) || ''
+// Shapes that have a live Shopify product. All 7 catalog shapes have products.
+const SHOPIFY_SHAPES = ['Round', 'Oval', 'Princess', 'Emerald', 'Marquise', 'Pear', 'Radiant']
+
+function productHandleForShape(): string {
+    const label = catalog.shapes.find(s => s.id === state.shape)?.label || ''
+    if (!SHOPIFY_SHAPES.includes(label)) return ''
+    return `custom-${label.toLowerCase()}-diamond-ring`
 }
 
-function addToCart() {
-    const variant = cartVariantId()
-    if (!SHOPIFY_CFG.domain || !variant) {
-        setError('Checkout not set up yet — add your Shopify store + variant IDs in the config, then re-deploy.')
+const _productCache: Record<string, any> = {}
+async function fetchShopifyProduct(handle: string): Promise<any | null> {
+    if (_productCache[handle]) return _productCache[handle]
+    try {
+        const res = await fetch(`https://${SHOPIFY_CFG.domain}/products/${handle}.js`)
+        if (!res.ok) return null
+        const data = await res.json()
+        _productCache[handle] = data
+        return data
+    } catch { return null }
+}
+
+// Variant id for current shape+metal+carat. Metal = option1, carat = option2.
+async function resolveVariantId(): Promise<string> {
+    if (!SHOPIFY_CFG.domain) return ''
+    const handle = productHandleForShape()
+    if (!handle) return ''
+    const product = await fetchShopifyProduct(handle)
+    if (!product?.variants) return ''
+    const metalLabel = METAL_PRESETS.find(m => m.id === state.metal)?.label || ''
+    const v = product.variants.find((vr: any) =>
+        vr.option1 === metalLabel && String(vr.option2) === String(state.size))
+    return v ? String(v.id) : ''
+}
+
+async function addToCart() {
+    if (!SHOPIFY_CFG.domain) {
+        setError('Checkout not set up yet — add your Shopify store domain in the config, then re-deploy.')
+        return
+    }
+    const handle = productHandleForShape()
+    if (!handle) {
+        const label = catalog.shapes.find(s => s.id === state.shape)?.label || 'this'
+        setError(`The ${label} shape isn't available for purchase yet. Try Oval, Princess or Radiant.`)
+        return
+    }
+    setStatus('Adding to cart…')
+    const variant = await resolveVariantId()
+    if (!variant) {
+        setError('Could not find that ring in the store. Try a different metal or carat.')
+        setStatus('')
         return
     }
     const c = getConfiguration()
@@ -1012,10 +1056,37 @@ function postOptionChange(key: string, label: string) {
     } catch {}
 }
 
+// Publishes the full option catalog to the Shopify parent page so it can render
+// native selectors for the non-variant options (prong / band / shank / ring
+// size). Values are the same ids the builder uses, so the parent can echo them
+// straight back as rb:setOption.
+function postCatalogToParent() {
+    try {
+        window.parent.postMessage({
+            type: 'rb:catalog',
+            catalog: {
+                shapes: catalog.shapes,
+                sizes: catalog.sizes,
+                prongs: catalog.prongs,
+                bands: [{ id: 'NONE', label: 'None' }, ...catalog.bandStyles],
+                shanks: catalog.shankStyles,
+                metals: METAL_PRESETS.map(m => ({ id: m.id, label: m.label })),
+                fingerSizes: FINGER_SIZES,
+                engravingFonts: ENGRAVING_FONTS.map(f => ({ id: f.id, label: f.label })),
+                engravingMax: ENGRAVING_MAX,
+            },
+            state: { ...state },
+            config: getConfiguration(),
+        }, '*')
+    } catch {}
+}
+
 // Listen for external option changes from the Shopify parent page
 // (e.g. when a native variant selector is used).
 function setupEmbedMessageListener() {
     const handler = (e: MessageEvent) => {
+        if (e.data?.type === 'rb:requestCatalog') { postCatalogToParent(); return }
+        if (e.data?.type === 'rb:autorotate') { autoRotate = !!e.data.value; if (typeof e.data.speed === 'number' && e.data.speed > 0) autoRotateSpeed = e.data.speed; viewer?.setDirty(); return }
         if (e.data?.type !== 'rb:setOption') return
         const { key, value } = e.data
         if (!key || value === undefined) return
@@ -1051,7 +1122,7 @@ function setupEmbedMessageListener() {
 
         // Trigger appropriate action
         if (prop === 'shape') { refreshProngAvailability(); scheduleAutoBuild() }
-        else if (prop === 'prong' || prop === 'band' || prop === 'shank') scheduleAutoBuild()
+        else if (prop === 'prong' || prop === 'band' || prop === 'shank' || prop === 'size') scheduleAutoBuild()
         else if (prop === 'metal') {
             syncMetalProfileFromPreset(value)
             refreshMaterials()
@@ -1208,6 +1279,18 @@ async function init() {
     if (!state.prong && catalog.prongs.length) state.prong = catalog.prongs[0].id
     if (!state.band && catalog.bandStyles.length) state.band = catalog.bandStyles[0].id
     if (!state.shank && catalog.shankStyles.length) state.shank = catalog.shankStyles[0].id
+
+    // Embed: the Shopify product page can preset the starting selection via URL
+    // params (?shape=OV&metal=whiteGold&carat=1.00). Metal/carat also keep
+    // arriving live as rb:setOption messages when the native selectors change.
+    {
+        const qp = new URLSearchParams(location.search)
+        const qShape = qp.get('shape'); if (qShape && catalog.shapes.some(s => s.id === qShape)) state.shape = qShape
+        const qMetal = qp.get('metal'); if (qMetal && METAL_PRESETS.some(m => m.id === qMetal)) state.metal = qMetal
+        const qCarat = qp.get('carat'); if (qCarat && catalog.sizes.includes(qCarat)) state.size = qCarat
+        const qAuto = qp.get('autorotate'); if (qAuto === '1' || qAuto === 'true') autoRotate = true
+        const qSpeed = parseFloat(qp.get('rotspeed') || ''); if (!isNaN(qSpeed) && qSpeed > 0) autoRotateSpeed = qSpeed
+    }
 
     bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, () => { refreshProngAvailability(); scheduleAutoBuild() })
     bindSizes()
@@ -1377,6 +1460,14 @@ async function init() {
 
     await new Promise<void>(r => requestAnimationFrame(() => r()))
     await buildRing()
+
+    // Embed: announce the starting configuration to the Shopify parent page so
+    // the default prong/band/shank/ring-size become line-item properties even
+    // before the shopper touches anything inside the iframe.
+    try { postOptionChange('init', state.shape) } catch {}
+    // Publish the option catalog so the parent page can render prong/band/shank
+    // selectors. Sent once now; also re-sent on demand via 'rb:requestCatalog'.
+    try { postCatalogToParent() } catch {}
 }
 
 init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hideLoader() })

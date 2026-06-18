@@ -21,7 +21,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: "Instrument Sans", "proxima-nova-wide", system-ui, -apple-system, sans-serif; color: var(--text); }
 
-        #webgi-canvas { width: 100%; height: 100%; display: block; }
+        #webgi-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 
         .topbar {
             position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -185,15 +185,20 @@
         .summary strong { color: var(--accent-dark); }
 
         .loader {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-            text-align: center; z-index: 1000;
-            background: rgba(255,255,255,0.95); padding: 40px;
-            border-radius: var(--radius); box-shadow: var(--shadow);
+            position: fixed; inset: 0; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+            background: #ffffff;
         }
         .loader.hidden { display: none; }
         .loader svg { animation: spin 1s linear infinite; margin-bottom: 16px; }
+        /* 2D logo image (crisp, instant) */
+        .loader-img { max-width: 220px; max-height: 130px; width: auto; height: auto; animation: rbpulse 1.6s ease-in-out infinite; }
+        @keyframes rbpulse { 0%,100% { opacity: .55; transform: scale(.97); } 50% { opacity: 1; transform: scale(1); } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .loader p { color: var(--text); font-size: 15px; font-weight: 600; }
+        .loader p { color: var(--text); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: .6; margin: 0; }
+        .loader-bar { width: 150px; height: 2px; background: rgba(12,23,56,0.1); border-radius: 2px; overflow: hidden; }
+        .loader-bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--accent-dark); border-radius: 2px; animation: rbslide 1.15s ease-in-out infinite; }
+        @keyframes rbslide { 0% { transform: translateX(-130%); } 100% { transform: translateX(330%); } }
 
         .error-banner {
             position: fixed; top: 54px; right: 16px; z-index: 1001;
@@ -425,7 +430,7 @@
 
             <div class="section">
                 <div class="section-title">Scene</div>
-                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#f4f4eb"><output></output></div>
+                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#ffffff"><output></output></div>
                 <label class="ctl-file">Background image (optional)<input type="file" id="tn-bg-image" accept="image/*"></label>
                 <button class="build-btn" id="tn-bg-clear" style="padding:7px;font-size:11px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);margin-bottom:8px;">Use solid color</button>
                 <div class="ctl-row"><label>Exposure</label><input type="range" id="tn-exposure" min="0" max="3" step="0.01" value="1"><output id="tn-exposure-out">1.00</output></div>
@@ -441,11 +446,9 @@
     <div id="error-banner" class="error-banner" hidden=""></div>
 
     <div class="loader hidden" id="loader">
-        <svg width="48" height="48" fill="none">
-            <circle cx="24" cy="24" r="20" stroke="#ddd" stroke-width="2" fill="none"></circle>
-            <circle cx="24" cy="24" r="20" stroke="var(--accent-dark)" stroke-width="2" fill="none" stroke-dasharray="31.4 125.6" style="transform-origin:center;animation:spin 1s linear infinite;"></circle>
-        </svg>
-        <p id="loader-text">Loading...</p>
+        <img id="loader-img" class="loader-img" src="logo.988494e6.png" alt="Loading">
+        <p id="loader-text">Loading</p>
+        <div class="loader-bar"></div>
     </div>
 
     <canvas id="webgi-canvas"></canvas>
@@ -488,6 +491,6 @@ document.getElementById('toggle-tuning').addEventListener('click', function () {
   }
 };</script>
 
-    <script src="ring-builder.5a319406.js"></script>
+    <script src="ring-builder.705d3377.js"></script>
 </body>
 </html>

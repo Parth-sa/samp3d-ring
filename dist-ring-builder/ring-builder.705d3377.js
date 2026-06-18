@@ -72723,9 +72723,13 @@ var SHANKS_BASE = './assets/signi/sigli Shanks';
 var DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr';
 var DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr';
 // iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
-var BG_BONE_COLOR = '#f4f4eb';
+// Pure white background — matches iJewel's 1_bg_white (a flat #FFFFFF fill).
+var BG_BONE_COLOR = '#ffffff';
 // Ground plane size = maxDim * this (bigger = wider shadow plane under the ring)
-var GROUND_SIZE_FACTOR = 4.5;
+var GROUND_SIZE_FACTOR = 2.6;
+// Camera looks down at the ring by this amount (cameraY = zoom * this) so the
+// floor + contact shadow are visible, like iJewel's slightly-elevated view.
+var CAM_ELEVATION = 0.22;
 // Exact iJewel.design values (from their .pmat files): polished metals are
 // roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
 // iJewel's precise colors; the rest follow the same polished recipe.
@@ -72740,7 +72744,7 @@ var METAL_PRESETS = [{
 }, {
   id: 'yellowGold',
   label: 'Yellow Gold',
-  color: '#e5b377',
+  color: '#eec064',
   metalness: 1,
   roughness: 0,
   reflectivity: 0.5,
@@ -72748,7 +72752,7 @@ var METAL_PRESETS = [{
 }, {
   id: 'roseGold',
   label: 'Rose Gold',
-  color: '#f2af83',
+  color: '#e7a39c',
   metalness: 1,
   roughness: 0,
   reflectivity: 0.5,
@@ -72809,6 +72813,7 @@ var firstBuildDone = false;
 var isRotating = false;
 var lastX = 0;
 var lastY = 0;
+var lastPinchDist = 0; // mobile pinch-to-zoom
 // Smooth (damped) motion: input writes target*, preFrame eases current toward it
 var rotationX = -0.05;
 var rotationY = 0;
@@ -72829,6 +72834,22 @@ var gemEnvironment = null;
 var tonemapPlugin = null;
 var groundPlugin = null;
 var groundEnabled = true;
+// ── Hand mode: the configured ring is shown on a 3D hand (assets/hand.glb) ──
+var handResult = null;
+var handRoot = null;
+var handSampleCenter = new _webgiReExports.Vector3(); // where the file's sample ring sits (hand-local)
+var handSampleDim = 1; // sample ring size (hand units) → auto scale
+// Live-tunable placement (window.__ringBuilder.hand). Offsets are in ring-size units.
+var hand = {
+  enabled: true,
+  scale: 1,
+  posX: 0,
+  posY: 0,
+  posZ: 0,
+  rotX: 0,
+  rotY: 0,
+  rotZ: 0
+};
 var metalEnvIntensity = 1.0;
 var metalEnvRotationDeg = 0;
 // Live-tunable metal values (right panel) — initialised from the selected preset
@@ -73386,27 +73407,179 @@ function computeBounds() {
   });
   return box;
 }
-function frameModel() {
+// Transform-aware world bounding box (visible geometry only). Needed once the
+// hand is in the graph, since computeBounds() ignores node transforms.
+function worldBounds(root) {
   var _root$updateMatrixWor;
+  var box = new _webgiReExports.Box3();
+  var v = new _webgiReExports.Vector3();
+  if (!root) return box;
+  (_root$updateMatrixWor = root.updateMatrixWorld) === null || _root$updateMatrixWor === void 0 || _root$updateMatrixWor.call(root, true);
+  root.traverse(function (c) {
+    if (!c.geometry || c.visible === false) return;
+    var g = c.geometry;
+    if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox();
+    var bb = g.boundingBox;
+    if (!bb) return;
+    for (var i = 0; i < 8; i++) {
+      v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+      v.applyMatrix4(c.matrixWorld);
+      box.expandByPoint(v);
+    }
+  });
+  return box;
+}
+// The object that drag/auto-rotate spins and that frameModel centres. In hand
+// mode that's the hand (ring is parented to it); otherwise the ring itself.
+function getRotationTarget() {
+  return handRoot && handRoot.parent ? handRoot : getRingRoot();
+}
+// Load the hand once: add to scene, hide its built-in sample rings/diamonds
+// (keep skin + nails), and capture where/how big that sample ring was so the
+// customer's ring can be auto-placed at the same spot/scale.
+function loadHand() {
+  return _loadHand.apply(this, arguments);
+} // Parent the customer's ring onto the hand at the sample-ring spot, auto-scaled
+// so it matches the size the file's sample ring was (in hand-local units).
+function _loadHand() {
+  _loadHand = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+    var _handRoot$updateMatri, _handRoot, manager, result, inv, box, v, toHide, s, _t4;
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.p = _context6.n) {
+        case 0:
+          if (!(!hand.enabled || handRoot)) {
+            _context6.n = 1;
+            break;
+          }
+          return _context6.a(2);
+        case 1:
+          _context6.p = 1;
+          manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
+          if (manager !== null && manager !== void 0 && manager.importer) {
+            _context6.n = 2;
+            break;
+          }
+          return _context6.a(2);
+        case 2:
+          patchDraco();
+          _context6.n = 3;
+          return manager.importer.importSinglePath('./assets/hand.glb');
+        case 3:
+          result = _context6.v;
+          if (result) {
+            _context6.n = 4;
+            break;
+          }
+          return _context6.a(2);
+        case 4:
+          handResult = result;
+          handRoot = getModelRoot(result);
+          if (handRoot) {
+            _context6.n = 5;
+            break;
+          }
+          handRoot = null;
+          return _context6.a(2);
+        case 5:
+          if (!handRoot.parent) viewer.scene.addSceneObject(result, {
+            autoScale: false
+          });
+          (_handRoot$updateMatri = (_handRoot = handRoot).updateMatrixWorld) === null || _handRoot$updateMatri === void 0 || _handRoot$updateMatri.call(_handRoot, true);
+          inv = new _webgiReExports.Matrix4().copy(handRoot.matrixWorld).invert();
+          box = new _webgiReExports.Box3();
+          v = new _webgiReExports.Vector3();
+          toHide = [];
+          handRoot.traverse(function (c) {
+            var _mats$;
+            if (!c.isMesh) return;
+            var mats = Array.isArray(c.material) ? c.material : [c.material];
+            var matName = (((_mats$ = mats[0]) === null || _mats$ === void 0 ? void 0 : _mats$.name) || '').toLowerCase();
+            if (matName.includes('skin') || matName.includes('nail')) return; // keep the hand
+            // Everything else on the hand = the sample ring/diamonds → measure + hide
+            var g = c.geometry;
+            if (g) {
+              if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox();
+              var bb = g.boundingBox;
+              if (bb) for (var i = 0; i < 8; i++) {
+                v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+                v.applyMatrix4(c.matrixWorld).applyMatrix4(inv);
+                box.expandByPoint(v);
+              }
+            }
+            toHide.push(c);
+          });
+          if (!box.isEmpty()) {
+            box.getCenter(handSampleCenter);
+            s = box.getSize(new _webgiReExports.Vector3());
+            handSampleDim = Math.max(s.x, s.y, s.z, 0.01);
+          }
+          toHide.forEach(function (c) {
+            c.visible = false;
+          });
+          _context6.n = 7;
+          break;
+        case 6:
+          _context6.p = 6;
+          _t4 = _context6.v;
+          console.warn('Hand model load failed — falling back to floating ring', _t4);
+          handRoot = null;
+        case 7:
+          return _context6.a(2);
+      }
+    }, _callee6, null, [[1, 6]]);
+  }));
+  return _loadHand.apply(this, arguments);
+}
+function attachRingToHand(ringRoot) {
+  if (!hand.enabled || !handRoot || !ringRoot) return;
+  try {
+    var _ringRoot$updateMatri;
+    var _computeLocalRingBox2 = computeLocalRingBox(ringRoot),
+      size = _computeLocalRingBox2.size;
+    var ringDim = Math.max(size.x, size.y, size.z, 0.01);
+    if (ringRoot.parent !== handRoot) {
+      if (ringRoot.parent) ringRoot.parent.remove(ringRoot);
+      handRoot.add(ringRoot);
+    }
+    ringRoot.position.set(handSampleCenter.x + hand.posX * handSampleDim, handSampleCenter.y + hand.posY * handSampleDim, handSampleCenter.z + hand.posZ * handSampleDim);
+    ringRoot.rotation.set(hand.rotX, hand.rotY, hand.rotZ);
+    ringRoot.scale.setScalar(handSampleDim / ringDim * hand.scale);
+    (_ringRoot$updateMatri = ringRoot.updateMatrixWorld) === null || _ringRoot$updateMatri === void 0 || _ringRoot$updateMatri.call(ringRoot, true);
+  } catch (e) {
+    console.warn('attachRingToHand failed', e);
+  }
+}
+function frameModel() {
+  var _root$updateMatrixWor2, _root$updateMatrixWor3;
   var firstLoad = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
   if (!viewer || !ringModel) return;
-  var box = computeBounds();
+  var root = getRotationTarget();
+  if (!root) return;
+  var handMode = root === handRoot;
+  // Measure around the model's own origin, then recentre at the scene origin.
+  root.position.set(0, 0, 0);
+  (_root$updateMatrixWor2 = root.updateMatrixWorld) === null || _root$updateMatrixWor2 === void 0 || _root$updateMatrixWor2.call(root, true);
+  var box = handMode ? worldBounds(root) : computeBounds();
   if (box.isEmpty()) return;
   var center = box.getCenter(new _webgiReExports.Vector3());
   var size = box.getSize(new _webgiReExports.Vector3());
   var maxDim = Math.max(size.x, size.y, size.z, 0.01);
-  var root = getRingRoot();
-  if (!root) return;
   root.position.set(-center.x, -center.y, -center.z);
-  (_root$updateMatrixWor = root.updateMatrixWorld) === null || _root$updateMatrixWor === void 0 || _root$updateMatrixWor.call(root, true);
-  zoomMin = maxDim * 1.5;
+  (_root$updateMatrixWor3 = root.updateMatrixWorld) === null || _root$updateMatrixWor3 === void 0 || _root$updateMatrixWor3.call(root, true);
+  zoomMin = maxDim * 1.2;
   zoomMax = maxDim * 6;
-  // Bigger ground so the shadow/plane reads under the whole ring
-  if (groundPlugin && 'size' in groundPlugin) groundPlugin.size = maxDim * GROUND_SIZE_FACTOR;
+  // Contact shadow only makes sense under the floating ring — hide it for the hand.
+  if (groundPlugin) {
+    groundPlugin.visible = handMode ? false : groundEnabled;
+    if (!handMode) {
+      if ('size' in groundPlugin) groundPlugin.size = maxDim * GROUND_SIZE_FACTOR;
+      if ('yOffset' in groundPlugin) groundPlugin.yOffset = -0.008 * maxDim;
+    }
+  }
   if (firstLoad) {
     // First load only: entrance animation (pulled back + turned away → ease in)
-    targetZoom = maxDim * 3.2;
-    cameraZoom = maxDim * 4.4;
+    targetZoom = maxDim * (handMode ? 1.6 : 3.2);
+    cameraZoom = maxDim * (handMode ? 2.1 : 4.4);
     rotationY = -0.9;
     targetRotationY = 0;
     rotationX = -0.4;
@@ -73419,7 +73592,7 @@ function frameModel() {
     targetZoom = Math.min(Math.max(targetZoom, zoomMin), zoomMax);
   }
   var cam = viewer.scene.activeCamera;
-  cam.position.set(0, 0, cameraZoom);
+  cam.position.set(0, cameraZoom * CAM_ELEVATION, cameraZoom);
   if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false);
   viewer.setDirty();
 }
@@ -73542,76 +73715,76 @@ function loadGlb(_x4) {
   return _loadGlb.apply(this, arguments);
 }
 function _loadGlb() {
-  _loadGlb = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(path) {
-    var manager, importer, fileName, resp, blob, rawFile, patched, result, _t4;
-    return _regenerator().w(function (_context6) {
-      while (1) switch (_context6.p = _context6.n) {
+  _loadGlb = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(path) {
+    var manager, importer, fileName, resp, blob, rawFile, patched, result, _t5;
+    return _regenerator().w(function (_context7) {
+      while (1) switch (_context7.p = _context7.n) {
         case 0:
           manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
           if (manager) {
-            _context6.n = 1;
+            _context7.n = 1;
             break;
           }
           setError('AssetManager not available');
-          return _context6.a(2, null);
+          return _context7.a(2, null);
         case 1:
           importer = manager.importer;
           if (importer) {
-            _context6.n = 2;
+            _context7.n = 2;
             break;
           }
           setError('AssetImporter not available');
-          return _context6.a(2, null);
+          return _context7.a(2, null);
         case 2:
           patchDraco();
           fileName = path.split('/').pop() || 'part.glb';
-          _context6.p = 3;
-          _context6.n = 4;
+          _context7.p = 3;
+          _context7.n = 4;
           return fetch(encodeURI(path));
         case 4:
-          resp = _context6.v;
+          resp = _context7.v;
           if (resp.ok) {
-            _context6.n = 5;
+            _context7.n = 5;
             break;
           }
           throw new Error("HTTP ".concat(resp.status, " for ").concat(fileName));
         case 5:
-          _context6.n = 6;
+          _context7.n = 6;
           return resp.blob();
         case 6:
-          blob = _context6.v;
+          blob = _context7.v;
           rawFile = new File([blob], fileName, {
             type: 'model/gltf-binary'
           });
-          _context6.n = 7;
+          _context7.n = 7;
           return (0, _webgiDiamondPatch.patchGlbWithDiamondMetadata)(rawFile, undefined, {
             fallbackToFirst: false
           });
         case 7:
-          patched = _context6.v;
-          _context6.n = 8;
+          patched = _context7.v;
+          _context7.n = 8;
           return importer.importSingle({
             path: fileName,
             file: patched
           });
         case 8:
-          result = _context6.v;
+          result = _context7.v;
           if (result) {
-            _context6.n = 9;
+            _context7.n = 9;
             break;
           }
           setError('importSingle returned null');
-          return _context6.a(2, null);
+          return _context7.a(2, null);
         case 9:
-          return _context6.a(2, result);
+          return _context7.a(2, result);
         case 10:
-          _context6.p = 10;
-          _t4 = _context6.v;
-          console.warn('GLB import failed:', _t4);
+          _context7.p = 10;
+          _t5 = _context7.v;
+          console.warn('GLB import failed:', _t5);
           setError('Failed to import: ' + fileName);
-          return _context6.a(2, null);
+          return _context7.a(2, null);
       }
-    }, _callee6, null, [[3, 10]]);
+    }, _callee7, null, [[3, 10]]);
   }));
   return _loadGlb.apply(this, arguments);
 }
@@ -73628,176 +73801,8 @@ function buildRing() {
 // metadata extension before import (so the DiamondPlugin renders gems),
 // 3DM files load via Rhino3dmLoader2 from the rhino3dm CDN.
 function _buildRing() {
-  _buildRing = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
-    var nm, _viewer$getPlugin2, _viewer14, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t5;
-    return _regenerator().w(function (_context7) {
-      while (1) switch (_context7.p = _context7.n) {
-        case 0:
-          if (viewer) {
-            _context7.n = 1;
-            break;
-          }
-          setError('Viewer not initialized');
-          return _context7.a(2);
-        case 1:
-          if (!isBuilding) {
-            _context7.n = 2;
-            break;
-          }
-          return _context7.a(2);
-        case 2:
-          isBuilding = true;
-          usingCustomModel = false;
-          nm = byId('model-name');
-          if (nm) nm.textContent = '';
-          setLoader('Finding parts...');
-          canvasFade(true);
-          disposeModel();
-          _context7.p = 3;
-          head = findBestHead(state.prong, state.shape, state.size);
-          if (head) {
-            _context7.n = 4;
-            break;
-          }
-          setError("No ".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct head found"));
-          hideLoader();
-          isBuilding = false;
-          return _context7.a(2);
-        case 4:
-          setLoader('Loading head...');
-          _context7.n = 5;
-          return loadGlb("".concat(HEADS_BASE, "/").concat(head.file));
-        case 5:
-          headResult = _context7.v;
-          if (headResult) {
-            _context7.n = 6;
-            break;
-          }
-          hideLoader();
-          isBuilding = false;
-          return _context7.a(2);
-        case 6:
-          headRoot = getModelRoot(headResult);
-          if (headRoot) {
-            _context7.n = 7;
-            break;
-          }
-          setError('Could not extract head model root');
-          hideLoader();
-          isBuilding = false;
-          return _context7.a(2);
-        case 7:
-          // Add head to scene via WebGI pipeline (autoScale: false preserves original sizes)
-          viewer.scene.addSceneObject(headResult, {
-            autoScale: false
-          });
-          if (!state.band) {
-            _context7.n = 9;
-            break;
-          }
-          band = findBestBand(state.band);
-          if (!band) {
-            _context7.n = 9;
-            break;
-          }
-          setLoader('Loading band...');
-          _context7.n = 8;
-          return loadGlb("".concat(BANDS_BASE, "/").concat(band.file));
-        case 8:
-          bandResult = _context7.v;
-          if (bandResult) {
-            bandRoot = getModelRoot(bandResult);
-            if (bandRoot) {
-              if (bandRoot.parent) bandRoot.parent.remove(bandRoot);
-              headRoot.add(bandRoot);
-              bandRoot.position.set(0, 0, 0);
-              bandRoot.rotation.set(0, 0, 0);
-              bandRoot.scale.set(1, 1, 1);
-            }
-          }
-        case 9:
-          if (!state.shank) {
-            _context7.n = 11;
-            break;
-          }
-          shank = findBestShank(state.shank);
-          if (!shank) {
-            _context7.n = 11;
-            break;
-          }
-          setLoader('Loading shank...');
-          _context7.n = 10;
-          return loadGlb("".concat(SHANKS_BASE, "/").concat(shank.file));
-        case 10:
-          shankResult = _context7.v;
-          if (shankResult) {
-            shankRoot = getModelRoot(shankResult);
-            if (shankRoot) {
-              if (shankRoot.parent) shankRoot.parent.remove(shankRoot);
-              headRoot.add(shankRoot);
-              shankRoot.position.set(0, 0, 0);
-              shankRoot.rotation.set(0, 0, 0);
-              shankRoot.scale.set(1, 1, 1);
-            }
-          }
-        case 11:
-          ringModel = headResult;
-          setLoader('Applying materials...');
-          applyMaterials(headRoot);
-          setLoader('Framing view...');
-          _context7.n = 12;
-          return new Promise(function (r) {
-            return requestAnimationFrame(function () {
-              return r();
-            });
-          });
-        case 12:
-          frameModel(!firstBuildDone);
-          firstBuildDone = true;
-          modelLoaded = true;
-          updateEngraving3D();
-          pp = (_viewer$getPlugin2 = (_viewer14 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer14, _webgiReExports.ProgressivePlugin);
-          if (pp && typeof pp.reset === 'function') pp.reset();
-          try {
-            viewer.renderer.refreshPipeline();
-          } catch (_unused0) {}
-          viewer.setDirty();
-          setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
-          updateSummary();
-          // Notify Shopify parent that the ring is fully loaded
-          try {
-            window.parent.postMessage({
-              type: 'rb:ringLoaded',
-              config: getConfiguration()
-            }, '*');
-          } catch (_unused1) {}
-          _context7.n = 14;
-          break;
-        case 13:
-          _context7.p = 13;
-          _t5 = _context7.v;
-          console.error('Build failed:', _t5);
-          setError('Build failed: ' + ((_t5 === null || _t5 === void 0 ? void 0 : _t5.message) || _t5));
-        case 14:
-          _context7.p = 14;
-          canvasFade(false);
-          hideLoader();
-          isBuilding = false;
-          return _context7.f(14);
-        case 15:
-          return _context7.a(2);
-      }
-    }, _callee7, null, [[3, 13, 14, 15]]);
-  }));
-  return _buildRing.apply(this, arguments);
-}
-function loadCustomModel(_x5) {
-  return _loadCustomModel.apply(this, arguments);
-} // Snapshot — download a PNG of the current 3D view (iJewel-style export)
-function _loadCustomModel() {
-  _loadCustomModel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(file) {
-    var _byId4;
-    var manager, importer, name, is3dm, patchOn, _viewer$getPlugin3, _viewer15, loader, url, model, toLoad, result, root, pp, nm, _t6, _t7;
+  _buildRing = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
+    var nm, _viewer$getPlugin2, _viewer14, head, headResult, headRoot, band, bandResult, bandRoot, shank, shankResult, shankRoot, pp, _t6;
     return _regenerator().w(function (_context8) {
       while (1) switch (_context8.p = _context8.n) {
         case 0:
@@ -73815,66 +73820,236 @@ function _loadCustomModel() {
           return _context8.a(2);
         case 2:
           isBuilding = true;
+          usingCustomModel = false;
+          nm = byId('model-name');
+          if (nm) nm.textContent = '';
+          setLoader('Finding parts...');
+          canvasFade(true);
+          disposeModel();
+          _context8.p = 3;
+          head = findBestHead(state.prong, state.shape, state.size);
+          if (head) {
+            _context8.n = 4;
+            break;
+          }
+          setError("No ".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct head found"));
+          hideLoader();
+          isBuilding = false;
+          return _context8.a(2);
+        case 4:
+          setLoader('Loading head...');
+          _context8.n = 5;
+          return loadGlb("".concat(HEADS_BASE, "/").concat(head.file));
+        case 5:
+          headResult = _context8.v;
+          if (headResult) {
+            _context8.n = 6;
+            break;
+          }
+          hideLoader();
+          isBuilding = false;
+          return _context8.a(2);
+        case 6:
+          headRoot = getModelRoot(headResult);
+          if (headRoot) {
+            _context8.n = 7;
+            break;
+          }
+          setError('Could not extract head model root');
+          hideLoader();
+          isBuilding = false;
+          return _context8.a(2);
+        case 7:
+          // Add head to scene via WebGI pipeline (autoScale: false preserves original sizes)
+          viewer.scene.addSceneObject(headResult, {
+            autoScale: false
+          });
+          if (!state.band) {
+            _context8.n = 9;
+            break;
+          }
+          band = findBestBand(state.band);
+          if (!band) {
+            _context8.n = 9;
+            break;
+          }
+          setLoader('Loading band...');
+          _context8.n = 8;
+          return loadGlb("".concat(BANDS_BASE, "/").concat(band.file));
+        case 8:
+          bandResult = _context8.v;
+          if (bandResult) {
+            bandRoot = getModelRoot(bandResult);
+            if (bandRoot) {
+              if (bandRoot.parent) bandRoot.parent.remove(bandRoot);
+              headRoot.add(bandRoot);
+              bandRoot.position.set(0, 0, 0);
+              bandRoot.rotation.set(0, 0, 0);
+              bandRoot.scale.set(1, 1, 1);
+            }
+          }
+        case 9:
+          if (!state.shank) {
+            _context8.n = 11;
+            break;
+          }
+          shank = findBestShank(state.shank);
+          if (!shank) {
+            _context8.n = 11;
+            break;
+          }
+          setLoader('Loading shank...');
+          _context8.n = 10;
+          return loadGlb("".concat(SHANKS_BASE, "/").concat(shank.file));
+        case 10:
+          shankResult = _context8.v;
+          if (shankResult) {
+            shankRoot = getModelRoot(shankResult);
+            if (shankRoot) {
+              if (shankRoot.parent) shankRoot.parent.remove(shankRoot);
+              headRoot.add(shankRoot);
+              shankRoot.position.set(0, 0, 0);
+              shankRoot.rotation.set(0, 0, 0);
+              shankRoot.scale.set(1, 1, 1);
+            }
+          }
+        case 11:
+          ringModel = headResult;
+          setLoader('Applying materials...');
+          applyMaterials(headRoot);
+          // Place the configured ring onto the hand (if hand mode is active).
+          attachRingToHand(headRoot);
+          setLoader('Framing view...');
+          _context8.n = 12;
+          return new Promise(function (r) {
+            return requestAnimationFrame(function () {
+              return r();
+            });
+          });
+        case 12:
+          frameModel(!firstBuildDone);
+          firstBuildDone = true;
+          modelLoaded = true;
+          updateEngraving3D();
+          pp = (_viewer$getPlugin2 = (_viewer14 = viewer).getPlugin) === null || _viewer$getPlugin2 === void 0 ? void 0 : _viewer$getPlugin2.call(_viewer14, _webgiReExports.ProgressivePlugin);
+          if (pp && typeof pp.reset === 'function') pp.reset();
+          try {
+            viewer.renderer.refreshPipeline();
+          } catch (_unused1) {}
+          viewer.setDirty();
+          setStatus("".concat(state.prong, " ").concat(state.shape, " ").concat(state.size, "ct \xB7 ").concat(state.metal));
+          updateSummary();
+          // Notify Shopify parent that the ring is fully loaded
+          try {
+            window.parent.postMessage({
+              type: 'rb:ringLoaded',
+              config: getConfiguration()
+            }, '*');
+          } catch (_unused10) {}
+          _context8.n = 14;
+          break;
+        case 13:
+          _context8.p = 13;
+          _t6 = _context8.v;
+          console.error('Build failed:', _t6);
+          setError('Build failed: ' + ((_t6 === null || _t6 === void 0 ? void 0 : _t6.message) || _t6));
+        case 14:
+          _context8.p = 14;
+          canvasFade(false);
+          hideLoader();
+          isBuilding = false;
+          return _context8.f(14);
+        case 15:
+          return _context8.a(2);
+      }
+    }, _callee8, null, [[3, 13, 14, 15]]);
+  }));
+  return _buildRing.apply(this, arguments);
+}
+function loadCustomModel(_x5) {
+  return _loadCustomModel.apply(this, arguments);
+} // Snapshot — download a PNG of the current 3D view (iJewel-style export)
+function _loadCustomModel() {
+  _loadCustomModel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(file) {
+    var _byId4;
+    var manager, importer, name, is3dm, patchOn, _viewer$getPlugin3, _viewer15, loader, url, model, toLoad, result, root, pp, nm, _t7, _t8;
+    return _regenerator().w(function (_context9) {
+      while (1) switch (_context9.p = _context9.n) {
+        case 0:
+          if (viewer) {
+            _context9.n = 1;
+            break;
+          }
+          setError('Viewer not initialized');
+          return _context9.a(2);
+        case 1:
+          if (!isBuilding) {
+            _context9.n = 2;
+            break;
+          }
+          return _context9.a(2);
+        case 2:
+          isBuilding = true;
           canvasFade(true);
           setLoader("Loading ".concat(file.name, "..."));
           disposeModel();
           manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
           importer = manager === null || manager === void 0 ? void 0 : manager.importer;
           if (importer) {
-            _context8.n = 3;
+            _context9.n = 3;
             break;
           }
           setError('AssetImporter not available');
           canvasFade(false);
           hideLoader();
           isBuilding = false;
-          return _context8.a(2);
+          return _context9.a(2);
         case 3:
           patchDraco();
           name = file.name.toLowerCase();
           is3dm = name.endsWith('.3dm');
           patchOn = ((_byId4 = byId('model-patch')) === null || _byId4 === void 0 ? void 0 : _byId4.checked) !== false;
-          _context8.p = 4;
+          _context9.p = 4;
           if (!is3dm) {
-            _context8.n = 6;
+            _context9.n = 6;
             break;
           }
           loader = new _webgiReExports.Rhino3dmLoader2();
           loader.setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@8.17.0/');
           url = URL.createObjectURL(file);
-          _context8.n = 5;
+          _context9.n = 5;
           return loader.loadAsync(url);
         case 5:
-          model = _context8.v;
+          model = _context9.v;
           URL.revokeObjectURL(url);
           viewer.scene.add(model);
           ringModel = model;
-          _context8.n = 12;
+          _context9.n = 12;
           break;
         case 6:
           if (!patchOn) {
-            _context8.n = 8;
+            _context9.n = 8;
             break;
           }
-          _context8.n = 7;
+          _context9.n = 7;
           return (0, _webgiDiamondPatch.patchGlbWithDiamondMetadata)(file);
         case 7:
-          _t6 = _context8.v;
-          _context8.n = 9;
+          _t7 = _context9.v;
+          _context9.n = 9;
           break;
         case 8:
-          _t6 = file;
+          _t7 = file;
         case 9:
-          toLoad = _t6;
-          _context8.n = 10;
+          toLoad = _t7;
+          _context9.n = 10;
           return importer.importSingle({
             path: file.name,
             file: toLoad
           });
         case 10:
-          result = _context8.v;
+          result = _context9.v;
           if (result) {
-            _context8.n = 11;
+            _context9.n = 11;
             break;
           }
           throw new Error('importSingle returned null');
@@ -73887,7 +74062,7 @@ function _loadCustomModel() {
           root = getRingRoot();
           setLoader('Applying materials...');
           applyMaterials(root);
-          _context8.n = 13;
+          _context9.n = 13;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
               return r();
@@ -73902,28 +74077,28 @@ function _loadCustomModel() {
           if (pp && typeof pp.reset === 'function') pp.reset();
           try {
             viewer.renderer.refreshPipeline();
-          } catch (_unused10) {}
+          } catch (_unused11) {}
           viewer.setDirty();
           setStatus("Custom: ".concat(file.name));
           nm = byId('model-name');
           if (nm) nm.textContent = "Loaded: ".concat(file.name);
-          _context8.n = 15;
+          _context9.n = 15;
           break;
         case 14:
-          _context8.p = 14;
-          _t7 = _context8.v;
-          console.error('Custom model load failed:', _t7);
-          setError('Failed to load ' + file.name + ': ' + ((_t7 === null || _t7 === void 0 ? void 0 : _t7.message) || _t7));
+          _context9.p = 14;
+          _t8 = _context9.v;
+          console.error('Custom model load failed:', _t8);
+          setError('Failed to load ' + file.name + ': ' + ((_t8 === null || _t8 === void 0 ? void 0 : _t8.message) || _t8));
         case 15:
-          _context8.p = 15;
+          _context9.p = 15;
           canvasFade(false);
           hideLoader();
           isBuilding = false;
-          return _context8.f(15);
+          return _context9.f(15);
         case 16:
-          return _context8.a(2);
+          return _context9.a(2);
       }
-    }, _callee8, null, [[4, 14, 15, 16]]);
+    }, _callee9, null, [[4, 14, 15, 16]]);
   }));
   return _loadCustomModel.apply(this, arguments);
 }
@@ -73931,48 +74106,48 @@ function downloadSnapshot() {
   return _downloadSnapshot.apply(this, arguments);
 }
 function _downloadSnapshot() {
-  _downloadSnapshot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
+  _downloadSnapshot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
     var _viewer16;
     var r, canvas, blob, a, tag;
-    return _regenerator().w(function (_context9) {
-      while (1) switch (_context9.n) {
+    return _regenerator().w(function (_context0) {
+      while (1) switch (_context0.n) {
         case 0:
           r = (_viewer16 = viewer) === null || _viewer16 === void 0 || (_viewer16 = _viewer16.renderer) === null || _viewer16 === void 0 ? void 0 : _viewer16.rendererObject;
           canvas = r === null || r === void 0 ? void 0 : r.domElement;
           if (canvas) {
-            _context9.n = 1;
+            _context0.n = 1;
             break;
           }
           setError('Renderer not ready');
-          return _context9.a(2);
+          return _context0.a(2);
         case 1:
           viewer.setDirty();
-          _context9.n = 2;
+          _context0.n = 2;
           return new Promise(function (res) {
             return requestAnimationFrame(function () {
               return res();
             });
           });
         case 2:
-          _context9.n = 3;
+          _context0.n = 3;
           return new Promise(function (res) {
             return requestAnimationFrame(function () {
               return res();
             });
           });
         case 3:
-          _context9.n = 4;
+          _context0.n = 4;
           return new Promise(function (res) {
             return canvas.toBlob(res, 'image/png');
           });
         case 4:
-          blob = _context9.v;
+          blob = _context0.v;
           if (blob) {
-            _context9.n = 5;
+            _context0.n = 5;
             break;
           }
           setError('Could not capture image');
-          return _context9.a(2);
+          return _context0.a(2);
         case 5:
           a = document.createElement('a');
           tag = usingCustomModel ? 'custom-ring' : "".concat(state.prong, "-").concat(state.shape, "-").concat(state.size, "ct-").concat(state.metal);
@@ -73981,9 +74156,9 @@ function _downloadSnapshot() {
           a.click();
           URL.revokeObjectURL(a.href);
         case 6:
-          return _context9.a(2);
+          return _context0.a(2);
       }
-    }, _callee9);
+    }, _callee0);
   }));
   return _downloadSnapshot.apply(this, arguments);
 }
@@ -74220,40 +74395,40 @@ function fetchShopifyProduct(_x6) {
   return _fetchShopifyProduct.apply(this, arguments);
 } // Variant id for current shape+metal+carat. Metal = option1, carat = option2.
 function _fetchShopifyProduct() {
-  _fetchShopifyProduct = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(handle) {
-    var res, data, _t8;
-    return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.p = _context0.n) {
+  _fetchShopifyProduct = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(handle) {
+    var res, data, _t9;
+    return _regenerator().w(function (_context1) {
+      while (1) switch (_context1.p = _context1.n) {
         case 0:
           if (!_productCache[handle]) {
-            _context0.n = 1;
+            _context1.n = 1;
             break;
           }
-          return _context0.a(2, _productCache[handle]);
+          return _context1.a(2, _productCache[handle]);
         case 1:
-          _context0.p = 1;
-          _context0.n = 2;
+          _context1.p = 1;
+          _context1.n = 2;
           return fetch("https://".concat(SHOPIFY_CFG.domain, "/products/").concat(handle, ".js"));
         case 2:
-          res = _context0.v;
+          res = _context1.v;
           if (res.ok) {
-            _context0.n = 3;
+            _context1.n = 3;
             break;
           }
-          return _context0.a(2, null);
+          return _context1.a(2, null);
         case 3:
-          _context0.n = 4;
+          _context1.n = 4;
           return res.json();
         case 4:
-          data = _context0.v;
+          data = _context1.v;
           _productCache[handle] = data;
-          return _context0.a(2, data);
+          return _context1.a(2, data);
         case 5:
-          _context0.p = 5;
-          _t8 = _context0.v;
-          return _context0.a(2, null);
+          _context1.p = 5;
+          _t9 = _context1.v;
+          return _context1.a(2, null);
       }
-    }, _callee0, null, [[1, 5]]);
+    }, _callee1, null, [[1, 5]]);
   }));
   return _fetchShopifyProduct.apply(this, arguments);
 }
@@ -74261,34 +74436,34 @@ function resolveVariantId() {
   return _resolveVariantId.apply(this, arguments);
 }
 function _resolveVariantId() {
-  _resolveVariantId = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1() {
+  _resolveVariantId = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
     var _METAL_PRESETS$find3;
     var handle, product, metalLabel, v;
-    return _regenerator().w(function (_context1) {
-      while (1) switch (_context1.n) {
+    return _regenerator().w(function (_context10) {
+      while (1) switch (_context10.n) {
         case 0:
           if (SHOPIFY_CFG.domain) {
-            _context1.n = 1;
+            _context10.n = 1;
             break;
           }
-          return _context1.a(2, '');
+          return _context10.a(2, '');
         case 1:
           handle = productHandleForShape();
           if (handle) {
-            _context1.n = 2;
+            _context10.n = 2;
             break;
           }
-          return _context1.a(2, '');
+          return _context10.a(2, '');
         case 2:
-          _context1.n = 3;
+          _context10.n = 3;
           return fetchShopifyProduct(handle);
         case 3:
-          product = _context1.v;
+          product = _context10.v;
           if (product !== null && product !== void 0 && product.variants) {
-            _context1.n = 4;
+            _context10.n = 4;
             break;
           }
-          return _context1.a(2, '');
+          return _context10.a(2, '');
         case 4:
           metalLabel = ((_METAL_PRESETS$find3 = METAL_PRESETS.find(function (m) {
             return m.id === state.metal;
@@ -74296,9 +74471,9 @@ function _resolveVariantId() {
           v = product.variants.find(function (vr) {
             return vr.option1 === metalLabel && String(vr.option2) === String(state.size);
           });
-          return _context1.a(2, v ? String(v.id) : '');
+          return _context10.a(2, v ? String(v.id) : '');
       }
-    }, _callee1);
+    }, _callee10);
   }));
   return _resolveVariantId.apply(this, arguments);
 }
@@ -74308,41 +74483,41 @@ function addToCart() {
 // Sends the current selection to the parent Shopify page whenever
 // an option changes, so line-item properties can be updated.
 function _addToCart() {
-  _addToCart = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
+  _addToCart = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
     var handle, _catalog$shapes$find3, label, variant, c, props, qs, url;
-    return _regenerator().w(function (_context10) {
-      while (1) switch (_context10.n) {
+    return _regenerator().w(function (_context11) {
+      while (1) switch (_context11.n) {
         case 0:
           if (SHOPIFY_CFG.domain) {
-            _context10.n = 1;
+            _context11.n = 1;
             break;
           }
           setError('Checkout not set up yet — add your Shopify store domain in the config, then re-deploy.');
-          return _context10.a(2);
+          return _context11.a(2);
         case 1:
           handle = productHandleForShape();
           if (handle) {
-            _context10.n = 2;
+            _context11.n = 2;
             break;
           }
           label = ((_catalog$shapes$find3 = catalog.shapes.find(function (s) {
             return s.id === state.shape;
           })) === null || _catalog$shapes$find3 === void 0 ? void 0 : _catalog$shapes$find3.label) || 'this';
           setError("The ".concat(label, " shape isn't available for purchase yet. Try Oval, Princess or Radiant."));
-          return _context10.a(2);
+          return _context11.a(2);
         case 2:
           setStatus('Adding to cart…');
-          _context10.n = 3;
+          _context11.n = 3;
           return resolveVariantId();
         case 3:
-          variant = _context10.v;
+          variant = _context11.v;
           if (variant) {
-            _context10.n = 4;
+            _context11.n = 4;
             break;
           }
           setError('Could not find that ring in the store. Try a different metal or carat.');
           setStatus('');
-          return _context10.a(2);
+          return _context11.a(2);
         case 4:
           c = getConfiguration();
           props = {
@@ -74367,13 +74542,13 @@ function _addToCart() {
           url = "https://".concat(SHOPIFY_CFG.domain, "/cart/").concat(variant, ":1?").concat(qs);
           try {
             (window.top || window).location.href = url;
-          } catch (_unused12) {
+          } catch (_unused13) {
             window.location.href = url;
           }
         case 5:
-          return _context10.a(2);
+          return _context11.a(2);
       }
-    }, _callee10);
+    }, _callee11);
   }));
   return _addToCart.apply(this, arguments);
 }
@@ -74764,34 +74939,57 @@ function setupTuningPanel() {
   });
   syncTuningInputs();
 }
+// Subtle studio backdrop helper (currently unused — background is flat white to
+// match iJewel's 1_bg_white.svg). Kept for quick re-enable if a gradient is wanted.
+function setStudioBackground() {
+  try {
+    var c = document.createElement('canvas');
+    c.width = 1024;
+    c.height = 1024;
+    var ctx = c.getContext('2d');
+    var g = ctx.createRadialGradient(512, 430, 100, 512, 512, 760);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.65, '#f7f7f5');
+    g.addColorStop(1, '#ececea');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 1024, 1024);
+    var tex = new _webgiReExports.CanvasTexture(c);
+    tex.needsUpdate = true;
+    tex.encoding = 3001;
+    viewer.scene.background = tex;
+    viewer.setDirty();
+  } catch (_unused0) {
+    viewer.scene.setBackground(linColor(BG_BONE_COLOR));
+  }
+}
 function init() {
   return _init.apply(this, arguments);
 }
 function _init() {
-  _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
+  _init = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
     var _cam$setCameraOptions, _byId5, _byId6, _byId7;
-    var resp, qp, qShape, qMetal, qCarat, qAuto, qSpeed, canvas, r, pp, tonemap, ssao, dp, dl, cam, ctrl, modelInput, _t9, _t0, _t1, _t10, _t11, _t12, _t13;
-    return _regenerator().w(function (_context11) {
-      while (1) switch (_context11.p = _context11.n) {
+    var resp, qp, qShape, qMetal, qCarat, qAuto, qSpeed, canvas, r, _dpr, onViewerResize, pp, tonemap, ssao, dp, dl, cam, _cam$target, _cam$target$set, ctrl, modelInput, _t0, _t1, _t10, _t11, _t12, _t13;
+    return _regenerator().w(function (_context12) {
+      while (1) switch (_context12.p = _context12.n) {
         case 0:
           setLoader('Loading catalog...');
-          _context11.p = 1;
-          _context11.n = 2;
+          _context12.p = 1;
+          _context12.n = 2;
           return fetch('./assets/catalog.json');
         case 2:
-          resp = _context11.v;
-          _context11.n = 3;
+          resp = _context12.v;
+          _context12.n = 3;
           return resp.json();
         case 3:
-          catalog = _context11.v;
-          _context11.n = 5;
+          catalog = _context12.v;
+          _context12.n = 5;
           break;
         case 4:
-          _context11.p = 4;
-          _t9 = _context11.v;
+          _context12.p = 4;
+          _t0 = _context12.v;
           setError('Failed to load catalog');
           hideLoader();
-          return _context11.a(2);
+          return _context12.a(2);
         case 5:
           if (!state.shape && catalog.shapes.length) state.shape = catalog.shapes[0].id;
           if (!state.size && catalog.sizes.length) state.size = catalog.sizes[0];
@@ -74857,110 +75055,116 @@ function _init() {
             r.toneMapping = 4;
             r.toneMappingExposure = 1.2;
           }
-          // Render at full sharpness on high-DPI screens (up to 2x for performance)
-          ;
-          viewer.renderer.displayCanvasScaling = Math.min(window.devicePixelRatio, 2);
-          window.addEventListener('resize', function () {
-            return viewer.setDirty();
-          });
-          _context11.n = 6;
+          // Supersample: render at 2x (min) and let it downscale to the canvas — this
+          // is the real sharpness lever. On a standard 1x monitor the viewer was
+          // rendering at CSS resolution (soft, especially with TAA jitter mid-motion);
+          // 2x makes the whole frame and the diamonds crisp. Capped at 2.5x so
+          // high-DPI phones stay performant.
+          _dpr = window.devicePixelRatio || 1;
+          viewer.renderer.displayCanvasScaling = Math.min(Math.max(_dpr, 2), 2.5);
+          // Re-sync the render buffer to the canvas size. This is the real blur fix:
+          // the Shopify iframe mounts small then grows, and without a resize WebGI
+          // keeps a tiny render buffer that gets upscaled (blurring the whole frame).
+          onViewerResize = function onViewerResize() {
+            try {
+              var _viewer$resize, _viewer17;
+              (_viewer$resize = (_viewer17 = viewer).resize) === null || _viewer$resize === void 0 || _viewer$resize.call(_viewer17);
+            } catch (_unused15) {}
+            ;
+            viewer.setDirty();
+          };
+          window.addEventListener('resize', onViewerResize);
+          _context12.n = 6;
           return viewer.addPlugin(_webgiReExports.AssetManagerPlugin);
         case 6:
-          _context11.n = 7;
+          _context12.n = 7;
           return viewer.addPlugin(_webgiReExports.GBufferPlugin);
         case 7:
-          _context11.n = 8;
+          _context12.n = 8;
           return viewer.addPlugin(_webgiReExports.ProgressivePlugin);
         case 8:
-          pp = _context11.v;
-          _context11.n = 9;
+          pp = _context12.v;
+          _context12.n = 9;
           return viewer.addPlugin(_webgiReExports.TonemapPlugin);
         case 9:
-          tonemap = _context11.v;
+          tonemap = _context12.v;
           if (tonemap) {
             tonemap.exposure = 1.0;
             tonemap.saturation = 1.1;
             tonemap.contrast = 1.1;
           }
           tonemapPlugin = tonemap;
-          _context11.n = 10;
+          _context12.n = 10;
           return viewer.addPlugin(_webgiReExports.SSAOPlugin);
         case 10:
-          ssao = _context11.v;
+          ssao = _context12.v;
           if (ssao) ssao.intensity = 0.25;
           // Registers the .exr importer — without it env_gem_002.exr cannot load
-          _context11.p = 11;
-          _context11.n = 12;
+          _context12.p = 11;
+          _context12.n = 12;
           return viewer.addPlugin(_webgiReExports.EXRLoadPlugin);
         case 12:
-          _context11.n = 14;
+          _context12.n = 14;
           break;
         case 13:
-          _context11.p = 13;
-          _t0 = _context11.v;
-          console.warn('EXRLoadPlugin failed', _t0);
+          _context12.p = 13;
+          _t1 = _context12.v;
+          console.warn('EXRLoadPlugin failed', _t1);
         case 14:
-          _context11.p = 14;
-          _context11.n = 15;
+          _context12.p = 14;
+          _context12.n = 15;
           return viewer.addPlugin(_webgiReExports.FrameFadePlugin);
         case 15:
-          _context11.n = 17;
+          _context12.n = 17;
           break;
         case 16:
-          _context11.p = 16;
-          _t1 = _context11.v;
+          _context12.p = 16;
+          _t10 = _context12.v;
         case 17:
-          _context11.p = 17;
-          _context11.n = 18;
+          _context12.p = 17;
+          _context12.n = 18;
           return viewer.addPlugin(_webgiReExports.TemporalAAPlugin);
         case 18:
-          _context11.n = 20;
+          _context12.n = 20;
           break;
         case 19:
-          _context11.p = 19;
-          _t10 = _context11.v;
+          _context12.p = 19;
+          _t11 = _context12.v;
         case 20:
-          _context11.p = 20;
-          _context11.n = 21;
+          _context12.p = 20;
+          _context12.n = 21;
           return viewer.addPlugin(_webgiReExports.DiamondPlugin);
         case 21:
-          dp = _context11.v;
+          dp = _context12.v;
           if (dp) dp.forceSceneEnvMap = false;
           diamondPluginInstance = dp;
-          _context11.n = 23;
+          _context12.n = 23;
           break;
         case 22:
-          _context11.p = 22;
-          _t11 = _context11.v;
+          _context12.p = 22;
+          _t12 = _context12.v;
         case 23:
-          _context11.p = 23;
-          _context11.n = 24;
-          return viewer.addPlugin(_webgiReExports.RandomizedDirectionalLightPlugin);
-        case 24:
-          _context11.n = 26;
-          break;
-        case 25:
-          _context11.p = 25;
-          _t12 = _context11.v;
-        case 26:
-          _context11.p = 26;
-          _context11.n = 27;
+          _context12.p = 23;
+          _context12.n = 24;
           return viewer.addPlugin(_webgiReExports.ContactShadowGroundPlugin);
-        case 27:
-          groundPlugin = _context11.v;
+        case 24:
+          groundPlugin = _context12.v;
           if (groundPlugin) {
             groundPlugin.visible = groundEnabled;
             groundPlugin.contactShadows = true;
-            if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6;
+            // Tighter, darker contact shadow so the ring reads grounded (less blur
+            // + a focused ground size = a more visible shadow under the band).
+            if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 0.7;
+            if ('shadowScale' in groundPlugin) groundPlugin.shadowScale = 1;
             if ('size' in groundPlugin) groundPlugin.size = 48; // big default; frameModel refines per-model
           }
-          _context11.n = 29;
+          _context12.n = 26;
           break;
-        case 28:
-          _context11.p = 28;
-          _t13 = _context11.v;
+        case 25:
+          _context12.p = 25;
+          _t13 = _context12.v;
           console.warn('ContactShadowGroundPlugin failed', _t13);
-        case 29:
+        case 26:
           dl = new _webgiReExports.DirectionalLight(0xffffff, 3);
           dl.position.set(5, 10, 7);
           dl.castShadow = true;
@@ -74983,16 +75187,21 @@ function _init() {
           (_cam$setCameraOptions = cam.setCameraOptions) === null || _cam$setCameraOptions === void 0 || _cam$setCameraOptions.call(cam, {
             fov: 25
           });
+          // Aim at the ring centre so the elevated camera (below) frames it correctly.
+          try {
+            (_cam$target = cam.target) === null || _cam$target === void 0 || (_cam$target$set = _cam$target.set) === null || _cam$target$set === void 0 || _cam$target$set.call(_cam$target, 0, 0, 0);
+          } catch (_unused19) {}
           ctrl = cam.controls;
           if (ctrl) ctrl.enabled = false;
+          // Flat white background — matches iJewel's 1_bg_white.svg (a plain #FFFFFF fill).
           viewer.scene.setBackground(linColor(BG_BONE_COLOR));
-          _context11.n = 30;
+          _context12.n = 27;
           return loadDefaultEnvironments();
-        case 30:
+        case 27:
           viewer.addEventListener('preFrame', function () {
-            var root = getRingRoot();
+            var root = getRotationTarget();
             if (modelLoaded && root) {
-              var _root$updateMatrixWor2;
+              var _root$updateMatrixWor4;
               if (autoRotate && !isRotating) targetRotationY += autoRotateSpeed * 0.01;
               // Critically-damped style easing toward targets — the "ice smooth" feel
               rotationX += (targetRotationX - rotationX) * SMOOTHING;
@@ -75000,17 +75209,17 @@ function _init() {
               rotationZ += (targetRotationZ - rotationZ) * SMOOTHING;
               cameraZoom += (targetZoom - cameraZoom) * SMOOTHING;
               var _cam = viewer.scene.activeCamera;
-              _cam.position.set(0, 0, cameraZoom);
+              _cam.position.set(0, cameraZoom * CAM_ELEVATION, cameraZoom);
               if (typeof _cam.positionUpdated === 'function') _cam.positionUpdated(false);
               root.rotation.order = 'YXZ';
               root.rotation.y = rotationY;
               root.rotation.x = rotationX;
               root.rotation.z = rotationZ;
-              (_root$updateMatrixWor2 = root.updateMatrixWorld) === null || _root$updateMatrixWor2 === void 0 || _root$updateMatrixWor2.call(root, true);
+              (_root$updateMatrixWor4 = root.updateMatrixWorld) === null || _root$updateMatrixWor4 === void 0 || _root$updateMatrixWor4.call(root, true);
               try {
                 var rr = viewer.renderer.rendererObject;
                 if (rr !== null && rr !== void 0 && rr.shadowMap) rr.shadowMap.needsUpdate = true;
-              } catch (_unused18) {}
+              } catch (_unused20) {}
               viewer.setDirty();
             }
           });
@@ -75037,16 +75246,21 @@ function _init() {
             isRotating = false;
           });
           canvas.addEventListener('touchstart', function (e) {
-            if (e.touches.length !== 1 && e.touches.length !== 2) return;
-            isRotating = true;
-            lastX = e.touches[0].clientX;
-            lastY = e.touches[0].clientY;
+            if (e.touches.length === 1) {
+              isRotating = true;
+              lastX = e.touches[0].clientX;
+              lastY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+              // Two fingers = pinch-to-zoom (not rotate).
+              isRotating = false;
+              lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            }
           }, {
             passive: true
           });
           window.addEventListener('touchmove', function (e) {
-            if (!isRotating || !modelLoaded || !ringModel) return;
-            if (e.touches.length === 1) {
+            if (!modelLoaded || !ringModel) return;
+            if (e.touches.length === 1 && isRotating) {
               var dx = e.touches[0].clientX - lastX;
               var dy = e.touches[0].clientY - lastY;
               targetRotationY += dx * 0.008;
@@ -75055,8 +75269,14 @@ function _init() {
               lastY = e.touches[0].clientY;
               viewer.setDirty();
             } else if (e.touches.length === 2) {
-              targetRotationZ += ((e.touches[0].clientX + e.touches[1].clientX) / 2 - lastX) * 0.008;
-              lastX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+              // Pinch-to-zoom: spread fingers = zoom in, pinch = zoom out.
+              e.preventDefault();
+              var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+              if (lastPinchDist > 0) {
+                var step = (zoomMax - zoomMin) * 0.004;
+                targetZoom = Math.max(zoomMin, Math.min(zoomMax, targetZoom + (lastPinchDist - d) * step));
+              }
+              lastPinchDist = d;
               viewer.setDirty();
             }
           }, {
@@ -75064,9 +75284,11 @@ function _init() {
           });
           window.addEventListener('touchend', function () {
             isRotating = false;
+            lastPinchDist = 0;
           });
           window.addEventListener('touchcancel', function () {
             isRotating = false;
+            lastPinchDist = 0;
           });
           canvas.addEventListener('wheel', function (e) {
             if (modelLoaded) {
@@ -75097,31 +75319,44 @@ function _init() {
           (_byId6 = byId('btn-snapshot')) === null || _byId6 === void 0 || _byId6.addEventListener('click', downloadSnapshot);
           // Add to Cart (Shopify)
           (_byId7 = byId('add-cart-btn')) === null || _byId7 === void 0 || _byId7.addEventListener('click', addToCart);
-          _context11.n = 31;
+          _context12.n = 28;
           return new Promise(function (r) {
             return requestAnimationFrame(function () {
               return r();
             });
           });
-        case 31:
-          _context11.n = 32;
+        case 28:
+          _context12.n = 29;
+          return loadHand();
+        case 29:
+          _context12.n = 30;
           return buildRing();
-        case 32:
+        case 30:
           // Embed: announce the starting configuration to the Shopify parent page so
           // the default prong/band/shank/ring-size become line-item properties even
           // before the shopper touches anything inside the iframe.
           try {
             postOptionChange('init', state.shape);
-          } catch (_unused19) {}
+          } catch (_unused21) {}
           // Publish the option catalog so the parent page can render prong/band/shank
           // selectors. Sent once now; also re-sent on demand via 'rb:requestCatalog'.
           try {
             postCatalogToParent();
-          } catch (_unused20) {}
-        case 33:
-          return _context11.a(2);
+          } catch (_unused22) {}
+          // Match the render buffer to the final canvas size (the embed iframe often
+          // grows after first paint) so the result is sharp, not upscaled.
+          requestAnimationFrame(function () {
+            try {
+              var _viewer$resize2, _viewer18;
+              (_viewer$resize2 = (_viewer18 = viewer).resize) === null || _viewer$resize2 === void 0 || _viewer$resize2.call(_viewer18);
+            } catch (_unused23) {}
+            ;
+            viewer.setDirty();
+          });
+        case 31:
+          return _context12.a(2);
       }
-    }, _callee11, null, [[26, 28], [23, 25], [20, 22], [17, 19], [14, 16], [11, 13], [1, 4]]);
+    }, _callee12, null, [[23, 25], [20, 22], [17, 19], [14, 16], [11, 13], [1, 4]]);
   }));
   return _init.apply(this, arguments);
 }
@@ -75157,7 +75392,16 @@ window.__ringBuilder = {
   },
   get usingCustomModel() {
     return usingCustomModel;
+  },
+  // Hand-mode placement tuning. Adjust then call replaceRingOnHand().
+  hand: hand,
+  replaceRingOnHand: function replaceRingOnHand() {
+    attachRingToHand(getRingRoot());
+    frameModel(false);
+  },
+  get handRoot() {
+    return handRoot;
   }
 };
 },{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"hxGN"}]},{},["QXV9"], null)
-//# sourceMappingURL=ring-builder.5a319406.js.map
+//# sourceMappingURL=ring-builder.705d3377.js.map

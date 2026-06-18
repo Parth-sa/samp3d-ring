@@ -56,17 +56,21 @@ const SHANKS_BASE = './assets/signi/sigli Shanks'
 const DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr'
 const DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr'
 // iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
-const BG_BONE_COLOR = '#f4f4eb'
+// Pure white background — matches iJewel's 1_bg_white (a flat #FFFFFF fill).
+const BG_BONE_COLOR = '#ffffff'
 // Ground plane size = maxDim * this (bigger = wider shadow plane under the ring)
-const GROUND_SIZE_FACTOR = 4.5
+const GROUND_SIZE_FACTOR = 2.6
+// Camera looks down at the ring by this amount (cameraY = zoom * this) so the
+// floor + contact shadow are visible, like iJewel's slightly-elevated view.
+const CAM_ELEVATION = 0.22
 
 // Exact iJewel.design values (from their .pmat files): polished metals are
 // roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
 // iJewel's precise colors; the rest follow the same polished recipe.
 const METAL_PRESETS = [
     { id: 'whiteGold', label: 'White Gold', color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
-    { id: 'yellowGold', label: 'Yellow Gold', color: '#e5b377', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
-    { id: 'roseGold', label: 'Rose Gold', color: '#f2af83', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'yellowGold', label: 'Yellow Gold', color: '#eec064', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'roseGold', label: 'Rose Gold', color: '#e7a39c', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
     { id: 'platinum', label: 'Platinum', color: '#d6d6d9', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.7 },
 ]
 
@@ -122,6 +126,7 @@ let firstBuildDone = false
 
 let isRotating = false
 let lastX = 0; let lastY = 0
+let lastPinchDist = 0   // mobile pinch-to-zoom
 // Smooth (damped) motion: input writes target*, preFrame eases current toward it
 let rotationX = -0.05; let rotationY = 0; let rotationZ = 0
 let targetRotationX = -0.05; let targetRotationY = 0; let targetRotationZ = 0
@@ -136,6 +141,13 @@ let gemEnvironment: any = null
 let tonemapPlugin: any = null
 let groundPlugin: any = null
 let groundEnabled = true
+// ── Hand mode: the configured ring is shown on a 3D hand (assets/hand.glb) ──
+let handResult: any = null
+let handRoot: any = null
+let handSampleCenter = new Vector3()   // where the file's sample ring sits (hand-local)
+let handSampleDim = 1                   // sample ring size (hand units) → auto scale
+// Live-tunable placement (window.__ringBuilder.hand). Offsets are in ring-size units.
+const hand = { enabled: true, scale: 1, posX: 0, posY: 0, posZ: 0, rotX: 0, rotY: 0, rotZ: 0 }
 let metalEnvIntensity = 1.0
 let metalEnvRotationDeg = 0
 
@@ -464,25 +476,131 @@ function computeBounds(): Box3 {
     return box
 }
 
+// Transform-aware world bounding box (visible geometry only). Needed once the
+// hand is in the graph, since computeBounds() ignores node transforms.
+function worldBounds(root: any): Box3 {
+    const box = new Box3(); const v = new Vector3()
+    if (!root) return box
+    root.updateMatrixWorld?.(true)
+    root.traverse((c: any) => {
+        if (!c.geometry || c.visible === false) return
+        const g = c.geometry
+        if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox()
+        const bb = g.boundingBox
+        if (!bb) return
+        for (let i = 0; i < 8; i++) {
+            v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z)
+            v.applyMatrix4(c.matrixWorld)
+            box.expandByPoint(v)
+        }
+    })
+    return box
+}
+
+// The object that drag/auto-rotate spins and that frameModel centres. In hand
+// mode that's the hand (ring is parented to it); otherwise the ring itself.
+function getRotationTarget() {
+    return (handRoot && handRoot.parent) ? handRoot : getRingRoot()
+}
+
+// Load the hand once: add to scene, hide its built-in sample rings/diamonds
+// (keep skin + nails), and capture where/how big that sample ring was so the
+// customer's ring can be auto-placed at the same spot/scale.
+async function loadHand() {
+    if (!hand.enabled || handRoot) return
+    try {
+        const manager = viewer.getPlugin(AssetManagerPlugin) as any
+        if (!manager?.importer) return
+        patchDraco()
+        const result = await manager.importer.importSinglePath('./assets/hand.glb')
+        if (!result) return
+        handResult = result
+        handRoot = getModelRoot(result)
+        if (!handRoot) { handRoot = null; return }
+        if (!handRoot.parent) viewer.scene.addSceneObject(result, { autoScale: false })
+        handRoot.updateMatrixWorld?.(true)
+        const inv = new Matrix4().copy(handRoot.matrixWorld).invert()
+        const box = new Box3(); const v = new Vector3(); const toHide: any[] = []
+        handRoot.traverse((c: any) => {
+            if (!c.isMesh) return
+            const mats = Array.isArray(c.material) ? c.material : [c.material]
+            const matName = (mats[0]?.name || '').toLowerCase()
+            if (matName.includes('skin') || matName.includes('nail')) return  // keep the hand
+            // Everything else on the hand = the sample ring/diamonds → measure + hide
+            const g = c.geometry
+            if (g) {
+                if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox()
+                const bb = g.boundingBox
+                if (bb) for (let i = 0; i < 8; i++) {
+                    v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z)
+                    v.applyMatrix4(c.matrixWorld).applyMatrix4(inv)
+                    box.expandByPoint(v)
+                }
+            }
+            toHide.push(c)
+        })
+        if (!box.isEmpty()) {
+            box.getCenter(handSampleCenter)
+            const s = box.getSize(new Vector3())
+            handSampleDim = Math.max(s.x, s.y, s.z, 0.01)
+        }
+        toHide.forEach(c => { c.visible = false })
+    } catch (e) {
+        console.warn('Hand model load failed — falling back to floating ring', e)
+        handRoot = null
+    }
+}
+
+// Parent the customer's ring onto the hand at the sample-ring spot, auto-scaled
+// so it matches the size the file's sample ring was (in hand-local units).
+function attachRingToHand(ringRoot: any) {
+    if (!hand.enabled || !handRoot || !ringRoot) return
+    try {
+        const { size } = computeLocalRingBox(ringRoot)
+        const ringDim = Math.max(size.x, size.y, size.z, 0.01)
+        if (ringRoot.parent !== handRoot) {
+            if (ringRoot.parent) ringRoot.parent.remove(ringRoot)
+            handRoot.add(ringRoot)
+        }
+        ringRoot.position.set(
+            handSampleCenter.x + hand.posX * handSampleDim,
+            handSampleCenter.y + hand.posY * handSampleDim,
+            handSampleCenter.z + hand.posZ * handSampleDim)
+        ringRoot.rotation.set(hand.rotX, hand.rotY, hand.rotZ)
+        ringRoot.scale.setScalar((handSampleDim / ringDim) * hand.scale)
+        ringRoot.updateMatrixWorld?.(true)
+    } catch (e) { console.warn('attachRingToHand failed', e) }
+}
+
 function frameModel(firstLoad = false) {
     if (!viewer || !ringModel) return
-    const box = computeBounds()
+    const root = getRotationTarget()
+    if (!root) return
+    const handMode = (root === handRoot)
+    // Measure around the model's own origin, then recentre at the scene origin.
+    root.position.set(0, 0, 0)
+    root.updateMatrixWorld?.(true)
+    const box = handMode ? worldBounds(root) : computeBounds()
     if (box.isEmpty()) return
     const center = box.getCenter(new Vector3())
     const size = box.getSize(new Vector3())
     const maxDim = Math.max(size.x, size.y, size.z, 0.01)
-    const root = getRingRoot()
-    if (!root) return
     root.position.set(-center.x, -center.y, -center.z)
     root.updateMatrixWorld?.(true)
-    zoomMin = maxDim * 1.5
+    zoomMin = maxDim * 1.2
     zoomMax = maxDim * 6
-    // Bigger ground so the shadow/plane reads under the whole ring
-    if (groundPlugin && 'size' in groundPlugin) groundPlugin.size = maxDim * GROUND_SIZE_FACTOR
+    // Contact shadow only makes sense under the floating ring — hide it for the hand.
+    if (groundPlugin) {
+        groundPlugin.visible = handMode ? false : groundEnabled
+        if (!handMode) {
+            if ('size' in groundPlugin) groundPlugin.size = maxDim * GROUND_SIZE_FACTOR
+            if ('yOffset' in groundPlugin) groundPlugin.yOffset = -0.008 * maxDim
+        }
+    }
     if (firstLoad) {
         // First load only: entrance animation (pulled back + turned away → ease in)
-        targetZoom = maxDim * 3.2
-        cameraZoom = maxDim * 4.4
+        targetZoom = maxDim * (handMode ? 1.6 : 3.2)
+        cameraZoom = maxDim * (handMode ? 2.1 : 4.4)
         rotationY = -0.9; targetRotationY = 0
         rotationX = -0.4; targetRotationX = -0.05
         rotationZ = 0; targetRotationZ = 0
@@ -492,7 +610,7 @@ function frameModel(firstLoad = false) {
         targetZoom = Math.min(Math.max(targetZoom, zoomMin), zoomMax)
     }
     const cam = viewer.scene.activeCamera
-    cam.position.set(0, 0, cameraZoom)
+    cam.position.set(0, cameraZoom * CAM_ELEVATION, cameraZoom)
     if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false)
     viewer.setDirty()
 }
@@ -667,6 +785,9 @@ async function buildRing() {
 
         setLoader('Applying materials...')
         applyMaterials(headRoot)
+
+        // Place the configured ring onto the hand (if hand mode is active).
+        attachRingToHand(headRoot)
 
         setLoader('Framing view...')
         await new Promise<void>(r => requestAnimationFrame(() => r()))
@@ -1267,6 +1388,29 @@ function setupTuningPanel() {
     syncTuningInputs()
 }
 
+// Subtle studio backdrop helper (currently unused — background is flat white to
+// match iJewel's 1_bg_white.svg). Kept for quick re-enable if a gradient is wanted.
+function setStudioBackground() {
+    try {
+        const c = document.createElement('canvas')
+        c.width = 1024; c.height = 1024
+        const ctx = c.getContext('2d')!
+        const g = ctx.createRadialGradient(512, 430, 100, 512, 512, 760)
+        g.addColorStop(0, '#ffffff')
+        g.addColorStop(0.65, '#f7f7f5')
+        g.addColorStop(1, '#ececea')
+        ctx.fillStyle = g
+        ctx.fillRect(0, 0, 1024, 1024)
+        const tex: any = new CanvasTexture(c)
+        tex.needsUpdate = true
+        tex.encoding = 3001
+        ;(viewer.scene as any).background = tex
+        viewer.setDirty()
+    } catch {
+        viewer.scene.setBackground(linColor(BG_BONE_COLOR))
+    }
+}
+
 async function init() {
     setLoader('Loading catalog...')
     try {
@@ -1322,9 +1466,18 @@ async function init() {
         r.physicallyCorrectLights = true; r.outputEncoding = 3001
         r.toneMapping = 4; r.toneMappingExposure = 1.2
     }
-    // Render at full sharpness on high-DPI screens (up to 2x for performance)
-    ;(viewer.renderer as any).displayCanvasScaling = Math.min(window.devicePixelRatio, 2)
-    window.addEventListener('resize', () => viewer.setDirty())
+    // Supersample: render at 2x (min) and let it downscale to the canvas — this
+    // is the real sharpness lever. On a standard 1x monitor the viewer was
+    // rendering at CSS resolution (soft, especially with TAA jitter mid-motion);
+    // 2x makes the whole frame and the diamonds crisp. Capped at 2.5x so
+    // high-DPI phones stay performant.
+    const _dpr = window.devicePixelRatio || 1
+    ;(viewer.renderer as any).displayCanvasScaling = Math.min(Math.max(_dpr, 2), 2.5)
+    // Re-sync the render buffer to the canvas size. This is the real blur fix:
+    // the Shopify iframe mounts small then grows, and without a resize WebGI
+    // keeps a tiny render buffer that gets upscaled (blurring the whole frame).
+    const onViewerResize = () => { try { (viewer as any).resize?.() } catch {} ; viewer.setDirty() }
+    window.addEventListener('resize', onViewerResize)
 
     await viewer.addPlugin(AssetManagerPlugin)
     await viewer.addPlugin(GBufferPlugin)
@@ -1345,7 +1498,11 @@ async function init() {
         if (dp) (dp as any).forceSceneEnvMap = false
         diamondPluginInstance = dp
     } catch {}
-    try { await viewer.addPlugin(RandomizedDirectionalLightPlugin) } catch {}
+    // NOTE: RandomizedDirectionalLightPlugin was removed — it jitters the light
+    // every frame to build soft shadows via progressive accumulation, but since
+    // the builder redraws continuously (rotation), it never converges and the
+    // shadow + diamond reflections flicker/blink. A static directional light
+    // (added below) gives stable, flicker-free shadows.
 
     // Soft contact shadow under the ring (white ground on white bg = shadow only).
     // NOTE: never use GroundPlugin.groundReflection — it breaks the viewer (see AGENTS.md)
@@ -1354,7 +1511,10 @@ async function init() {
         if (groundPlugin) {
             groundPlugin.visible = groundEnabled
             groundPlugin.contactShadows = true
-            if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6
+            // Tighter, darker contact shadow so the ring reads grounded (less blur
+            // + a focused ground size = a more visible shadow under the band).
+            if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 0.7
+            if ('shadowScale' in groundPlugin) groundPlugin.shadowScale = 1
             if ('size' in groundPlugin) groundPlugin.size = 48  // big default; frameModel refines per-model
         }
     } catch (e) { console.warn('ContactShadowGroundPlugin failed', e) }
@@ -1374,15 +1534,18 @@ async function init() {
     const cam = viewer.scene.activeCamera
     cam.near = 0.1; cam.far = 1000
     cam.setCameraOptions?.({ fov: 25 })
+    // Aim at the ring centre so the elevated camera (below) frames it correctly.
+    try { (cam as any).target?.set?.(0, 0, 0) } catch {}
     const ctrl = (cam as any).controls
     if (ctrl) ctrl.enabled = false
 
+    // Flat white background — matches iJewel's 1_bg_white.svg (a plain #FFFFFF fill).
     viewer.scene.setBackground(linColor(BG_BONE_COLOR))
 
     await loadDefaultEnvironments()
 
     viewer.addEventListener('preFrame', () => {
-        const root = getRingRoot()
+        const root = getRotationTarget()
         if (modelLoaded && root) {
             if (autoRotate && !isRotating) targetRotationY += autoRotateSpeed * 0.01
             // Critically-damped style easing toward targets — the "ice smooth" feel
@@ -1391,7 +1554,7 @@ async function init() {
             rotationZ += (targetRotationZ - rotationZ) * SMOOTHING
             cameraZoom += (targetZoom - cameraZoom) * SMOOTHING
             const cam = viewer.scene.activeCamera
-            cam.position.set(0, 0, cameraZoom)
+            cam.position.set(0, cameraZoom * CAM_ELEVATION, cameraZoom)
             if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false)
             root.rotation.order = 'YXZ'
             root.rotation.y = rotationY
@@ -1414,22 +1577,38 @@ async function init() {
     window.addEventListener('mouseup', () => { isRotating = false })
 
     canvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1 && e.touches.length !== 2) return
-        isRotating = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY
+        if (e.touches.length === 1) {
+            isRotating = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY
+        } else if (e.touches.length === 2) {
+            // Two fingers = pinch-to-zoom (not rotate).
+            isRotating = false
+            lastPinchDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY)
+        }
     }, { passive: true })
     window.addEventListener('touchmove', (e) => {
-        if (!isRotating || !modelLoaded || !ringModel) return
-        if (e.touches.length === 1) {
+        if (!modelLoaded || !ringModel) return
+        if (e.touches.length === 1 && isRotating) {
             const dx = e.touches[0].clientX - lastX; const dy = e.touches[0].clientY - lastY
             targetRotationY += dx * 0.008; targetRotationX += dy * 0.006
             lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; viewer.setDirty()
         } else if (e.touches.length === 2) {
-            targetRotationZ += ((e.touches[0].clientX + e.touches[1].clientX) / 2 - lastX) * 0.008
-            lastX = (e.touches[0].clientX + e.touches[1].clientX) / 2; viewer.setDirty()
+            // Pinch-to-zoom: spread fingers = zoom in, pinch = zoom out.
+            e.preventDefault()
+            const d = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY)
+            if (lastPinchDist > 0) {
+                const step = (zoomMax - zoomMin) * 0.004
+                targetZoom = Math.max(zoomMin, Math.min(zoomMax, targetZoom + (lastPinchDist - d) * step))
+            }
+            lastPinchDist = d
+            viewer.setDirty()
         }
     }, { passive: false })
-    window.addEventListener('touchend', () => { isRotating = false })
-    window.addEventListener('touchcancel', () => { isRotating = false })
+    window.addEventListener('touchend', () => { isRotating = false; lastPinchDist = 0 })
+    window.addEventListener('touchcancel', () => { isRotating = false; lastPinchDist = 0 })
 
     canvas.addEventListener('wheel', (e) => {
         if (modelLoaded) {
@@ -1459,6 +1638,7 @@ async function init() {
     byId('add-cart-btn')?.addEventListener('click', addToCart)
 
     await new Promise<void>(r => requestAnimationFrame(() => r()))
+    await loadHand()
     await buildRing()
 
     // Embed: announce the starting configuration to the Shopify parent page so
@@ -1468,6 +1648,9 @@ async function init() {
     // Publish the option catalog so the parent page can render prong/band/shank
     // selectors. Sent once now; also re-sent on demand via 'rb:requestCatalog'.
     try { postCatalogToParent() } catch {}
+    // Match the render buffer to the final canvas size (the embed iframe often
+    // grows after first paint) so the result is sharp, not upscaled.
+    requestAnimationFrame(() => { try { (viewer as any).resize?.() } catch {} ; viewer.setDirty() })
 }
 
 init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hideLoader() })
@@ -1489,4 +1672,8 @@ init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hi
     updateEngraving3D,
     get engravingMesh() { return engravingMesh },
     get usingCustomModel() { return usingCustomModel },
+    // Hand-mode placement tuning. Adjust then call replaceRingOnHand().
+    hand,
+    replaceRingOnHand() { attachRingToHand(getRingRoot()); frameModel(false) },
+    get handRoot() { return handRoot },
 }

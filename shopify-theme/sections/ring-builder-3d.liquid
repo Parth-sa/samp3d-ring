@@ -41,6 +41,8 @@
   endif
 -%}
 
+<div class="rb3d-wrap{% if section.settings.full_width %} rb3d-wrap--full{% endif %}"
+     style="padding-top:{{ section.settings.padding_top }}px;padding-bottom:{{ section.settings.padding_bottom }}px;">
 <div class="rb3d" id="rb3d-{{ section.id }}" data-builder-url="{{ builder_url }}" data-shape="{{ shape_code }}">
   <div class="rb3d__viewer">
     <iframe
@@ -88,6 +90,7 @@
 
     <p class="rb3d__note">Configure prong, band, shank, ring size & engraving in the 3D view.</p>
   </div>
+</div>
 </div>
 
 <script>
@@ -361,26 +364,70 @@
 </script>
 
 {%- style -%}
-  .rb3d { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
-  .rb3d__viewer { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #f4f4eb; border-radius: 8px; overflow: hidden; }
-  .rb3d__iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .rb3d__spin { position: absolute; bottom: 12px; right: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 12px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.9); color: #555;
-    border-radius: 999px; font-size: 0.8rem; cursor: pointer; backdrop-filter: blur(6px); }
+  #shopify-section-{{ section.id }} { overflow-x: hidden; }
+  .rb3d-wrap { box-sizing: border-box; }
+  .rb3d-wrap--full { width: 100vw; max-width: 100vw; margin-left: calc(50% - 50vw); padding-left: 28px; padding-right: 28px; }
+  .rb3d {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
+    gap: 48px;
+    align-items: stretch;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+  .rb3d__viewer {
+    position: relative; width: 100%;
+    height: min(82vh, 800px); min-height: 480px;
+    background: #ffffff;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 18px 50px rgba(20,20,20,0.08);
+  }
+  .rb3d__iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  .rb3d__spin {
+    position: absolute; bottom: 16px; right: 16px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.92); color: #555;
+    border-radius: 999px; font-size: 0.8rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px);
+    transition: all 0.15s;
+  }
   .rb3d__spin.is-on { background: #111; color: #fff; border-color: #111; }
-  .rb3d__title { font-size: 1.6rem; margin: 0 0 8px; }
-  .rb3d__price { font-size: 1.3rem; font-weight: 600; margin-bottom: 20px; }
-  .rb3d__opt { margin-bottom: 18px; }
-  .rb3d__extra { margin-top: 4px; }
-  .rb3d__opt-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .rb3d__opt-values { display: flex; flex-wrap: wrap; gap: 8px; }
-  .rb3d__chip { padding: 8px 14px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 999px; font-size: 0.9rem; }
+
+  .rb3d__panel { align-self: start; position: sticky; top: 24px; display: flex; flex-direction: column; }
+  .rb3d__title { font-size: 1.9rem; line-height: 1.15; margin: 0 0 10px; font-weight: 600; letter-spacing: -0.01em; }
+  .rb3d__price { font-size: 1.5rem; font-weight: 700; color: #111; margin: 0 0 26px; padding-bottom: 22px; border-bottom: 1px solid #ececec; }
+
+  .rb3d__opt { margin-bottom: 22px; }
+  .rb3d__extra { margin-top: 0; }
+  .rb3d__opt-label { display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: #555; }
+  .rb3d__opt-values { display: flex; flex-wrap: wrap; gap: 9px; }
+  .rb3d__chip {
+    padding: 9px 16px; border: 1px solid #dcdcdc; background: #fff; color: #222; cursor: pointer;
+    border-radius: 999px; font-size: 0.9rem; line-height: 1; transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .rb3d__chip:hover { border-color: #111; }
   .rb3d__chip.is-selected { border-color: #111; background: #111; color: #fff; }
-  .rb3d__engrave { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
-  .rb3d__add { width: 100%; margin-top: 12px; padding: 15px; border: 0; background: #111; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; border-radius: 6px; }
+  .rb3d__engrave { width: 100%; padding: 12px 14px; border: 1px solid #dcdcdc; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; }
+  .rb3d__engrave:focus { outline: none; border-color: #111; }
+
+  .rb3d__add {
+    width: 100%; margin-top: 16px; padding: 18px; border: 0; background: #111; color: #fff;
+    font-size: 1.05rem; font-weight: 700; letter-spacing: 0.3px; cursor: pointer; border-radius: 10px; transition: background 0.15s;
+  }
+  .rb3d__add:hover:not(:disabled) { background: #333; }
   .rb3d__add:disabled { opacity: 0.4; cursor: not-allowed; }
-  .rb3d__note { margin-top: 12px; font-size: 0.8rem; color: #666; }
-  @media (max-width: 749px) { .rb3d { grid-template-columns: 1fr; } }
+  .rb3d__note { margin-top: 14px; font-size: 0.82rem; color: #777; line-height: 1.4; }
+
+  @media (max-width: 990px) {
+    .rb3d { grid-template-columns: 1fr; gap: 28px; }
+    .rb3d__panel { position: static; top: auto; }
+    .rb3d__viewer { height: 62vh; min-height: 400px; }
+  }
+  @media (max-width: 749px) {
+    .rb3d-wrap--full { padding-left: 14px; padding-right: 14px; }
+    .rb3d__viewer { height: 56vh; min-height: 340px; border-radius: 12px; }
+    .rb3d__title { font-size: 1.5rem; }
+    .rb3d__price { font-size: 1.3rem; margin-bottom: 20px; padding-bottom: 18px; }
+  }
 {%- endstyle -%}
 
 {% schema %}
@@ -398,6 +445,25 @@
       "id": "shape_code",
       "label": "Shape code",
       "info": "OV, PR, RA, RD, EM, MQ, PE. Leave blank to auto-detect from the product handle."
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Full width",
+      "default": true,
+      "info": "Let the builder span the full browser width (ignores the theme's narrow page padding)."
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0, "max": 100, "step": 4, "unit": "px", "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0, "max": 100, "step": 4, "unit": "px", "default": 36
     }
   ],
   "presets": [{ "name": "Ring Builder 3D" }]

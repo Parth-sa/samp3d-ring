@@ -147,7 +147,11 @@ let handRoot: any = null
 let handSampleCenter = new Vector3()   // where the file's sample ring sits (hand-local)
 let handSampleDim = 1                   // sample ring size (hand units) → auto scale
 // Live-tunable placement (window.__ringBuilder.hand). Offsets are in ring-size units.
-const hand = { enabled: true, scale: 1, posX: 0, posY: 0, posZ: 0, rotX: 0, rotY: 0, rotZ: 0 }
+// Off by default — opt in with ?hand=1 while we calibrate placement.
+const hand = { enabled: false, scale: 1, posX: 0, posY: 0, posZ: 0, rotX: 0, rotY: 0, rotZ: 0 }
+let isHandModel = false      // showing the hand model (Option 2) instead of the floating ring
+let handFramedOnce = false
+let handMaxDim = 4
 let metalEnvIntensity = 1.0
 let metalEnvRotationDeg = 0
 
@@ -506,6 +510,138 @@ function getRotationTarget() {
 // Load the hand once: add to scene, hide its built-in sample rings/diamonds
 // (keep skin + nails), and capture where/how big that sample ring was so the
 // customer's ring can be auto-placed at the same spot/scale.
+// ── Hand mode (Option 2): show assets/hand.glb (a hand already wearing a ring)
+// and recolour its metal to the customer's selected metal. The ring shape is
+// fixed (it's the file's ring), but it always renders correctly. ?hand=1.
+async function showHandModel() {
+    if (!viewer) return
+    isBuilding = true
+    canvasFade(true)
+    setLoader('Loading hand...')
+    try {
+        if (!handRoot) {
+            const manager = viewer.getPlugin(AssetManagerPlugin) as any
+            patchDraco()
+            const result = await manager.importer.importSinglePath('./assets/hand.glb')
+            handResult = result
+            handRoot = getModelRoot(result)
+            if (handRoot && !handRoot.parent) viewer.scene.addSceneObject(result, { autoScale: true, autoScaleRadius: 2 })
+            if (handRoot) {
+                handRoot.updateMatrixWorld?.(true)
+                // Whole-hand size (for camera distance) — approximate is fine.
+                const wb = worldBounds(handRoot)
+                const s = wb.getSize(new Vector3())
+                handMaxDim = Math.max(s.x, s.y, s.z, 0.5)
+                // Centre on the RIGID ring meshes (reliable world matrix, unlike
+                // the skinned hand) so the ring sits at the origin.
+                const rbox = new Box3(); const v = new Vector3()
+                handRoot.traverse((c: any) => {
+                    if (!c.isMesh) return
+                    const nm = ((Array.isArray(c.material) ? c.material[0] : c.material)?.name || '').toLowerCase()
+                    if (nm.includes('skin') || nm.includes('nail')) return
+                    const g = c.geometry; if (!g) return
+                    if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox()
+                    const bb = g.boundingBox; if (!bb) return
+                    for (let i = 0; i < 8; i++) {
+                        v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z)
+                        v.applyMatrix4(c.matrixWorld); rbox.expandByPoint(v)
+                    }
+                })
+                const wc = rbox.isEmpty() ? wb.getCenter(new Vector3()) : rbox.getCenter(new Vector3())
+                handRoot.position.sub(wc)
+                handRoot.updateMatrixWorld?.(true)
+            }
+        }
+        if (!handRoot) { setError('Hand model could not load'); return }
+        ringModel = handResult
+        isHandModel = true
+        recolorHandMetal()
+        // Pull the camera well back so it clears the hand (earlier blank = camera
+        // sitting inside/on the hand).
+        zoomMin = handMaxDim * 0.6; zoomMax = handMaxDim * 4
+        if (!handFramedOnce) {
+            targetZoom = handMaxDim * 2.0; cameraZoom = handMaxDim * 2.4
+            rotationY = -0.6; targetRotationY = 0
+            rotationX = -0.2; targetRotationX = -0.05
+            rotationZ = 0; targetRotationZ = 0
+            handFramedOnce = true
+        }
+        const cam = viewer.scene.activeCamera
+        cam.position.set(0, cameraZoom * CAM_ELEVATION, cameraZoom)
+        if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false)
+        modelLoaded = true
+        if (groundPlugin) groundPlugin.visible = false
+        const pp = viewer.getPlugin?.(ProgressivePlugin) as any
+        if (pp && typeof pp.reset === 'function') pp.reset()
+        try { (viewer.renderer as any).refreshPipeline() } catch {}
+        viewer.setDirty()
+        setStatus('On hand · ' + state.metal)
+        // On-screen diagnostics (?hand=1): counts, sizes, camera — screenshot this.
+        try {
+            let meshes = 0, skin = 0, ring = 0
+            const wb = worldBounds(handRoot)
+            handRoot.traverse((c: any) => {
+                if (!c.isMesh) return
+                meshes++
+                const nm = ((Array.isArray(c.material) ? c.material[0] : c.material)?.name || '').toLowerCase()
+                if (nm.includes('skin') || nm.includes('nail')) skin++; else ring++
+            })
+            const ws = wb.getSize(new Vector3())
+            const cam = viewer.scene.activeCamera
+            handDebug(
+                `HAND DEBUG\n` +
+                `loaded: yes  meshes:${meshes} (skin:${skin} ring:${ring})\n` +
+                `hand.scale:${handRoot.scale?.x?.toFixed?.(3)}  pos:(${handRoot.position.x.toFixed(2)},${handRoot.position.y.toFixed(2)},${handRoot.position.z.toFixed(2)})\n` +
+                `worldBBox size:(${ws.x.toFixed(2)},${ws.y.toFixed(2)},${ws.z.toFixed(2)})\n` +
+                `cam:(${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)}) zoom:${cameraZoom.toFixed(2)}\n` +
+                `modelLoaded:${modelLoaded} handMode:${isHandModel}`)
+        } catch (dErr: any) { handDebug('HAND DEBUG err: ' + (dErr?.message || dErr)) }
+        try { window.parent.postMessage({ type: 'rb:ringLoaded', config: getConfiguration() }, '*') } catch {}
+    } catch (e: any) {
+        console.error('Hand model failed:', e)
+        setError('Hand model failed: ' + (e?.message || e))
+        handDebug('HAND DEBUG: load FAILED → ' + (e?.message || e))
+    } finally {
+        canvasFade(false)
+        hideLoader()
+        isBuilding = false
+    }
+}
+
+// Recolour the hand's ring metal to the selected preset.
+function handDebug(msg: string) {
+    let el = document.getElementById('hand-debug')
+    if (!el) {
+        el = document.createElement('div')
+        el.id = 'hand-debug'
+        el.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:2000;background:rgba(0,0,0,.82);color:#5f5;font:11px/1.45 monospace;padding:7px 9px;max-width:92vw;white-space:pre-wrap;border-radius:4px'
+        document.body.appendChild(el)
+    }
+    el.textContent = msg
+}
+
+function recolorHandMetal() {
+    if (!handRoot) return
+    const preset = METAL_PRESETS.find(m => m.id === state.metal) || METAL_PRESETS[0]
+    const col = linColor(preset.color)
+    handRoot.traverse((c: any) => {
+        if (!c.isMesh) return
+        const mats = Array.isArray(c.material) ? c.material : [c.material]
+        mats.forEach((m: any) => {
+            if (!m) return
+            const nm = (m.name || '').toLowerCase()
+            if (nm.includes('metal') || nm.includes('gold') || nm.includes('platinum')) {
+                m.color = col.clone()
+                m.metalness = 1
+                m.roughness = preset.roughness ?? 0.05
+                if ('reflectivity' in m) m.reflectivity = 0.5
+                m.needsUpdate = true
+            }
+        })
+    })
+    viewer.setDirty()
+}
+
 async function loadHand() {
     if (!hand.enabled || handRoot) return
     try {
@@ -576,7 +712,7 @@ function frameModel(firstLoad = false) {
     if (!viewer || !ringModel) return
     const root = getRotationTarget()
     if (!root) return
-    const handMode = (root === handRoot)
+    const handMode = isHandModel
     // Measure around the model's own origin, then recentre at the scene origin.
     root.position.set(0, 0, 0)
     root.updateMatrixWorld?.(true)
@@ -722,6 +858,7 @@ function getModelRoot(result: any): any {
 
 async function buildRing() {
     if (!viewer) { setError('Viewer not initialized'); return }
+    if (hand.enabled) { await showHandModel(); return }   // Option 2: show the hand instead
     if (isBuilding) return
     isBuilding = true
     usingCustomModel = false
@@ -1247,6 +1384,7 @@ function setupEmbedMessageListener() {
         else if (prop === 'metal') {
             syncMetalProfileFromPreset(value)
             refreshMaterials()
+            if (hand.enabled) recolorHandMetal()
         }
         else if (prop === 'engraving' || prop === 'engravingFont') updateEngraving3D()
     }
@@ -1434,6 +1572,7 @@ async function init() {
         const qCarat = qp.get('carat'); if (qCarat && catalog.sizes.includes(qCarat)) state.size = qCarat
         const qAuto = qp.get('autorotate'); if (qAuto === '1' || qAuto === 'true') autoRotate = true
         const qSpeed = parseFloat(qp.get('rotspeed') || ''); if (!isNaN(qSpeed) && qSpeed > 0) autoRotateSpeed = qSpeed
+        if (qp.get('hand') === '1') hand.enabled = true   // opt-in hand mode (calibrating)
     }
 
     bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, () => { refreshProngAvailability(); scheduleAutoBuild() })
@@ -1446,6 +1585,7 @@ async function init() {
     bindMetalGrid(id => {
         syncMetalProfileFromPreset(id)
         refreshMaterials()
+        if (hand.enabled) recolorHandMetal()
         setStatus(`${state.prong} ${state.shape} ${state.size}ct · ${state.metal}`)
     })
     syncMetalProfileFromPreset(state.metal)
@@ -1638,7 +1778,6 @@ async function init() {
     byId('add-cart-btn')?.addEventListener('click', addToCart)
 
     await new Promise<void>(r => requestAnimationFrame(() => r()))
-    await loadHand()
     await buildRing()
 
     // Embed: announce the starting configuration to the Shopify parent page so

@@ -525,42 +525,46 @@ async function showHandModel() {
             const result = await manager.importer.importSinglePath('./assets/hand.glb')
             handResult = result
             handRoot = getModelRoot(result)
-            if (handRoot && !handRoot.parent) viewer.scene.addSceneObject(result, { autoScale: true, autoScaleRadius: 2 })
+            if (handRoot && !handRoot.parent) viewer.scene.addSceneObject(result, { autoScale: false })
             if (handRoot) {
                 handRoot.updateMatrixWorld?.(true)
-                // Whole-hand size (for camera distance) — approximate is fine.
-                const wb = worldBounds(handRoot)
-                const s = wb.getSize(new Vector3())
-                handMaxDim = Math.max(s.x, s.y, s.z, 0.5)
-                // Centre on the RIGID ring meshes (reliable world matrix, unlike
-                // the skinned hand) so the ring sits at the origin.
-                const rbox = new Box3(); const v = new Vector3()
+                // Anchor on the FIRST hand's ring-finger joint; size from that
+                // hand's finger/palm joints (skip forearm). No autoScale — it
+                // mis-sizes skinned meshes (bind-pose bbox ≠ rendered size).
+                const handRe = /^(f_(index|middle|ring|pinky)\d+L|thumb\d+L|palm\d+L|handL)$/
+                const bbox = new Box3(); const v = new Vector3(); let nb = 0
+                let anchor: Vector3 | null = null
                 handRoot.traverse((c: any) => {
-                    if (!c.isMesh) return
-                    const nm = ((Array.isArray(c.material) ? c.material[0] : c.material)?.name || '').toLowerCase()
-                    if (nm.includes('skin') || nm.includes('nail')) return
-                    const g = c.geometry; if (!g) return
-                    if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox()
-                    const bb = g.boundingBox; if (!bb) return
-                    for (let i = 0; i < 8; i++) {
-                        v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z)
-                        v.applyMatrix4(c.matrixWorld); rbox.expandByPoint(v)
-                    }
+                    if (c.isMesh || !c.name) return
+                    if (handRe.test(c.name)) { c.getWorldPosition(v); bbox.expandByPoint(v); nb++ }
+                    if (c.name === 'f_ring02L') anchor = c.getWorldPosition(new Vector3())
                 })
-                const wc = rbox.isEmpty() ? wb.getCenter(new Vector3()) : rbox.getCenter(new Vector3())
-                handRoot.position.sub(wc)
+                let center: Vector3, dim: number
+                if (nb > 0 && !bbox.isEmpty()) {
+                    center = anchor || bbox.getCenter(new Vector3())
+                    const s = bbox.getSize(new Vector3())
+                    dim = Math.max(s.x, s.y, s.z, 0.05)
+                } else {
+                    const wb = worldBounds(handRoot)
+                    center = wb.getCenter(new Vector3())
+                    const s = wb.getSize(new Vector3())
+                    dim = Math.max(s.x, s.y, s.z, 0.5)
+                }
+                handRoot.position.sub(center)
                 handRoot.updateMatrixWorld?.(true)
+                handMaxDim = dim   // real hand-joint span (model scale)
             }
         }
         if (!handRoot) { setError('Hand model could not load'); return }
+        handRoot.visible = true
         ringModel = handResult
         isHandModel = true
         recolorHandMetal()
         // Pull the camera well back so it clears the hand (earlier blank = camera
         // sitting inside/on the hand).
-        zoomMin = handMaxDim * 0.6; zoomMax = handMaxDim * 4
+        zoomMin = handMaxDim * 0.8; zoomMax = handMaxDim * 6
         if (!handFramedOnce) {
-            targetZoom = handMaxDim * 2.0; cameraZoom = handMaxDim * 2.4
+            targetZoom = handMaxDim * 2.6; cameraZoom = handMaxDim * 3.2
             rotationY = -0.6; targetRotationY = 0
             rotationX = -0.2; targetRotationX = -0.05
             rotationZ = 0; targetRotationZ = 0
@@ -580,21 +584,26 @@ async function showHandModel() {
         try {
             let meshes = 0, skin = 0, ring = 0
             const wb = worldBounds(handRoot)
+            let skinPos = '-'; let bonePos = '-'
             handRoot.traverse((c: any) => {
+                if (c.name === 'f_ring02L') { const p = c.getWorldPosition(new Vector3()); bonePos = `(${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)})` }
                 if (!c.isMesh) return
                 meshes++
                 const nm = ((Array.isArray(c.material) ? c.material[0] : c.material)?.name || '').toLowerCase()
-                if (nm.includes('skin') || nm.includes('nail')) skin++; else ring++
+                if (nm.includes('skin') || nm.includes('nail')) { skin++; const p = c.getWorldPosition(new Vector3()); skinPos = `(${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)})` } else ring++
             })
-            const ws = wb.getSize(new Vector3())
+            const ws = wb.getSize(new Vector3()); const wcc = wb.getCenter(new Vector3())
+            let sbStr = '-'
+            try { const sb = (viewer.scene as any).getBounds?.(false, true); if (sb) { const sc = sb.getCenter(new Vector3()); const ss = sb.getSize(new Vector3()); sbStr = `c(${sc.x.toFixed(2)},${sc.y.toFixed(2)},${sc.z.toFixed(2)}) s(${ss.x.toFixed(2)},${ss.y.toFixed(2)},${ss.z.toFixed(2)})` } } catch {}
             const cam = viewer.scene.activeCamera
             handDebug(
                 `HAND DEBUG\n` +
-                `loaded: yes  meshes:${meshes} (skin:${skin} ring:${ring})\n` +
-                `hand.scale:${handRoot.scale?.x?.toFixed?.(3)}  pos:(${handRoot.position.x.toFixed(2)},${handRoot.position.y.toFixed(2)},${handRoot.position.z.toFixed(2)})\n` +
-                `worldBBox size:(${ws.x.toFixed(2)},${ws.y.toFixed(2)},${ws.z.toFixed(2)})\n` +
-                `cam:(${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)}) zoom:${cameraZoom.toFixed(2)}\n` +
-                `modelLoaded:${modelLoaded} handMode:${isHandModel}`)
+                `meshes:${meshes} skin:${skin} ring:${ring}  scale:${handRoot.scale?.x?.toFixed?.(3)}\n` +
+                `handPos:(${handRoot.position.x.toFixed(2)},${handRoot.position.y.toFixed(2)},${handRoot.position.z.toFixed(2)})\n` +
+                `traverseBBox c(${wcc.x.toFixed(2)},${wcc.y.toFixed(2)},${wcc.z.toFixed(2)}) s(${ws.x.toFixed(2)},${ws.y.toFixed(2)},${ws.z.toFixed(2)})\n` +
+                `sceneBounds ${sbStr}\n` +
+                `skinMeshPos:${skinPos}  fingerBone:${bonePos}\n` +
+                `cam:(${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)}) zoom:${cameraZoom.toFixed(2)}`)
         } catch (dErr: any) { handDebug('HAND DEBUG err: ' + (dErr?.message || dErr)) }
         try { window.parent.postMessage({ type: 'rb:ringLoaded', config: getConfiguration() }, '*') } catch {}
     } catch (e: any) {
@@ -640,6 +649,26 @@ function recolorHandMetal() {
         })
     })
     viewer.setDirty()
+}
+
+// Toggle between the floating ring and the hand view at runtime (toolbar button).
+async function setHandMode(on: boolean) {
+    if (hand.enabled === on) return
+    hand.enabled = on
+    const btn = byId('toggle-hand')
+    if (btn) { btn.classList.toggle('active', on); btn.textContent = on ? '💍 Ring' : '✋ Hand' }
+    if (on) {
+        disposeModel()              // remove the floating ring
+        isHandModel = false
+        handFramedOnce = false
+        await showHandModel()       // load/show the hand
+    } else {
+        isHandModel = false
+        if (handRoot) handRoot.visible = false   // keep cached, just hide
+        ringModel = null            // so disposeModel in buildRing won't touch the hand
+        if (groundPlugin) groundPlugin.visible = groundEnabled
+        await buildRing()           // rebuild the floating ring (hand.enabled=false now)
+    }
 }
 
 async function loadHand() {
@@ -1776,6 +1805,9 @@ async function init() {
     byId('btn-snapshot')?.addEventListener('click', downloadSnapshot)
     // Add to Cart (Shopify)
     byId('add-cart-btn')?.addEventListener('click', addToCart)
+    // View on hand toggle
+    byId('toggle-hand')?.addEventListener('click', () => setHandMode(!hand.enabled))
+    { const hb = byId('toggle-hand'); if (hb && hand.enabled) { hb.classList.add('active'); hb.textContent = '💍 Ring' } }
 
     await new Promise<void>(r => requestAnimationFrame(() => r()))
     await buildRing()
@@ -1814,5 +1846,6 @@ init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hi
     // Hand-mode placement tuning. Adjust then call replaceRingOnHand().
     hand,
     replaceRingOnHand() { attachRingToHand(getRingRoot()); frameModel(false) },
+    setHandMode,
     get handRoot() { return handRoot },
 }

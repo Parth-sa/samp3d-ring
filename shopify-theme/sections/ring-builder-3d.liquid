@@ -278,6 +278,39 @@
     extraBox.appendChild(wrap);
   }
 
+  // Center Stone colour swatches — tints the gem(s); on a solitaire that's the
+  // centre stone. Posts rb:setOption stoneColor and rides to cart as a property.
+  function renderStoneColors() {
+    var stones = [
+      { label: 'Diamond', hex: '#ffffff' },
+      { label: 'Champagne', hex: '#e8d2a6' },
+      { label: 'Pink', hex: '#f4c2d0' },
+      { label: 'Sapphire', hex: '#2f6fd0' },
+      { label: 'Ruby', hex: '#c0304a' },
+      { label: 'Emerald', hex: '#2f9e6b' },
+      { label: 'Black', hex: '#262626' }
+    ];
+    var wrap = document.createElement('div'); wrap.className = 'rb3d__opt';
+    var lab = document.createElement('label'); lab.className = 'rb3d__opt-label'; lab.textContent = 'Center Stone';
+    wrap.appendChild(lab);
+    var vals = document.createElement('div'); vals.className = 'rb3d__opt-values rb3d__opt-values--icons';
+    stones.forEach(function (s, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rb3d__chip rb3d__chip--swatch' + (i === 0 ? ' is-selected' : '');
+      b.setAttribute('title', s.label);
+      b.innerHTML = '<span class="rb3d__dot" style="background:' + s.hex + '"></span><span class="rb3d__shapelbl">' + s.label + '</span>';
+      b.addEventListener('click', function () {
+        vals.querySelectorAll('.rb3d__chip').forEach(function (c) { c.classList.toggle('is-selected', c === b); });
+        postToBuilder('stoneColor', s.hex);
+        setProp('Center Stone', s.label === 'Diamond' ? '' : s.label);
+      });
+      vals.appendChild(b);
+    });
+    wrap.appendChild(vals);
+    extraBox.appendChild(wrap);
+  }
+
   function renderExtraOptions(cat, st) {
     if (extraBox.dataset.ready) return;   // render once
     extraBox.dataset.ready = '1';
@@ -313,6 +346,7 @@
       extraBox.appendChild(sWrap);
     }
 
+    renderStoneColors();
     renderChipGroup('Prong', 'prong', cat.prongs, st && st.prong, prongIcon);
     renderChipGroup('Band', 'band', cat.bands, st && st.band, styleIcon);
     renderChipGroup('Shank', 'shank', cat.shanks, st && st.shank, styleIcon);
@@ -404,7 +438,18 @@
   if (shape) src += '&shape=' + encodeURIComponent(shape);
   src += '&metal=' + encodeURIComponent(metalToId(currentMetalLabel()));
   src += '&carat=' + encodeURIComponent(String(currentCarat()));
-  iframe.src = src;
+
+  // Lazy boot: only load the 3D viewer once it scrolls into view. Each WebGI
+  // viewer holds a live WebGL context and browsers cap how many can exist at
+  // once (~8-16). Booting on demand - instead of immediately for every product
+  // page the shopper clicks through - keeps us under that ceiling and avoids the
+  // "WebGL context could not be created / blocked" error on heavy pages.
+  var rb3dBooted = false;
+  function bootIframe() {
+    if (rb3dBooted) return;
+    rb3dBooted = true;
+    iframe.src = src;
+  }
 
   // Auto-rotate toggle (starts on; pauses automatically while the shopper drags).
   var spinBtn = document.getElementById('rb3d-spin-{{ section.id }}');
@@ -426,12 +471,25 @@
     try { iframe.contentWindow.postMessage({ type: 'rb:requestCatalog' }, origin); } catch (e) {}
   });
 
+  // Trigger the lazy boot when the viewer nears the viewport. The load handler
+  // above is already attached, so it fires correctly whenever the src is set.
+  if ('IntersectionObserver' in window) {
+    var rb3dObserver = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) { bootIframe(); rb3dObserver.disconnect(); break; }
+      }
+    }, { rootMargin: '200px' });
+    rb3dObserver.observe(iframe);
+  } else {
+    bootIframe();
+  }
+
   syncVariant();
 })();
 </script>
 
 {%- style -%}
-  #shopify-section-{{ section.id }} { overflow-x: hidden; }
+  #shopify-section-{{ section.id }} { overflow-x: clip; }
   .rb3d-wrap { box-sizing: border-box; }
   .rb3d-wrap--full { width: 100vw; max-width: 100vw; margin-left: calc(50% - 50vw); padding-left: 0; padding-right: 0; }
   .rb3d {
@@ -445,7 +503,7 @@
   .rb3d__viewer {
     position: relative; width: 100%;
     height: min(82vh, 800px); min-height: 480px;
-    background: #ffffff;
+    background: #f4f4eb;
     border-radius: 16px; overflow: hidden;
     box-shadow: 0 18px 50px rgba(20,20,20,0.08);
   }
@@ -476,12 +534,13 @@ ok
   .rb3d__chip:hover { border-color: #111; }
   .rb3d__chip.is-selected { border-color: #111; background: #111; color: #fff; }
   /* Diamond-shape + style chips: icon on top, label under, fill the grid cell */
-  .rb3d__chip--shape, .rb3d__chip--icon {
+  .rb3d__chip--shape, .rb3d__chip--icon, .rb3d__chip--swatch {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
     width: 100%; min-width: 0; min-height: 64px; padding: 10px 6px; border-radius: 12px;
   }
   .rb3d__shapesvg { width: 26px; height: 26px; display: block; flex: none; }
   .rb3d__shapesvg--gem { width: 30px; height: 30px; }
+  .rb3d__dot { width: 24px; height: 24px; border-radius: 50%; display: block; flex: none; border: 1px solid rgba(0,0,0,0.18); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.18); }
   .rb3d__shapelbl { font-size: 0.7rem; line-height: 1.1; text-align: center; }
   .rb3d__engrave { width: 100%; padding: 12px 14px; border: 1px solid #dcdcdc; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; }
   .rb3d__engrave:focus { outline: none; border-color: #111; }
@@ -501,12 +560,25 @@ ok
   }
   @media (max-width: 749px) {
     .rb3d-wrap--full { padding-left: 0; padding-right: 0; }
-    .rb3d__viewer { height: 56vh; min-height: 340px; border-radius: 12px; }
-    .rb3d__title { font-size: 1.5rem; }
-    .rb3d__price { font-size: 1.3rem; margin-bottom: 20px; padding-bottom: 18px; }
-    .rb3d__opt-values--icons { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 7px; }
-    .rb3d__chip--shape, .rb3d__chip--icon { min-height: 58px; padding: 8px 4px; }
-    .rb3d__shapesvg { width: 23px; height: 23px; }
+    .rb3d { gap: 16px; }
+    /* Pin the 3D ring to the top; options scroll underneath it so the shopper
+       always sees the ring update live as they change options. */
+    .rb3d__viewer {
+      position: sticky; top: 0; z-index: 5;
+      height: 46vh; min-height: 300px; border-radius: 0 0 14px 14px;
+      box-shadow: 0 6px 16px rgba(20,20,20,0.10);
+    }
+    .rb3d__panel { padding: 4px 14px 24px; }
+    .rb3d__title { font-size: 1.4rem; }
+    .rb3d__price { font-size: 1.25rem; margin-bottom: 18px; padding-bottom: 16px; }
+    /* Blue-Nile-style option cards: even 3-column grid, larger tappable cards */
+    .rb3d__opt-values--icons { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .rb3d__chip--shape, .rb3d__chip--icon { min-height: 90px; padding: 14px 6px; border-radius: 8px; gap: 8px; }
+    .rb3d__shapesvg { width: 30px; height: 30px; }
+    .rb3d__shapesvg--gem { width: 34px; height: 34px; }
+    .rb3d__shapelbl { font-size: 0.76rem; }
+    /* Metal/Carat pills a bit bigger for touch */
+    .rb3d__chip { padding: 11px 16px; font-size: 0.92rem; }
   }
 {%- endstyle -%}
 

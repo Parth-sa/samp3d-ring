@@ -74,6 +74,14 @@
             width: 100%; height: 26px; border: 1px solid var(--surface-border);
             border-radius: 6px; background: white; cursor: pointer; padding: 1px 2px;
         }
+        .color-hex { grid-column: 2 / 4; display: flex; gap: 6px; align-items: center; }
+        .color-hex input[type=color] { width: 38px; flex: none; }
+        .hex-input {
+            flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid var(--surface-border);
+            border-radius: 6px; background: white; font-size: 11px; font-family: monospace;
+            text-transform: uppercase; color: var(--text);
+        }
+        .hex-input:focus { outline: none; border-color: var(--accent); }
         .ctl-row select {
             width: 100%; grid-column: 2 / 4; padding: 6px 8px; border-radius: 6px;
             border: 1px solid var(--surface-border); background: white; font-size: 11px; color: var(--text);
@@ -150,6 +158,7 @@
         body.admin .btn-icon.admin-only { display: inline-block !important; }
         body.admin .section.admin-only { display: block !important; }
         .option-card .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        .option-card .icon .opt-img { width: 44px; height: 44px; object-fit: contain; display: block; margin: 0 auto; }
         .option-card .sub { font-size: 9px; font-weight: 400; color: var(--text-muted); display: block; margin-top: 2px; }
 
         .option-card-sm { padding: 8px 4px; font-size: 10px; }
@@ -188,7 +197,7 @@
         .loader {
             position: fixed; inset: 0; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-            background: #ffffff;
+            background: #f4f4eb;
         }
         .loader.hidden { display: none; }
         .loader svg { animation: spin 1s linear infinite; margin-bottom: 16px; }
@@ -369,7 +378,7 @@
         <div class="panel-scroll">
             <div class="section">
                 <div class="section-title">Metal</div>
-                <div class="ctl-row"><label>Color</label><input type="color" id="tn-metal-color" value="#e8e8e8"><output></output></div>
+                <div class="ctl-row"><label>Color</label><span class="color-hex"><input type="color" id="tn-metal-color" value="#e8e8e8"><input type="text" id="tn-metal-color-hex" class="hex-input" placeholder="#hex or r,g,b" maxlength="15"></span></div>
                 <div class="ctl-row"><label>Metalness</label><input type="range" id="tn-metal-metalness" min="0" max="1" step="0.01" value="1"><output id="tn-metal-metalness-out">1.00</output></div>
                 <div class="ctl-row"><label>Roughness</label><input type="range" id="tn-metal-roughness" min="0" max="1" step="0.01" value="0.1"><output id="tn-metal-roughness-out">0.10</output></div>
                 <div class="ctl-row"><label>Reflection</label><input type="range" id="tn-metal-env" min="0" max="5" step="0.05" value="2.5"><output id="tn-metal-env-out">2.50</output></div>
@@ -377,7 +386,7 @@
 
             <div class="section">
                 <div class="section-title">Diamond</div>
-                <div class="ctl-row"><label>Color</label><input type="color" id="tn-dia-color" value="#ffffff"><output></output></div>
+                <div class="ctl-row"><label>Color</label><span class="color-hex"><input type="color" id="tn-dia-color" value="#ffffff"><input type="text" id="tn-dia-color-hex" class="hex-input" placeholder="#hex or r,g,b" maxlength="15"></span></div>
                 <div class="ctl-row"><label>Sparkle</label><input type="range" id="tn-dia-env" min="0" max="5" step="0.05" value="2"><output id="tn-dia-env-out">2.00</output></div>
                 <div class="ctl-row"><label>Dispersion</label><input type="range" id="tn-dia-dispersion" min="0" max="0.05" step="0.001" value="0.015"><output id="tn-dia-dispersion-out">0.015</output></div>
                 <div class="ctl-row"><label>Refr. index</label><input type="range" id="tn-dia-ri" min="1" max="3" step="0.01" value="2.6"><output id="tn-dia-ri-out">2.60</output></div>
@@ -393,6 +402,7 @@
                 <div class="ctl-row"><label>Preset</label>
                     <select id="tn-menv-select">
                         <option value="./assets/env_metal_001.hdr" selected>Metal Studio 1 (HDR)</option>
+                        <option value="./assets/env_metal_studio.hdr">Studio Softbox (dark)</option>
                         <option value="./assets/env_metal_002.exr">Metal Studio 2 (EXR)</option>
                         <option value="./assets/env_metal_003.hdr">Metal Studio 3 (HDR)</option>
                         <option value="./assets/env_metal_005.hdr">Metal Studio 5 (HDR)</option>
@@ -433,15 +443,15 @@
 
             <div class="section">
                 <div class="section-title">Scene</div>
-                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#ffffff"><output></output></div>
+                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#f4f4eb"><output></output></div>
                 <label class="ctl-file">Background image (optional)<input type="file" id="tn-bg-image" accept="image/*"></label>
                 <button class="build-btn" id="tn-bg-clear" style="padding:7px;font-size:11px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);margin-bottom:8px;">Use solid color</button>
-                <div class="ctl-row"><label>Exposure</label><input type="range" id="tn-exposure" min="0" max="3" step="0.01" value="1"><output id="tn-exposure-out">1.00</output></div>
-                <div class="ctl-row"><label>Contrast</label><input type="range" id="tn-contrast" min="0.5" max="2" step="0.01" value="1.1"><output id="tn-contrast-out">1.10</output></div>
-                <div class="ctl-row"><label>Saturation</label><input type="range" id="tn-saturation" min="0" max="2" step="0.01" value="1.1"><output id="tn-saturation-out">1.10</output></div>
+                <div class="ctl-row"><label>Exposure</label><input type="range" id="tn-exposure" min="0" max="3" step="0.01" value="1.4"><output id="tn-exposure-out">1.40</output></div>
+                <div class="ctl-row"><label>Contrast</label><input type="range" id="tn-contrast" min="0.5" max="2" step="0.01" value="1.29"><output id="tn-contrast-out">1.29</output></div>
+                <div class="ctl-row"><label>Saturation</label><input type="range" id="tn-saturation" min="0" max="2" step="0.01" value="1.39"><output id="tn-saturation-out">1.39</output></div>
                 <div class="ctl-row"><label>Shadow</label><input type="range" id="tn-shadow" min="0" max="1" step="0.01" value="1"><output id="tn-shadow-out">1.00</output></div>
-                <div class="ctl-row"><label>Auto-rotate</label><input type="checkbox" id="tn-autorotate" style="justify-self:start;width:16px;height:16px;accent-color:var(--accent);"><output></output></div>
-                <div class="ctl-row"><label>Spin speed</label><input type="range" id="tn-autorotate-speed" min="0.05" max="2" step="0.05" value="0.4"><output id="tn-autorotate-speed-out">0.40</output></div>
+                <div class="ctl-row"><label>Auto-rotate</label><input type="checkbox" id="tn-autorotate" checked style="justify-self:start;width:16px;height:16px;accent-color:var(--accent);"><output></output></div>
+                <div class="ctl-row"><label>Spin speed</label><input type="range" id="tn-autorotate-speed" min="0.05" max="2" step="0.05" value="0.35"><output id="tn-autorotate-speed-out">0.35</output></div>
             </div>
         </div>
     </aside>

@@ -53,29 +53,41 @@ const BANDS_BASE = './assets/signi/sigli bands'
 const SHANKS_BASE = './assets/signi/sigli Shanks'
 // Two separate environments (iJewel-style): scene env lights the metal,
 // DiamondPlugin gets its own env map for gem sparkle
+// Metal lit by env_metal_001 (golden studio look). env_metal_studio.hdr is also
+// bundled as a dropdown option but reads dark on mirror metal — not the default.
 const DEFAULT_METAL_ENV_PATH = './assets/env_metal_001.hdr'
 const DEFAULT_GEM_ENV_PATH = './assets/env_gem_002.exr'
 // iJewel's signature neutral backdrop (the bg_bone image is a flat #f4f4eb)
-// Pure white background — matches iJewel's 1_bg_white (a flat #FFFFFF fill).
-const BG_BONE_COLOR = '#ffffff'
-// Ground plane size = maxDim * this (bigger = wider shadow plane under the ring)
-const GROUND_SIZE_FACTOR = 2.6
+// iJewel's neutral backdrop — flat bone #F4F4EB (matches bg_bone_2.svg).
+const BG_BONE_COLOR = '#f4f4eb'
+// Ground plane size = maxDim * this (bigger = wider, softer shadow spread)
+const GROUND_SIZE_FACTOR = 3.0
 // Camera looks down at the ring by this amount (cameraY = zoom * this) so the
-// floor + contact shadow are visible, like iJewel's slightly-elevated view.
-const CAM_ELEVATION = 0.22
+// floor + contact shadow are visible — a top-side iJewel-style hero angle.
+const CAM_ELEVATION = 0.45
 
 // Exact iJewel.design values (from their .pmat files): polished metals are
 // roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
 // iJewel's precise colors; the rest follow the same polished recipe.
 const METAL_PRESETS = [
     { id: 'whiteGold', label: 'White Gold', color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
-    { id: 'yellowGold', label: 'Yellow Gold', color: '#eec064', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
-    { id: 'roseGold', label: 'Rose Gold', color: '#e7a39c', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'yellowGold', label: 'Yellow Gold', color: '#e6b33e', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'roseGold', label: 'Rose Gold', color: '#e6ac97', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
     { id: 'platinum', label: 'Platinum', color: '#d6d6d9', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.7 },
 ]
 
 const SHAPE_ICONS: Record<string, string> = {
     RD: '⬤', OV: '⬮', EM: '⬡', PE: '🍐', PR: '◈', RA: '🔶', MQ: '◆',
+}
+
+// Setting-style (prong) icons. Mapped to the 5 catalog prong options; each is a
+// small line-art PNG in assets/heads/ named by the prong id.
+const PRONG_ICONS: Record<string, string> = {
+    SH: '<img class="opt-img" src="assets/heads/SH.png" alt="">',
+    HH: '<img class="opt-img" src="assets/heads/HH.png" alt="">',
+    DH: '<img class="opt-img" src="assets/heads/DH.png" alt="">',
+    '4PR': '<img class="opt-img" src="assets/heads/4PR.png" alt="">',
+    '6PR': '<img class="opt-img" src="assets/heads/6PR.png" alt="">',
 }
 
 const METAL_ICONS: Record<string, string> = {
@@ -132,8 +144,8 @@ let rotationX = -0.05; let rotationY = 0; let rotationZ = 0
 let targetRotationX = -0.05; let targetRotationY = 0; let targetRotationZ = 0
 let cameraZoom = 5; let targetZoom = 5
 let zoomMin = 2; let zoomMax = 15
-let autoRotate = false
-let autoRotateSpeed = 0.4
+let autoRotate = true
+let autoRotateSpeed = 0.35
 let shadowOpacity = 1.0
 const SMOOTHING = 0.12
 let metalEnvironment: any = null
@@ -372,6 +384,9 @@ function applyMetal(mat: any) {
         // iJewel polished metals have no clearcoat — keep the surface a clean mirror
         if ('clearcoat' in mat) mat.clearcoat = 0
         if ('specularIntensity' in mat) mat.specularIntensity = 1.0
+        // iJewel renders metal double-sided (pmat side:2) so the inside of the
+        // band and thin/open parts are solid instead of see-through.
+        if ('side' in mat) mat.side = DoubleSide
         mat.needsUpdate = true
     } catch {}
 }
@@ -1377,6 +1392,8 @@ function setupEmbedMessageListener() {
         if (e.data?.type !== 'rb:setOption') return
         const { key, value } = e.data
         if (!key || value === undefined) return
+        // Center-stone (gem) colour — tints the diamond material(s).
+        if (key === 'stoneColor') { DIAMOND_PROFILE.color = String(value); refreshMaterials(); return }
         if (state[key] === value) return
         state[key] = value
 
@@ -1431,6 +1448,9 @@ function setCtl(id: string, value: string | number, outText?: string) {
 
 function syncTuningInputs() {
     setCtl('tn-metal-color', metalProfile.color)
+    const _setHex = (id: string, val: string) => { const el = document.getElementById(id) as HTMLInputElement | null; if (el) el.value = (val || '').toUpperCase() }
+    _setHex('tn-metal-color-hex', metalProfile.color)
+    _setHex('tn-dia-color-hex', DIAMOND_PROFILE.color)
     setCtl('tn-metal-metalness', metalProfile.metalness, fmt(metalProfile.metalness))
     setCtl('tn-metal-roughness', metalProfile.roughness, fmt(metalProfile.roughness))
     setCtl('tn-metal-env', metalProfile.envIntensity, fmt(metalProfile.envIntensity))
@@ -1458,6 +1478,35 @@ function bindCtl(id: string, onInput: (v: string) => string | void) {
     })
 }
 
+// Accepts hex (#eab94e / eab94e / #abc) OR rgb ("234,185,78" / "rgb(234,185,78)")
+function parseColorInput(v: string): string | null {
+    v = (v || '').trim()
+    let m = v.match(/^#?([0-9a-f]{6})$/i)
+    if (m) return '#' + m[1].toLowerCase()
+    m = v.match(/^#?([0-9a-f]{3})$/i)
+    if (m) { const s = m[1].toLowerCase(); return '#' + s[0] + s[0] + s[1] + s[1] + s[2] + s[2] }
+    m = v.match(/(\d{1,3})\D+(\d{1,3})\D+(\d{1,3})/)
+    if (m) {
+        const to = (n: string) => Math.max(0, Math.min(255, parseInt(n, 10))).toString(16).padStart(2, '0')
+        return '#' + to(m[1]) + to(m[2]) + to(m[3])
+    }
+    return null
+}
+
+// Bind a colour picker + a hex/rgb text field together; apply() runs on change.
+function bindColorHex(colorId: string, hexId: string, apply: (hex: string) => void) {
+    const c = document.getElementById(colorId) as HTMLInputElement | null
+    const h = document.getElementById(hexId) as HTMLInputElement | null
+    if (!c) return
+    if (h) h.value = c.value
+    c.addEventListener('input', () => { if (h) h.value = c.value; apply(c.value) })
+    if (h) h.addEventListener('change', () => {
+        const hex = parseColorInput(h.value)
+        if (hex) { c.value = hex; h.value = hex; apply(hex) }
+        else { h.value = c.value }   // invalid → revert
+    })
+}
+
 function metalEnvTweaked() {
     applyMetalEnvSettings()
     const pp = viewer?.getPlugin?.(ProgressivePlugin) as any
@@ -1468,13 +1517,13 @@ function metalEnvTweaked() {
 
 function setupTuningPanel() {
     // Metal
-    bindCtl('tn-metal-color', v => { metalProfile.color = v; refreshMaterials() })
+    bindColorHex('tn-metal-color', 'tn-metal-color-hex', v => { metalProfile.color = v; refreshMaterials() })
     bindCtl('tn-metal-metalness', v => { metalProfile.metalness = Number(v); refreshMaterials(); return fmt(metalProfile.metalness) })
     bindCtl('tn-metal-roughness', v => { metalProfile.roughness = Number(v); refreshMaterials(); return fmt(metalProfile.roughness) })
     bindCtl('tn-metal-env', v => { metalProfile.envIntensity = Number(v); refreshMaterials(); return fmt(metalProfile.envIntensity) })
 
     // Diamond
-    bindCtl('tn-dia-color', v => { DIAMOND_PROFILE.color = v; refreshMaterials() })
+    bindColorHex('tn-dia-color', 'tn-dia-color-hex', v => { DIAMOND_PROFILE.color = v; refreshMaterials() })
     bindCtl('tn-dia-env', v => { DIAMOND_PROFILE.envMapIntensity = Number(v); refreshMaterials(); return fmt(DIAMOND_PROFILE.envMapIntensity) })
     bindCtl('tn-dia-dispersion', v => { DIAMOND_PROFILE.dispersion = Number(v); refreshMaterials(); return fmt(DIAMOND_PROFILE.dispersion, 3) })
     bindCtl('tn-dia-ri', v => { DIAMOND_PROFILE.refractiveIndex = Number(v); refreshMaterials(); return fmt(DIAMOND_PROFILE.refractiveIndex) })
@@ -1606,7 +1655,7 @@ async function init() {
 
     bindGrid('shape-grid', catalog.shapes, 'shape', SHAPE_ICONS, false, () => { refreshProngAvailability(); scheduleAutoBuild() })
     bindSizes()
-    bindGrid('prong-grid', catalog.prongs, 'prong', undefined, true, scheduleAutoBuild)
+    bindGrid('prong-grid', catalog.prongs, 'prong', PRONG_ICONS, true, scheduleAutoBuild)
     // 'NONE' = ring without an accent band (findBestBand returns null → skipped in buildRing)
     bindGrid('band-grid', [{ id: 'NONE', label: 'None' }, ...catalog.bandStyles], 'band', undefined, true, scheduleAutoBuild)
     bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true, scheduleAutoBuild)
@@ -1648,11 +1697,21 @@ async function init() {
     const onViewerResize = () => { try { (viewer as any).resize?.() } catch {} ; viewer.setDirty() }
     window.addEventListener('resize', onViewerResize)
 
+    // Release the WebGL context when this page is hidden (navigation between
+    // shape product pages, or the browser parking us in bfcache). Browsers cap
+    // live WebGL contexts (~8-16); on a heavy Shopify product page with other
+    // WebGL apps that ceiling is hit fast and new viewers get "context could not
+    // be created / blocked". Forcing context loss on pagehide frees our slot so
+    // the next page can spin up cleanly.
+    window.addEventListener('pagehide', () => {
+      try { (viewer?.renderer as any)?.rendererObject?.forceContextLoss?.() } catch {}
+    })
+
     await viewer.addPlugin(AssetManagerPlugin)
     await viewer.addPlugin(GBufferPlugin)
     const pp = await viewer.addPlugin(ProgressivePlugin)
     const tonemap = await viewer.addPlugin(TonemapPlugin)
-    if (tonemap) { tonemap.exposure = 1.0; tonemap.saturation = 1.1; tonemap.contrast = 1.1 }
+    if (tonemap) { tonemap.exposure = 1.4; tonemap.saturation = 1.39; tonemap.contrast = 1.29 }
     tonemapPlugin = tonemap
     const ssao = await viewer.addPlugin(SSAOPlugin)
     if (ssao) (ssao as any).intensity = 0.25
@@ -1680,9 +1739,9 @@ async function init() {
         if (groundPlugin) {
             groundPlugin.visible = groundEnabled
             groundPlugin.contactShadows = true
-            // Tighter, darker contact shadow so the ring reads grounded (less blur
-            // + a focused ground size = a more visible shadow under the band).
-            if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 0.7
+            // Soft, spread contact shadow — reads like iJewel's vignetted shadow
+            // pool from the elevated camera angle.
+            if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 0.95
             if ('shadowScale' in groundPlugin) groundPlugin.shadowScale = 1
             if ('size' in groundPlugin) groundPlugin.size = 48  // big default; frameModel refines per-model
         }

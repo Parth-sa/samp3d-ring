@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk GLB Renderer</title>
+    <style>
+        :root { --bg:#f4f4eb; --surface:#fff; --border:rgba(74,57,39,0.14); --text:#24170d; --muted:#8a7a6a; --accent:#a99676; --accent-dark:#7f4e17; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html,body { height:100%; font-family:"Segoe UI",system-ui,sans-serif; color:var(--text); background:var(--bg); overflow:hidden; }
+        #c { position:fixed; inset:0; width:100%; height:100%; display:block; }
+        .panel {
+            position:fixed; top:16px; left:16px; z-index:10; width:300px; max-height:calc(100% - 32px); overflow-y:auto;
+            background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 32px rgba(62,44,21,0.12); padding:16px;
+        }
+        h1 { font-size:15px; color:var(--accent-dark); margin-bottom:2px; }
+        .sub { font-size:11px; color:var(--muted); margin-bottom:14px; }
+        .lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:12px 0 6px; }
+        .file { display:block; border:1.5px dashed var(--border); border-radius:10px; padding:12px; text-align:center; font-size:12px; cursor:pointer; color:var(--muted); }
+        .file:hover { border-color:var(--accent); color:var(--accent-dark); }
+        .file input { display:none; }
+        .row { display:flex; flex-wrap:wrap; gap:8px; font-size:12px; }
+        .row label { display:flex; align-items:center; gap:5px; }
+        select { width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:12px; background:#fff; }
+        button {
+            width:100%; margin-top:14px; padding:13px; border:none; border-radius:999px; cursor:pointer;
+            background:linear-gradient(135deg,var(--accent),var(--accent-dark)); color:#fff; font-size:14px; font-weight:800;
+        }
+        button:disabled { opacity:.5; cursor:not-allowed; }
+        #files { font-size:11px; color:var(--muted); margin-top:6px; }
+        #prog { font-size:12px; color:var(--accent-dark); font-weight:600; margin-top:8px; min-height:16px; }
+        .trow { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11px; margin:6px 0; color:var(--text); }
+        .trow input[type=range] { flex:0 0 130px; accent-color:var(--accent); }
+        .trow input[type=color] { width:42px; height:24px; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+        .trow select { flex:0 0 130px; padding:4px 6px; font-size:11px; }
+        .rpanel {
+            position:fixed; top:16px; right:16px; z-index:11; width:280px; max-height:calc(100% - 32px); overflow-y:auto;
+            background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 32px rgba(62,44,21,0.12); padding:16px;
+            display:none;
+        }
+        .rpanel.open { display:block; }
+        .rhead { font-size:14px; font-weight:800; color:var(--accent-dark); margin-bottom:6px; }
+        .err { color:#a12d2d; }
+    </style>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <div class="panel">
+        <h1>Bulk GLB Renderer</h1>
+        <div class="sub">Upload exported rings → PNG ZIP. Studio lighting + diamond shaders.</div>
+
+        <label class="file">Choose GLB / GLTF files (multiple)<input type="file" id="in" accept=".glb,.gltf" multiple></label>
+        <div id="files"></div>
+
+        <div class="lbl">Angles</div>
+        <div class="row" id="angles">
+            <label><input type="checkbox" value="front" checked> Front</label>
+            <label><input type="checkbox" value="threeq" checked> 3-4</label>
+            <label><input type="checkbox" value="side" checked> Side</label>
+            <label><input type="checkbox" value="top"> Top</label>
+            <label><input type="checkbox" value="spin"> 360° (24)</label>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">Drag the ring to pose it, then:</div>
+        <button id="save-pose" style="margin-top:6px;padding:9px;font-size:12px;background:#fff;color:var(--accent-dark);border:1.5px solid var(--border);">＋ Save current angle</button>
+        <div id="poses" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+
+        <div class="lbl">Metal</div>
+        <select id="metal">
+            <option value="whiteGold">White Gold</option>
+            <option value="yellowGold">Yellow Gold</option>
+            <option value="roseGold">Rose Gold</option>
+            <option value="platinum">Platinum</option>
+            <option value="original">Original (keep file colors)</option>
+        </select>
+
+        <div class="lbl">Quality</div>
+        <select id="q"><option value="2">Standard 2x</option><option value="3" selected>High 3x</option><option value="4">Ultra 4x</option></select>
+
+        <div class="lbl">Aspect / Crop</div>
+        <select id="aspect">
+            <option value="">Original (screen)</option>
+            <option value="1:1">Square 1:1</option>
+            <option value="4:5" selected>Portrait 4:5</option>
+            <option value="3:4">Portrait 3:4</option>
+            <option value="2:3">Portrait 2:3</option>
+            <option value="5:4">Landscape 5:4</option>
+            <option value="16:9">Wide 16:9</option>
+            <option value="9:16">Tall 9:16</option>
+        </select>
+        <div class="trow" style="margin-top:6px;"><span>Output width (px)</span><input id="outw" type="number" value="1600" min="400" max="4000" step="100" style="width:74px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;"></div>
+
+        <div class="lbl">Background</div>
+        <div class="row">
+            <label><input type="radio" name="bg" value="bone" checked> Bone</label>
+            <label><input type="radio" name="bg" value="white"> White</label>
+            <label><input type="radio" name="bg" value="transparent"> Transparent</label>
+        </div>
+
+        <div class="row" style="margin-top:10px;"><label><input type="checkbox" id="shadow" checked> Ground shadow</label></div>
+
+        <button id="tune-toggle" style="margin-top:14px;padding:9px;font-size:12px;background:#fff;color:var(--accent-dark);border:1.5px solid var(--border);">⚙ Tuning ▸</button>
+
+        <button id="go" disabled>Render All → ZIP</button>
+        <div id="prog"></div>
+    </div>
+
+    <!-- Right-side full tuning panel -->
+    <aside class="rpanel" id="tune">
+        <div class="rhead">⚙ Tuning <span id="tune-close" style="float:right;cursor:pointer;">✕</span></div>
+
+        <div class="lbl">Metal</div>
+        <div class="trow"><span>Color</span><input type="color" id="t-mcolor" value="#c2c2c3"></div>
+        <div class="trow"><span>Metalness</span><input type="range" id="t-mmetal" min="0" max="1" step="0.01" value="1"></div>
+        <div class="trow"><span>Roughness</span><input type="range" id="t-rough" min="0" max="0.5" step="0.01" value="0"></div>
+        <div class="trow"><span>Reflection</span><input type="range" id="t-menv" min="0" max="4" step="0.05" value="1.6"></div>
+
+        <div class="lbl">Diamond</div>
+        <div class="trow"><span>Color</span><input type="color" id="t-dcolor" value="#ffffff"></div>
+        <div class="trow"><span>Sparkle</span><input type="range" id="t-spark" min="0" max="5" step="0.05" value="2"></div>
+        <div class="trow"><span>Dispersion</span><input type="range" id="t-disp" min="0" max="0.05" step="0.001" value="0.015"></div>
+        <div class="trow"><span>Refr. index</span><input type="range" id="t-ri" min="1" max="3" step="0.01" value="2.6"></div>
+        <div class="trow"><span>Absorption</span><input type="range" id="t-abs" min="0" max="3" step="0.01" value="0.4"></div>
+        <div class="trow"><span>Gamma</span><input type="range" id="t-gamma" min="0.5" max="2" step="0.01" value="1.2"></div>
+        <div class="trow"><span>Transmission</span><input type="range" id="t-trans" min="0" max="1" step="0.01" value="0"></div>
+        <div class="trow"><span>Reflectivity</span><input type="range" id="t-refl" min="0" max="1" step="0.01" value="0.7"></div>
+        <div class="trow"><span>Ray bounces</span><input type="range" id="t-bounce" min="1" max="10" step="1" value="6"></div>
+
+        <div class="lbl">Environment</div>
+        <div class="trow"><span>Metal env</span><select id="t-menv-sel">
+            <option value="./assets/env_metal_001.hdr" selected>Metal Studio 1</option>
+            <option value="./assets/env_metal_002.exr">Metal Studio 2</option>
+            <option value="./assets/env_metal_003.hdr">Metal Studio 3</option>
+            <option value="./assets/env_metal_005.hdr">Metal Studio 5</option>
+            <option value="./assets/map.hdr">Soft Studio</option>
+        </select></div>
+        <div class="trow"><span>Diamond env</span><select id="t-genv-sel">
+            <option value="./assets/env_gem_002.exr" selected>Gem Studio 2</option>
+            <option value="./assets/env_gem_001.exr">Gem Studio 1</option>
+            <option value="./assets/env_gem_005.exr">Gem Studio 5</option>
+            <option value="./assets/env_gem_006.exr">Gem Studio 6</option>
+        </select></div>
+        <div class="trow"><span>Env intensity</span><input type="range" id="t-env" min="0" max="4" step="0.05" value="1.0"></div>
+
+        <div class="lbl">Scene</div>
+        <div class="trow"><span>Exposure</span><input type="range" id="t-exp" min="0.3" max="2" step="0.01" value="1.16"></div>
+        <div class="trow"><span>Contrast</span><input type="range" id="t-contrast" min="0.5" max="2" step="0.01" value="1.48"></div>
+        <div class="trow"><span>Saturation</span><input type="range" id="t-sat" min="0" max="2" step="0.01" value="1.91"></div>
+        <div class="trow"><span>Shadow dark</span><input type="range" id="t-shadow" min="0" max="3" step="0.05" value="1"></div>
+    </aside>
+
+    <script src="./src/render.ts"></script>
+</body>
+</html>

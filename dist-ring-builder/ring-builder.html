@@ -73,6 +73,14 @@
             width: 100%; height: 26px; border: 1px solid var(--surface-border);
             border-radius: 6px; background: white; cursor: pointer; padding: 1px 2px;
         }
+        .color-hex { grid-column: 2 / 4; display: flex; gap: 6px; align-items: center; }
+        .color-hex input[type=color] { width: 38px; flex: none; }
+        .hex-input {
+            flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid var(--surface-border);
+            border-radius: 6px; background: white; font-size: 11px; font-family: monospace;
+            text-transform: uppercase; color: var(--text);
+        }
+        .hex-input:focus { outline: none; border-color: var(--accent); }
         .ctl-row select {
             width: 100%; grid-column: 2 / 4; padding: 6px 8px; border-radius: 6px;
             border: 1px solid var(--surface-border); background: white; font-size: 11px; color: var(--text);
@@ -113,6 +121,15 @@
             border: 1.5px solid var(--surface-border); background: white; cursor: pointer;
             text-align: center; font-size: 16px; color: var(--text); transition: all 0.15s; user-select: none;
         }
+        /* Hide option panel until JS has populated every grid, then fade in —
+           avoids the half-loaded "only a couple options" flash on startup */
+        .panel-scroll, .panel-right .panel-scroll { opacity: 0; transition: opacity 0.35s ease; }
+        body.ui-ready .panel-scroll { opacity: 1; }
+        .shape-svg { display: block; margin: 0 auto 2px; }
+        .band-svg { display: block; margin: 0 auto 2px; }
+        .carat-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .carat-dot { display: inline-block; border-radius: 50%; background: var(--accent); box-shadow: inset 0 -1px 2px rgba(0,0,0,0.25); flex: 0 0 auto; }
+        .size-btn.selected .carat-dot { background: var(--accent-dark); }
         .metal-swatch {
             display: block; width: 22px; height: 22px; border-radius: 50%;
             margin: 0 auto 4px; border: 1px solid rgba(0,0,0,0.12);
@@ -143,12 +160,15 @@
         .option-card:hover { border-color: var(--accent-light); background: rgba(169,150,118,0.05); }
         .option-card.selected { border-color: var(--accent); background: rgba(169,150,118,0.12); box-shadow: 0 0 0 1px var(--accent); }
         .option-card.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(0.6); }
+        .option-card:active, .size-btn:active, .engraving-font:active { transform: scale(0.96); }
+        .option-card.selected, .size-btn.selected { transform: translateY(-1px); }
         /* Developer-only controls — hidden for customers; shown when <body class="admin"> */
         .admin-only { display: none !important; }
         body.admin .admin-only { display: initial !important; }
         body.admin .btn-icon.admin-only { display: inline-block !important; }
         body.admin .section.admin-only { display: block !important; }
         .option-card .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        .option-card .icon .opt-img { width: 44px; height: 44px; object-fit: contain; display: block; margin: 0 auto; }
         .option-card .sub { font-size: 9px; font-weight: 400; color: var(--text-muted); display: block; margin-top: 2px; }
 
         .option-card-sm { padding: 8px 4px; font-size: 10px; }
@@ -187,7 +207,7 @@
         .loader {
             position: fixed; inset: 0; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-            background: #ffffff;
+            background: #f4f4eb;
         }
         .loader.hidden { display: none; }
         .loader svg { animation: spin 1s linear infinite; margin-bottom: 16px; }
@@ -277,6 +297,7 @@
         <div class="logo">Ring<span>Builder</span> <small>| Custom Design</small></div>
         <div class="spacer"></div>
         <div class="status" id="status-text">Select your options</div>
+        <button class="btn-icon" id="btn-reset-view" title="Recenter the ring">⟳ Reset</button>
         <button class="btn-icon" id="btn-snapshot" title="Download a PNG of the current view">📷 Snapshot</button>
         <button class="btn-icon active" id="toggle-panel">☰ Options</button>
         <button class="btn-icon" id="toggle-hand" title="View the ring on a hand">✋ Hand</button>
@@ -306,6 +327,24 @@
                 </label>
                 <div id="model-name" style="font-size:10px;color:var(--text-muted);"></div>
                 <button class="build-btn" id="reset-catalog-btn" style="margin-top:8px;padding:9px;font-size:12px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);">↺ Back to Catalog Builder</button>
+            </div>
+
+            <!-- Bulk Render (admin only) -->
+            <div class="section admin-only" id="bulk-render-section">
+                <div class="section-title">Bulk Render → PNG ZIP</div>
+                <label class="ctl-file">Choose GLB / GLTF files (multiple)<input type="file" id="bulk-input" accept=".glb,.gltf" multiple=""></label>
+                <div style="font-size:11px;color:var(--text);margin:6px 0 4px;font-weight:600;">Angles</div>
+                <div id="bulk-angles" style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">
+                    <label><input type="checkbox" value="front" checked=""> Front</label>
+                    <label><input type="checkbox" value="threeq" checked=""> 3-4</label>
+                    <label><input type="checkbox" value="side" checked=""> Side</label>
+                    <label><input type="checkbox" value="top"> Top</label>
+                </div>
+                <div class="ctl-row" style="margin-top:8px;"><label>Quality</label>
+                    <select id="bulk-quality"><option value="2">Standard (2x)</option><option value="3">High (3x)</option><option value="4">Ultra (4x)</option></select>
+                </div>
+                <button class="build-btn" id="bulk-render-btn" style="margin-top:8px;padding:11px;font-size:13px;">Render All → ZIP</button>
+                <div id="bulk-progress" style="font-size:11px;color:var(--text-muted);margin-top:6px;"></div>
             </div>
 
             <!-- Diamond Shape -->
@@ -367,7 +406,7 @@
         <div class="panel-scroll">
             <div class="section">
                 <div class="section-title">Metal</div>
-                <div class="ctl-row"><label>Color</label><input type="color" id="tn-metal-color" value="#e8e8e8"><output></output></div>
+                <div class="ctl-row"><label>Color</label><span class="color-hex"><input type="color" id="tn-metal-color" value="#e8e8e8"><input type="text" id="tn-metal-color-hex" class="hex-input" placeholder="#hex or r,g,b" maxlength="15"></span></div>
                 <div class="ctl-row"><label>Metalness</label><input type="range" id="tn-metal-metalness" min="0" max="1" step="0.01" value="1"><output id="tn-metal-metalness-out">1.00</output></div>
                 <div class="ctl-row"><label>Roughness</label><input type="range" id="tn-metal-roughness" min="0" max="1" step="0.01" value="0.1"><output id="tn-metal-roughness-out">0.10</output></div>
                 <div class="ctl-row"><label>Reflection</label><input type="range" id="tn-metal-env" min="0" max="5" step="0.05" value="2.5"><output id="tn-metal-env-out">2.50</output></div>
@@ -375,13 +414,13 @@
 
             <div class="section">
                 <div class="section-title">Diamond</div>
-                <div class="ctl-row"><label>Color</label><input type="color" id="tn-dia-color" value="#ffffff"><output></output></div>
+                <div class="ctl-row"><label>Color</label><span class="color-hex"><input type="color" id="tn-dia-color" value="#ffffff"><input type="text" id="tn-dia-color-hex" class="hex-input" placeholder="#hex or r,g,b" maxlength="15"></span></div>
                 <div class="ctl-row"><label>Sparkle</label><input type="range" id="tn-dia-env" min="0" max="5" step="0.05" value="2"><output id="tn-dia-env-out">2.00</output></div>
                 <div class="ctl-row"><label>Dispersion</label><input type="range" id="tn-dia-dispersion" min="0" max="0.05" step="0.001" value="0.015"><output id="tn-dia-dispersion-out">0.015</output></div>
                 <div class="ctl-row"><label>Refr. index</label><input type="range" id="tn-dia-ri" min="1" max="3" step="0.01" value="2.6"><output id="tn-dia-ri-out">2.60</output></div>
                 <div class="ctl-row"><label>Absorption</label><input type="range" id="tn-dia-absorption" min="0" max="2" step="0.01" value="0.4"><output id="tn-dia-absorption-out">0.40</output></div>
                 <div class="ctl-row"><label>Gamma</label><input type="range" id="tn-dia-gamma" min="0.5" max="2" step="0.01" value="1.2"><output id="tn-dia-gamma-out">1.20</output></div>
-                <div class="ctl-row"><label>Transmission</label><input type="range" id="tn-dia-transmission" min="0" max="1" step="0.01" value="0.92"><output id="tn-dia-transmission-out">0.92</output></div>
+                <div class="ctl-row"><label>Transmission</label><input type="range" id="tn-dia-transmission" min="0" max="1" step="0.01" value="0"><output id="tn-dia-transmission-out">0.00</output></div>
                 <div class="ctl-row"><label>Reflectivity</label><input type="range" id="tn-dia-reflectivity" min="0" max="1" step="0.01" value="0.7"><output id="tn-dia-reflectivity-out">0.70</output></div>
                 <div class="ctl-row"><label>Ray bounces</label><input type="range" id="tn-dia-bounces" min="1" max="10" step="1" value="6"><output id="tn-dia-bounces-out">6</output></div>
             </div>
@@ -391,6 +430,7 @@
                 <div class="ctl-row"><label>Preset</label>
                     <select id="tn-menv-select">
                         <option value="./assets/env_metal_001.hdr" selected="">Metal Studio 1 (HDR)</option>
+                        <option value="./assets/env_metal_studio.hdr">Studio Softbox (dark)</option>
                         <option value="./assets/env_metal_002.exr">Metal Studio 2 (EXR)</option>
                         <option value="./assets/env_metal_003.hdr">Metal Studio 3 (HDR)</option>
                         <option value="./assets/env_metal_005.hdr">Metal Studio 5 (HDR)</option>
@@ -431,15 +471,15 @@
 
             <div class="section">
                 <div class="section-title">Scene</div>
-                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#ffffff"><output></output></div>
+                <div class="ctl-row"><label>Background</label><input type="color" id="tn-bg-color" value="#f4f4eb"><output></output></div>
                 <label class="ctl-file">Background image (optional)<input type="file" id="tn-bg-image" accept="image/*"></label>
                 <button class="build-btn" id="tn-bg-clear" style="padding:7px;font-size:11px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);margin-bottom:8px;">Use solid color</button>
-                <div class="ctl-row"><label>Exposure</label><input type="range" id="tn-exposure" min="0" max="3" step="0.01" value="1"><output id="tn-exposure-out">1.00</output></div>
-                <div class="ctl-row"><label>Contrast</label><input type="range" id="tn-contrast" min="0.5" max="2" step="0.01" value="1.1"><output id="tn-contrast-out">1.10</output></div>
-                <div class="ctl-row"><label>Saturation</label><input type="range" id="tn-saturation" min="0" max="2" step="0.01" value="1.1"><output id="tn-saturation-out">1.10</output></div>
+                <div class="ctl-row"><label>Exposure</label><input type="range" id="tn-exposure" min="0" max="3" step="0.01" value="1.16"><output id="tn-exposure-out">1.16</output></div>
+                <div class="ctl-row"><label>Contrast</label><input type="range" id="tn-contrast" min="0.5" max="2" step="0.01" value="1.48"><output id="tn-contrast-out">1.48</output></div>
+                <div class="ctl-row"><label>Saturation</label><input type="range" id="tn-saturation" min="0" max="2" step="0.01" value="1.91"><output id="tn-saturation-out">1.91</output></div>
                 <div class="ctl-row"><label>Shadow</label><input type="range" id="tn-shadow" min="0" max="1" step="0.01" value="1"><output id="tn-shadow-out">1.00</output></div>
-                <div class="ctl-row"><label>Auto-rotate</label><input type="checkbox" id="tn-autorotate" style="justify-self:start;width:16px;height:16px;accent-color:var(--accent);"><output></output></div>
-                <div class="ctl-row"><label>Spin speed</label><input type="range" id="tn-autorotate-speed" min="0.05" max="2" step="0.05" value="0.4"><output id="tn-autorotate-speed-out">0.40</output></div>
+                <div class="ctl-row"><label>Auto-rotate</label><input type="checkbox" id="tn-autorotate" checked="" style="justify-self:start;width:16px;height:16px;accent-color:var(--accent);"><output></output></div>
+                <div class="ctl-row"><label>Spin speed</label><input type="range" id="tn-autorotate-speed" min="0.05" max="2" step="0.05" value="0.35"><output id="tn-autorotate-speed-out">0.35</output></div>
             </div>
         </div>
     </aside>
@@ -492,6 +532,6 @@ document.getElementById('toggle-tuning').addEventListener('click', function () {
   }
 };</script>
 
-    <script src="ring-builder.4fa2f265.js"></script>
+    <script src="ring-builder.a37d833b.js"></script>
 </body>
 </html>

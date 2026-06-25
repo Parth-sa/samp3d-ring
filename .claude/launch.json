@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "dist-ring-builder", "-p", "8123", "-c-1"],
       "port": 8123
+    },
+    {
+      "name": "render",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["parcel", "render.html", "--port", "1235"],
+      "port": 1235
     }
   ]
 }

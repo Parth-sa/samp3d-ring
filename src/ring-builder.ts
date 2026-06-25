@@ -28,6 +28,7 @@ import {
     Rhino3dmLoader2,
 } from './webgi-re-exports'
 import { patchGlbWithDiamondMetadata } from './webgiDiamondPatch'
+import JSZip from 'jszip'
 
 // Patch three.js r144+ removed methods needed by webgi's bundled code
 const _obj3dProto = Object.getPrototypeOf(Mesh.prototype)
@@ -71,14 +72,40 @@ const CAM_ELEVATION = 0.45
 // iJewel's precise colors; the rest follow the same polished recipe.
 const METAL_PRESETS = [
     { id: 'whiteGold', label: 'White Gold', color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
-    { id: 'yellowGold', label: 'Yellow Gold', color: '#e6b33e', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
+    { id: 'yellowGold', label: 'Yellow Gold', color: '#c5ad6d', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
     { id: 'roseGold', label: 'Rose Gold', color: '#e6ac97', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 },
     { id: 'platinum', label: 'Platinum', color: '#d6d6d9', metalness: 1, roughness: 0.02, reflectivity: 0.5, envIntensity: 1.7 },
 ]
 
+// Diamond-cut silhouettes as inline SVG (monochrome, inherits text color) —
+// consistent look, unlike the mixed emoji set.
+const _svg = (inner: string) => `<svg class="shape-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">${inner}</svg>`
 const SHAPE_ICONS: Record<string, string> = {
-    RD: '⬤', OV: '⬮', EM: '⬡', PE: '🍐', PR: '◈', RA: '🔶', MQ: '◆',
+    RD: _svg('<circle cx="12" cy="12" r="9"/>'),
+    OV: _svg('<ellipse cx="12" cy="12" rx="6.4" ry="9.4"/>'),
+    PR: _svg('<rect x="4" y="4" width="16" height="16" rx="1"/>'),
+    EM: _svg('<polygon points="8,3 16,3 19,6 19,18 16,21 8,21 5,18 5,6"/>'),
+    RA: _svg('<polygon points="8,4 16,4 20,8 20,16 16,20 8,20 4,16 4,8"/>'),
+    MQ: _svg('<path d="M12 2.5C16.5 8 16.5 16 12 21.5C7.5 16 7.5 8 12 2.5Z"/>'),
+    PE: _svg('<path d="M12 2.5C15.5 8 18 12 18 15.5A6 6 0 1 1 6 15.5C6 12 8.5 8 12 2.5Z"/>'),
 }
+
+// Band / shank profile silhouettes (horizontal band-segment view). Shared by
+// band + shank grids; KE (knife-edge flat) is shank-only, NONE is band-only.
+const _band = (inner: string, opts = '') => `<svg class="band-svg" viewBox="0 0 24 24" width="26" height="18" fill="currentColor" aria-hidden="true" ${opts}>${inner}</svg>`
+const STYLE_ICONS: Record<string, string> = {
+    PL: _band('<rect x="2" y="9" width="20" height="6" rx="3"/>'),                                   // Plain
+    WD: _band('<rect x="2" y="7" width="20" height="10" rx="3"/>'),                                  // Wide
+    SP: _band('<rect x="2" y="7.5" width="20" height="3" rx="1.5"/><rect x="2" y="13.5" width="20" height="3" rx="1.5"/>'), // Split
+    CA: _band('<circle cx="4" cy="12" r="1.9"/><circle cx="9.3" cy="12" r="1.9"/><circle cx="14.6" cy="12" r="1.9"/><circle cx="19.9" cy="12" r="1.9"/>'), // Caviar (beaded)
+    KF: _band('<polygon points="2,12 12,8.3 22,12 12,15.7"/>'),                                      // Knife edge (ridge)
+    KE: _band('<polygon points="2,15 7,9 17,9 22,15"/>'),                                            // Knife edge flat
+    TW: _band('<path d="M2 13 Q7 8 12 13 T22 13 L22 16 Q17 11 12 16 T2 16 Z"/>'),                    // Twist (wave)
+    NONE: '<svg class="band-svg" viewBox="0 0 24 24" width="26" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="5" y1="16.5" x2="19" y2="7.5"/></svg>', // None
+}
+
+// Carat → relative diamond-dot size (px) so bigger carats show a bigger stone
+const CARAT_DOT_PX: Record<string, number> = { '0.50': 7, '0.75': 9, '1.00': 11, '1.50': 13, '2.00': 15, '3.00': 18 }
 
 // Setting-style (prong) icons. Mapped to the 5 catalog prong options; each is a
 // small line-art PNG in assets/heads/ named by the prong id.
@@ -108,7 +135,7 @@ const DIAMOND_PROFILE = {
     gammaFactor: 1.2,
     absorptionFactor: 0.4,
     reflectivity: 0.7,
-    transmission: 0.92,
+    transmission: 0.0,
     refractiveIndex: 2.6,
     rayBounces: 6,
     diamondOrientedEnvMap: 0,
@@ -760,7 +787,9 @@ function frameModel(firstLoad = false) {
     // Measure around the model's own origin, then recentre at the scene origin.
     root.position.set(0, 0, 0)
     root.updateMatrixWorld?.(true)
-    const box = handMode ? worldBounds(root) : computeBounds()
+    // Transform-aware bounds for ALL models → consistent centre + fit zoom
+    // (computeBounds ignored node transforms, so some rings framed too zoomed/off-centre)
+    const box = worldBounds(root)
     if (box.isEmpty()) return
     const center = box.getCenter(new Vector3())
     const size = box.getSize(new Vector3())
@@ -1077,6 +1106,67 @@ async function downloadSnapshot() {
     URL.revokeObjectURL(a.href)
 }
 
+// ── Bulk render: many GLBs × angles → ZIP of PNGs (admin tool) ──────────
+const BATCH_ANGLES: Record<string, { x: number; y: number; z: number }> = {
+    front: { x: -0.05, y: 0, z: 0 },
+    threeq: { x: -0.12, y: 0.7, z: 0 },
+    side: { x: -0.05, y: Math.PI / 2, z: 0 },
+    top: { x: -1.2, y: 0, z: 0 },
+}
+const raf = () => new Promise<void>(r => requestAnimationFrame(() => r()))
+
+async function captureBlob(pr: number): Promise<Blob | null> {
+    const wr = viewer.renderer as any
+    const r = wr?.rendererObject
+    const canvas: HTMLCanvasElement = r?.domElement
+    if (!canvas) return null
+    const orig = r.getPixelRatio()
+    r.setPixelRatio(pr); wr.displayCanvasScaling = pr; wr.refreshPipeline?.(); viewer.setDirty()
+    await raf(); await raf()
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'))
+    r.setPixelRatio(orig); wr.displayCanvasScaling = orig; wr.refreshPipeline?.(); viewer.setDirty()
+    return blob
+}
+
+function setAngle(a: { x: number; y: number; z: number }) {
+    rotationX = targetRotationX = a.x
+    rotationY = targetRotationY = a.y
+    rotationZ = targetRotationZ = a.z
+    const root = getRingRoot()
+    if (root) { root.rotation.order = 'YXZ'; root.rotation.set(a.x, a.y, a.z); root.updateMatrixWorld?.(true) }
+    viewer.setDirty()
+}
+
+async function bulkRender(files: File[], angleKeys: string[], pr: number, onProgress: (msg: string) => void) {
+    if (!files.length) { setError('Pick GLB files first'); return }
+    if (!angleKeys.length) { setError('Pick at least one angle'); return }
+    const zip = new JSZip()
+    let done = 0
+    const total = files.length * angleKeys.length
+    for (const file of files) {
+        onProgress(`Loading ${file.name}…`)
+        await loadCustomModel(file)
+        await raf(); await raf()
+        const folder = zip.folder(file.name.replace(/\.(glb|gltf)$/i, '')) as any
+        for (const key of angleKeys) {
+            setAngle(BATCH_ANGLES[key])
+            await raf(); await raf()
+            const blob = await captureBlob(pr)
+            if (blob && folder) folder.file(`${key}.png`, blob)
+            done++
+            onProgress(`${done}/${total} rendered (${Math.round(done / total * 100)}%)`)
+        }
+    }
+    onProgress('Zipping…')
+    const content = await zip.generateAsync({ type: 'blob' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(content)
+    a.download = `ring-renders-${Date.now()}.zip`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    onProgress(`Done — ${files.length} models, ${total} images.`)
+}
+
 function updateSummary() {
     const sl = catalog.shapes.find(s => s.id === state.shape)?.label || state.shape
     const pl = catalog.prongs.find(p => p.id === state.prong)?.label || state.prong
@@ -1154,9 +1244,13 @@ function scheduleAutoBuild() {
 function bindSizes() {
     const grid = byId('size-grid')
     if (!grid) return
-    grid.innerHTML = catalog.sizes.map(s => `
-        <div class="size-btn${state.size === s ? ' selected' : ''}" data-value="${s}">${s}ct</div>
-    `).join('')
+    grid.innerHTML = catalog.sizes.map(s => {
+        const d = CARAT_DOT_PX[s] || 10
+        return `<div class="size-btn carat-btn${state.size === s ? ' selected' : ''}" data-value="${s}">
+            <span class="carat-dot" style="width:${d}px;height:${d}px"></span>
+            <span>${s}ct</span>
+        </div>`
+    }).join('')
     grid.querySelectorAll('.size-btn').forEach(el => {
         el.addEventListener('click', () => {
             state.size = (el as HTMLElement).dataset.value || '1.00'
@@ -1657,8 +1751,8 @@ async function init() {
     bindSizes()
     bindGrid('prong-grid', catalog.prongs, 'prong', PRONG_ICONS, true, scheduleAutoBuild)
     // 'NONE' = ring without an accent band (findBestBand returns null → skipped in buildRing)
-    bindGrid('band-grid', [{ id: 'NONE', label: 'None' }, ...catalog.bandStyles], 'band', undefined, true, scheduleAutoBuild)
-    bindGrid('shank-grid', catalog.shankStyles, 'shank', undefined, true, scheduleAutoBuild)
+    bindGrid('band-grid', [{ id: 'NONE', label: 'None' }, ...catalog.bandStyles], 'band', STYLE_ICONS, true, scheduleAutoBuild)
+    bindGrid('shank-grid', catalog.shankStyles, 'shank', STYLE_ICONS, true, scheduleAutoBuild)
     // Metal preset recolors the loaded ring live — no rebuild needed
     bindMetalGrid(id => {
         syncMetalProfileFromPreset(id)
@@ -1673,6 +1767,8 @@ async function init() {
     setupTuningPanel()
     setupEmbedMessageListener()
     updateSummary()
+    // All grids populated → reveal panel (fade in), no half-loaded flash
+    document.body.classList.add('ui-ready')
 
     setLoader('Starting 3D viewer...')
     const canvas = byId('webgi-canvas') as HTMLCanvasElement
@@ -1711,7 +1807,7 @@ async function init() {
     await viewer.addPlugin(GBufferPlugin)
     const pp = await viewer.addPlugin(ProgressivePlugin)
     const tonemap = await viewer.addPlugin(TonemapPlugin)
-    if (tonemap) { tonemap.exposure = 1.4; tonemap.saturation = 1.39; tonemap.contrast = 1.29 }
+    if (tonemap) { tonemap.exposure = 1.16; tonemap.saturation = 1.91; tonemap.contrast = 1.48 }
     tonemapPlugin = tonemap
     const ssao = await viewer.addPlugin(SSAOPlugin)
     if (ssao) (ssao as any).intensity = 0.25
@@ -1864,6 +1960,17 @@ async function init() {
     byId('btn-snapshot')?.addEventListener('click', downloadSnapshot)
     // Add to Cart (Shopify)
     byId('add-cart-btn')?.addEventListener('click', addToCart)
+    // Bulk render (admin)
+    byId('bulk-render-btn')?.addEventListener('click', async () => {
+        const input = byId('bulk-input') as HTMLInputElement | null
+        const files = input?.files ? Array.from(input.files) : []
+        const angles = Array.from(document.querySelectorAll('#bulk-angles input:checked')).map(c => (c as HTMLInputElement).value)
+        const pr = Number((byId('bulk-quality') as HTMLSelectElement)?.value || '2')
+        const prog = (m: string) => { const e = byId('bulk-progress'); if (e) e.textContent = m }
+        const btn = byId('bulk-render-btn') as HTMLButtonElement
+        if (btn) btn.disabled = true
+        try { await bulkRender(files, angles, pr, prog) } finally { if (btn) btn.disabled = false; await buildRing() }
+    })
     // View on hand toggle
     byId('toggle-hand')?.addEventListener('click', () => setHandMode(!hand.enabled))
     { const hb = byId('toggle-hand'); if (hb && hand.enabled) { hb.classList.add('active'); hb.textContent = '💍 Ring' } }
@@ -1897,6 +2004,7 @@ init().catch(e => { console.error(e); setError('Init: ' + (e?.message || e)); hi
     loadCustomModel,
     downloadSnapshot,
     addToCart,
+    bulkRender,
     getConfiguration,
     eng3d,
     updateEngraving3D,

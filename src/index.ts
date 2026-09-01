@@ -36,9 +36,9 @@ if (typeof _obj3dProto.updateWorldMatrix !== 'function') {
 }
 
 const runtimeConfig = (window as any).WEBGI_VIEWER_CONFIG || {}
-const DEFAULT_MODEL_PATH = runtimeConfig.modelPath || './assets/main.glb'
+const DEFAULT_MODEL_PATH = runtimeConfig.modelPath || './assets/lrs-01.glb'
 const LOCAL_DRACO_DECODER_PATH = runtimeConfig.dracoDecoderPath || './assets/draco/'
-const DEFAULT_ENVIRONMENT_PATH = runtimeConfig.environmentPath || './assets/env_gem_002.exr'
+const DEFAULT_ENVIRONMENT_PATH = runtimeConfig.environmentPath || './assets/env_metal_001.hdr'
 const DEFAULT_METAL_ENVIRONMENT_PATH = runtimeConfig.metalEnvironmentPath || './assets/env_metal_001.hdr'
 const DEFAULT_BACKGROUND_COLOR = runtimeConfig.backgroundColor || '#ffffff'
 const DEFAULT_BACKGROUND_IMAGE = runtimeConfig.backgroundImage || './assets/background.jpg'

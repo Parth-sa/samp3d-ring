@@ -301,7 +301,7 @@
         <button class="btn-icon" id="btn-snapshot" title="Download a PNG of the current view">📷 Snapshot</button>
         <button class="btn-icon active" id="toggle-panel">☰ Options</button>
         <button class="btn-icon" id="toggle-hand" title="View the ring on a hand">✋ Hand</button>
-        <button class="btn-icon admin-only" id="toggle-tuning">⚙ Tuning</button>
+        <button class="btn-icon" id="toggle-tuning">⚙ Tuning</button>
     </div>
 
     <aside class="panel" id="builder-panel">
@@ -409,7 +409,23 @@
                 <div class="ctl-row"><label>Color</label><span class="color-hex"><input type="color" id="tn-metal-color" value="#e8e8e8"><input type="text" id="tn-metal-color-hex" class="hex-input" placeholder="#hex or r,g,b" maxlength="15"></span></div>
                 <div class="ctl-row"><label>Metalness</label><input type="range" id="tn-metal-metalness" min="0" max="1" step="0.01" value="1"><output id="tn-metal-metalness-out">1.00</output></div>
                 <div class="ctl-row"><label>Roughness</label><input type="range" id="tn-metal-roughness" min="0" max="1" step="0.01" value="0.1"><output id="tn-metal-roughness-out">0.10</output></div>
-                <div class="ctl-row"><label>Reflection</label><input type="range" id="tn-metal-env" min="0" max="5" step="0.05" value="2.5"><output id="tn-metal-env-out">2.50</output></div>
+                <div class="ctl-row"><label>Env Intensity</label><input type="range" id="tn-metal-env" min="0" max="5" step="0.05" value="2.5"><output id="tn-metal-env-out">2.50</output></div>
+                <div class="ctl-row"><label>Reflectivity</label><input type="range" id="tn-metal-reflectivity" min="0" max="1" step="0.01" value="0.5"><output id="tn-metal-reflectivity-out">0.50</output></div>
+                <div class="ctl-row"><label>Specular</label><input type="range" id="tn-metal-specular" min="0" max="2" step="0.01" value="1"><output id="tn-metal-specular-out">1.00</output></div>
+                <div class="ctl-row"><label>Spec Color</label><span class="color-hex"><input type="color" id="tn-metal-spec-color" value="#ffffff"><input type="text" id="tn-metal-spec-color-hex" class="hex-input" placeholder="#hex" maxlength="15"></span></div>
+                <div class="ctl-row"><label>Clearcoat</label><input type="range" id="tn-metal-clearcoat" min="0" max="1" step="0.01" value="0"><output id="tn-metal-clearcoat-out">0.00</output></div>
+                <div class="ctl-row"><label>CC Roughness</label><input type="range" id="tn-metal-cc-roughness" min="0" max="1" step="0.01" value="0.08"><output id="tn-metal-cc-roughness-out">0.08</output></div>
+                <div class="ctl-row"><label>Sheen</label><input type="range" id="tn-metal-sheen" min="0" max="1" step="0.01" value="0"><output id="tn-metal-sheen-out">0.00</output></div>
+                <div class="ctl-row"><label>Sheen Roughness</label><input type="range" id="tn-metal-sheen-roughness" min="0" max="1" step="0.01" value="1"><output id="tn-metal-sheen-roughness-out">1.00</output></div>
+                <div class="ctl-row"><label>Iridescence</label><input type="range" id="tn-metal-iridescence" min="0" max="1" step="0.01" value="0"><output id="tn-metal-iridescence-out">0.00</output></div>
+                <div class="ctl-row"><label>Irid. IOR</label><input type="range" id="tn-metal-iri-ior" min="1" max="2.5" step="0.01" value="1.3"><output id="tn-metal-iri-ior-out">1.30</output></div>
+                <div class="ctl-row"><label>Anisotropy</label><input type="range" id="tn-metal-anisotropy" min="0" max="1" step="0.01" value="0"><output id="tn-metal-anisotropy-out">0.00</output></div>
+                <div class="ctl-row"><label>Aniso Rotation</label><input type="range" id="tn-metal-aniso-rot" min="0" max="1" step="0.01" value="0"><output id="tn-metal-aniso-rot-out">0.00</output></div>
+                <div class="ctl-row"><label>Emissive</label><span class="color-hex"><input type="color" id="tn-metal-emissive" value="#000000"><input type="text" id="tn-metal-emissive-hex" class="hex-input" placeholder="#hex" maxlength="15"></span></div>
+                <div class="ctl-row"><label>Transmission</label><input type="range" id="tn-metal-transmission" min="0" max="1" step="0.01" value="0"><output id="tn-metal-transmission-out">0.00</output></div>
+                <div class="ctl-row"><label>Thickness</label><input type="range" id="tn-metal-thickness" min="0" max="5" step="0.01" value="0"><output id="tn-metal-thickness-out">0.00</output></div>
+                <div class="ctl-row"><label>Atten. Dist</label><input type="range" id="tn-metal-atten-dist" min="0" max="10" step="0.01" value="0"><output id="tn-metal-atten-dist-out">0.00</output></div>
+                <div class="ctl-row"><label>Atten. Color</label><span class="color-hex"><input type="color" id="tn-metal-atten-color" value="#ffffff"><input type="text" id="tn-metal-atten-color-hex" class="hex-input" placeholder="#hex" maxlength="15"></span></div>
             </div>
 
             <div class="section">
@@ -467,6 +483,8 @@
                 <div class="ctl-row"><label>Enable</label><input type="checkbox" id="tn-ground-enable" checked="" style="justify-self:start;width:16px;height:16px;accent-color:var(--accent);"><output></output></div>
                 <div class="ctl-row"><label>Color</label><input type="color" id="tn-ground-color" value="#ffffff"><output></output></div>
                 <div class="ctl-row"><label>Roughness</label><input type="range" id="tn-ground-roughness" min="0" max="1" step="0.01" value="0.5"><output id="tn-ground-roughness-out">0.50</output></div>
+                <label class="ctl-file">Ground image (floor texture)<input type="file" id="tn-ground-image" accept="image/*"></label>
+                <button class="build-btn" id="tn-ground-clear" style="padding:7px;font-size:11px;background:transparent;border:1.5px solid var(--surface-border);color:var(--text);margin-bottom:8px;">Shadow only (clear image)</button>
             </div>
 
             <div class="section">
@@ -532,6 +550,6 @@ document.getElementById('toggle-tuning').addEventListener('click', function () {
   }
 };</script>
 
-    <script src="ring-builder.a37d833b.js"></script>
+    <script src="ring-builder.43af006c.js"></script>
 </body>
 </html>

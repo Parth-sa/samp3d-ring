@@ -20,6 +20,11 @@ import {
     FrameFadePlugin,
     TemporalAAPlugin,
     RandomizedDirectionalLightPlugin,
+    BloomPlugin,
+    VignettePlugin,
+    GammaCorrectionPlugin,
+    FilmicGrainPlugin,
+    ChromaticAberrationPlugin,
     TorusGeometry,
     MeshStandardMaterial,
     CanvasTexture,
@@ -65,7 +70,7 @@ const BG_BONE_COLOR = '#f4f4eb'
 const GROUND_SIZE_FACTOR = 3.0
 // Camera looks down at the ring by this amount (cameraY = zoom * this) so the
 // floor + contact shadow are visible — a top-side iJewel-style hero angle.
-const CAM_ELEVATION = 0.45
+const CAM_ELEVATION = 0.62  // iJewel-style elevated hero view (~32° look-down)
 
 // Exact iJewel.design values (from their .pmat files): polished metals are
 // roughness 0 (mirror), metalness 1, reflectivity 0.5. The three golds use
@@ -195,7 +200,15 @@ let metalEnvIntensity = 1.0
 let metalEnvRotationDeg = 0
 
 // Live-tunable metal values (right panel) — initialised from the selected preset
-const metalProfile = { color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6 }
+const metalProfile = {
+    color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6,
+    clearcoat: 0, clearcoatRoughness: 0.08, specularIntensity: 1.0, specularColor: '#ffffff',
+    sheen: 0, sheenRoughness: 1,
+    iridescence: 0, iridescenceIOR: 1.3,
+    anisotropy: 0, anisotropyRotation: 0,
+    emissive: '#000000',
+    transmission: 0.0, thickness: 0, attenuationDistance: 0, attenuationColor: '#ffffff',
+}
 
 const state: Record<string, string> = {
     shape: '', size: '', prong: '', band: '', shank: '', metal: 'whiteGold',
@@ -408,11 +421,21 @@ function applyMetal(mat: any) {
         if ('roughness' in mat) mat.roughness = metalProfile.roughness
         if ('envMapIntensity' in mat) mat.envMapIntensity = metalProfile.envIntensity
         if ('reflectivity' in mat) mat.reflectivity = metalProfile.reflectivity
-        // iJewel polished metals have no clearcoat — keep the surface a clean mirror
-        if ('clearcoat' in mat) mat.clearcoat = 0
-        if ('specularIntensity' in mat) mat.specularIntensity = 1.0
-        // iJewel renders metal double-sided (pmat side:2) so the inside of the
-        // band and thin/open parts are solid instead of see-through.
+        if ('specularIntensity' in mat) mat.specularIntensity = metalProfile.specularIntensity
+        if ('specularColor' in mat) mat.specularColor = linColor(metalProfile.specularColor)
+        if ('clearcoat' in mat) mat.clearcoat = metalProfile.clearcoat
+        if ('clearcoatRoughness' in mat) mat.clearcoatRoughness = metalProfile.clearcoatRoughness
+        if ('sheen' in mat) mat.sheen = metalProfile.sheen
+        if ('sheenRoughness' in mat) mat.sheenRoughness = metalProfile.sheenRoughness
+        if ('iridescence' in mat) mat.iridescence = metalProfile.iridescence
+        if ('iridescenceIOR' in mat) mat.iridescenceIOR = metalProfile.iridescenceIOR
+        if ('anisotropy' in mat) mat.anisotropy = metalProfile.anisotropy
+        if ('anisotropyRotation' in mat) mat.anisotropyRotation = metalProfile.anisotropyRotation
+        if ('emissive' in mat) mat.emissive = linColor(metalProfile.emissive)
+        if ('transmission' in mat) mat.transmission = metalProfile.transmission
+        if ('thickness' in mat) mat.thickness = metalProfile.thickness
+        if ('attenuationDistance' in mat) mat.attenuationDistance = metalProfile.attenuationDistance
+        if ('attenuationColor' in mat) mat.attenuationColor = linColor(metalProfile.attenuationColor)
         if ('side' in mat) mat.side = DoubleSide
         mat.needsUpdate = true
     } catch {}
@@ -425,6 +448,21 @@ function syncMetalProfileFromPreset(presetId: string) {
     metalProfile.roughness = p.roughness
     metalProfile.reflectivity = (p as any).reflectivity ?? 0.5
     metalProfile.envIntensity = p.envIntensity
+    metalProfile.clearcoat = 0
+    metalProfile.clearcoatRoughness = 0.08
+    metalProfile.specularIntensity = 1.0
+    metalProfile.specularColor = '#ffffff'
+    metalProfile.sheen = 0
+    metalProfile.sheenRoughness = 1
+    metalProfile.iridescence = 0
+    metalProfile.iridescenceIOR = 1.3
+    metalProfile.anisotropy = 0
+    metalProfile.anisotropyRotation = 0
+    metalProfile.emissive = '#000000'
+    metalProfile.transmission = 0.0
+    metalProfile.thickness = 0
+    metalProfile.attenuationDistance = 0
+    metalProfile.attenuationColor = '#ffffff'
     syncTuningInputs()
 }
 
@@ -1548,6 +1586,25 @@ function syncTuningInputs() {
     setCtl('tn-metal-metalness', metalProfile.metalness, fmt(metalProfile.metalness))
     setCtl('tn-metal-roughness', metalProfile.roughness, fmt(metalProfile.roughness))
     setCtl('tn-metal-env', metalProfile.envIntensity, fmt(metalProfile.envIntensity))
+    setCtl('tn-metal-reflectivity', metalProfile.reflectivity, fmt(metalProfile.reflectivity))
+    setCtl('tn-metal-clearcoat', metalProfile.clearcoat, fmt(metalProfile.clearcoat))
+    setCtl('tn-metal-cc-roughness', metalProfile.clearcoatRoughness, fmt(metalProfile.clearcoatRoughness))
+    setCtl('tn-metal-specular', metalProfile.specularIntensity, fmt(metalProfile.specularIntensity))
+    setCtl('tn-metal-transmission', metalProfile.transmission, fmt(metalProfile.transmission))
+    setCtl('tn-metal-thickness', metalProfile.thickness, fmt(metalProfile.thickness))
+    setCtl('tn-metal-atten-dist', metalProfile.attenuationDistance, fmt(metalProfile.attenuationDistance))
+    _setHex('tn-metal-spec-color-hex', metalProfile.specularColor)
+    setCtl('tn-metal-spec-color', metalProfile.specularColor)
+    setCtl('tn-metal-sheen', metalProfile.sheen, fmt(metalProfile.sheen))
+    setCtl('tn-metal-sheen-roughness', metalProfile.sheenRoughness, fmt(metalProfile.sheenRoughness))
+    setCtl('tn-metal-iridescence', metalProfile.iridescence, fmt(metalProfile.iridescence))
+    setCtl('tn-metal-iri-ior', metalProfile.iridescenceIOR, fmt(metalProfile.iridescenceIOR))
+    setCtl('tn-metal-anisotropy', metalProfile.anisotropy, fmt(metalProfile.anisotropy))
+    setCtl('tn-metal-aniso-rot', metalProfile.anisotropyRotation, fmt(metalProfile.anisotropyRotation))
+    _setHex('tn-metal-emissive-hex', metalProfile.emissive)
+    setCtl('tn-metal-emissive', metalProfile.emissive)
+    _setHex('tn-metal-atten-color-hex', metalProfile.attenuationColor)
+    setCtl('tn-metal-atten-color', metalProfile.attenuationColor)
     setCtl('tn-dia-color', DIAMOND_PROFILE.color)
     setCtl('tn-dia-env', DIAMOND_PROFILE.envMapIntensity, fmt(DIAMOND_PROFILE.envMapIntensity))
     setCtl('tn-dia-dispersion', DIAMOND_PROFILE.dispersion, fmt(DIAMOND_PROFILE.dispersion, 3))
@@ -1615,6 +1672,22 @@ function setupTuningPanel() {
     bindCtl('tn-metal-metalness', v => { metalProfile.metalness = Number(v); refreshMaterials(); return fmt(metalProfile.metalness) })
     bindCtl('tn-metal-roughness', v => { metalProfile.roughness = Number(v); refreshMaterials(); return fmt(metalProfile.roughness) })
     bindCtl('tn-metal-env', v => { metalProfile.envIntensity = Number(v); refreshMaterials(); return fmt(metalProfile.envIntensity) })
+    bindCtl('tn-metal-reflectivity', v => { metalProfile.reflectivity = Number(v); refreshMaterials(); return fmt(metalProfile.reflectivity) })
+    bindCtl('tn-metal-clearcoat', v => { metalProfile.clearcoat = Number(v); refreshMaterials(); return fmt(metalProfile.clearcoat) })
+    bindCtl('tn-metal-cc-roughness', v => { metalProfile.clearcoatRoughness = Number(v); refreshMaterials(); return fmt(metalProfile.clearcoatRoughness) })
+    bindCtl('tn-metal-specular', v => { metalProfile.specularIntensity = Number(v); refreshMaterials(); return fmt(metalProfile.specularIntensity) })
+    bindColorHex('tn-metal-spec-color', 'tn-metal-spec-color-hex', v => { metalProfile.specularColor = v; refreshMaterials() })
+    bindCtl('tn-metal-sheen', v => { metalProfile.sheen = Number(v); refreshMaterials(); return fmt(metalProfile.sheen) })
+    bindCtl('tn-metal-sheen-roughness', v => { metalProfile.sheenRoughness = Number(v); refreshMaterials(); return fmt(metalProfile.sheenRoughness) })
+    bindCtl('tn-metal-iridescence', v => { metalProfile.iridescence = Number(v); refreshMaterials(); return fmt(metalProfile.iridescence) })
+    bindCtl('tn-metal-iri-ior', v => { metalProfile.iridescenceIOR = Number(v); refreshMaterials(); return fmt(metalProfile.iridescenceIOR) })
+    bindCtl('tn-metal-anisotropy', v => { metalProfile.anisotropy = Number(v); refreshMaterials(); return fmt(metalProfile.anisotropy) })
+    bindCtl('tn-metal-aniso-rot', v => { metalProfile.anisotropyRotation = Number(v); refreshMaterials(); return fmt(metalProfile.anisotropyRotation) })
+    bindColorHex('tn-metal-emissive', 'tn-metal-emissive-hex', v => { metalProfile.emissive = v; refreshMaterials() })
+    bindCtl('tn-metal-transmission', v => { metalProfile.transmission = Number(v); refreshMaterials(); return fmt(metalProfile.transmission) })
+    bindCtl('tn-metal-thickness', v => { metalProfile.thickness = Number(v); refreshMaterials(); return fmt(metalProfile.thickness) })
+    bindCtl('tn-metal-atten-dist', v => { metalProfile.attenuationDistance = Number(v); refreshMaterials(); return fmt(metalProfile.attenuationDistance) })
+    bindColorHex('tn-metal-atten-color', 'tn-metal-atten-color-hex', v => { metalProfile.attenuationColor = v; refreshMaterials() })
 
     // Diamond
     bindColorHex('tn-dia-color', 'tn-dia-color-hex', v => { DIAMOND_PROFILE.color = v; refreshMaterials() })
@@ -1668,13 +1741,41 @@ function setupTuningPanel() {
         const f = bgImg.files?.[0]; if (!f) return
         const manager = viewer.getPlugin(AssetManagerPlugin) as any
         try {
-            const url = URL.createObjectURL(f)
-            const tex: any = await manager.importer.importSinglePath(url)
-            URL.revokeObjectURL(url)
+            // Pass the File WITH its name so the importer detects the image type
+            // by extension (a blob: URL has no extension → "not a valid image").
+            let tex: any = await manager.importer.importSingle({ path: f.name, file: f })
+            if (!tex || tex.assetType !== 'texture') {
+                const url = URL.createObjectURL(f)
+                tex = await manager.importer.importSinglePath(url)
+                URL.revokeObjectURL(url)
+            }
             if (tex && tex.assetType === 'texture') { tex.wrapS = 1000; tex.wrapT = 1000; ;(viewer.scene as any).background = tex; viewer.setDirty() }
-            else setError('Not a valid image')
-        } catch { setError('Failed to load background image') }
+            else setError('Not a valid image — use JPG or PNG')
+        } catch (e) { console.warn('bg image', e); setError('Failed to load background image') }
         bgImg.value = ''
+    })
+    // Ground image (floor texture) — same File-with-name trick so the importer
+    // detects the image type. Makes the ground opaque + textured; clear → shadow only.
+    const groundImg = byId('tn-ground-image') as HTMLInputElement | null
+    groundImg?.addEventListener('change', async () => {
+        const f = groundImg.files?.[0]; if (!f) return
+        const gm = groundPlugin?.material
+        if (!gm) { setError('Ground not available'); return }
+        const manager = viewer.getPlugin(AssetManagerPlugin) as any
+        try {
+            const tex: any = await manager.importer.importSingle({ path: f.name, file: f })
+            if (tex && tex.assetType === 'texture') {
+                tex.wrapS = 1000; tex.wrapT = 1000
+                gm.map = tex; gm.transparent = false; gm.opacity = 1; gm.needsUpdate = true
+                if (groundPlugin) groundPlugin.visible = true
+                renderRefresh()
+            } else setError('Not a valid image — use JPG or PNG')
+        } catch (e) { console.warn('ground image', e); setError('Failed to load ground image') }
+        groundImg.value = ''
+    })
+    byId('tn-ground-clear')?.addEventListener('click', () => {
+        const gm = groundPlugin?.material
+        if (gm) { gm.map = null; gm.transparent = true; gm.opacity = shadowOpacity; gm.needsUpdate = true; renderRefresh() }
     })
     byId('tn-bg-clear')?.addEventListener('click', () => {
         const c = (byId('tn-bg-color') as HTMLInputElement)?.value || BG_BONE_COLOR
@@ -1815,6 +1916,14 @@ async function init() {
     try { await viewer.addPlugin(EXRLoadPlugin) } catch (e) { console.warn('EXRLoadPlugin failed', e) }
     try { await viewer.addPlugin(FrameFadePlugin) } catch {}
     try { await viewer.addPlugin(TemporalAAPlugin) } catch {}
+    // Stable, per-frame post-FX (no temporal accumulation → no flicker while
+    // rotating, cheap on mobile): subtle Bloom for diamond sparkle + Vignette.
+    // (SSGI/SSBevel skipped here — they flicker/cost too much for the live viewer.)
+    try { const bl = await viewer.addPlugin(BloomPlugin) as any; if (bl) { bl.intensity = 0.16; bl.threshold = 0.92 } } catch (e) { console.warn('Bloom', e) }
+    try { const vg = await viewer.addPlugin(VignettePlugin) as any; if (vg) vg.power = 0.78 } catch (e) { console.warn('Vignette', e) }
+    // NOTE: GammaCorrectionPlugin REMOVED — our renderer already outputs sRGB
+    // (outputEncoding 3001), so adding it double-gammas and washes out colors.
+    // FilmicGrain/ChromaticAberration also removed — muddied the tuned look.
 
     // Add DiamondPlugin BEFORE loading models to avoid WebGI errors
     try {
@@ -1865,6 +1974,11 @@ async function init() {
 
     // Flat white background — matches iJewel's 1_bg_white.svg (a plain #FFFFFF fill).
     viewer.scene.setBackground(linColor(BG_BONE_COLOR))
+
+    // iJewel scene flags (from their .vjson): reflections anchored to the world
+    // (don't swim as the view moves) + stable progressive noise.
+    try { (viewer.scene as any).fixedEnvMapDirection = true } catch {}
+    try { (viewer.renderer as any).stableNoise = true } catch {}
 
     await loadDefaultEnvironments()
 

@@ -98,7 +98,8 @@
 
         <div class="row" style="margin-top:10px;"><label><input type="checkbox" id="shadow" checked> Ground shadow</label></div>
 
-        <button id="tune-toggle" style="margin-top:14px;padding:9px;font-size:12px;background:#fff;color:var(--accent-dark);border:1.5px solid var(--border);">⚙ Tuning ▸</button>
+        <button id="catalog-look" style="margin-top:14px;padding:10px;font-size:12px;background:#fff;color:var(--accent-dark);border:1.5px solid var(--accent);font-weight:700;">📸 Catalog Studio look</button>
+        <button id="tune-toggle" style="margin-top:8px;padding:9px;font-size:12px;background:#fff;color:var(--accent-dark);border:1.5px solid var(--border);">⚙ Tuning ▸</button>
 
         <button id="go" disabled>Render All → ZIP</button>
         <div id="prog"></div>
@@ -113,6 +114,22 @@
         <div class="trow"><span>Metalness</span><input type="range" id="t-mmetal" min="0" max="1" step="0.01" value="1"></div>
         <div class="trow"><span>Roughness</span><input type="range" id="t-rough" min="0" max="0.5" step="0.01" value="0"></div>
         <div class="trow"><span>Reflection</span><input type="range" id="t-menv" min="0" max="4" step="0.05" value="1.6"></div>
+        <div class="trow"><span>Reflectivity</span><input type="range" id="t-mrefl" min="0" max="1" step="0.01" value="0.5"></div>
+        <div class="trow"><span>Specular</span><input type="range" id="t-mspec" min="0" max="2" step="0.01" value="1"></div>
+        <div class="trow"><span>Spec color</span><input type="color" id="t-mspecc" value="#ffffff"></div>
+        <div class="trow"><span>Clearcoat</span><input type="range" id="t-mcc" min="0" max="1" step="0.01" value="0"></div>
+        <div class="trow"><span>CC roughness</span><input type="range" id="t-mccr" min="0" max="1" step="0.01" value="0.08"></div>
+        <div class="trow"><span>Sheen</span><input type="range" id="t-msheen" min="0" max="1" step="0.01" value="0"></div>
+        <div class="trow"><span>Sheen rough</span><input type="range" id="t-msheenr" min="0" max="1" step="0.01" value="1"></div>
+        <div class="trow"><span>Iridescence</span><input type="range" id="t-miri" min="0" max="1" step="0.01" value="0"></div>
+        <div class="trow"><span>Irid. IOR</span><input type="range" id="t-miriior" min="1" max="2.5" step="0.01" value="1.3"></div>
+        <div class="trow"><span>Anisotropy</span><input type="range" id="t-maniso" min="0" max="1" step="0.01" value="0"></div>
+        <div class="trow"><span>Aniso rot</span><input type="range" id="t-manisor" min="0" max="6.28" step="0.01" value="0"></div>
+        <div class="trow"><span>Emissive</span><input type="color" id="t-memis" value="#000000"></div>
+        <div class="trow"><span>Transmission</span><input type="range" id="t-mtrans" min="0" max="1" step="0.01" value="0"></div>
+        <div class="trow"><span>Thickness</span><input type="range" id="t-mthick" min="0" max="5" step="0.05" value="0"></div>
+        <div class="trow"><span>Atten. dist</span><input type="range" id="t-mattd" min="0" max="10" step="0.1" value="0"></div>
+        <div class="trow"><span>Atten. color</span><input type="color" id="t-mattc" value="#ffffff"></div>
 
         <div class="lbl">Diamond</div>
         <div class="trow"><span>Color</span><input type="color" id="t-dcolor" value="#ffffff"></div>
@@ -128,6 +145,7 @@
         <div class="lbl">Environment</div>
         <div class="trow"><span>Metal env</span><select id="t-menv-sel">
             <option value="./assets/env_metal_001.hdr" selected>Metal Studio 1</option>
+            <option value="./assets/env_metal_studio.hdr">Studio Softbox (dark)</option>
             <option value="./assets/env_metal_002.exr">Metal Studio 2</option>
             <option value="./assets/env_metal_003.hdr">Metal Studio 3</option>
             <option value="./assets/env_metal_005.hdr">Metal Studio 5</option>
@@ -140,12 +158,24 @@
             <option value="./assets/env_gem_006.exr">Gem Studio 6</option>
         </select></div>
         <div class="trow"><span>Env intensity</span><input type="range" id="t-env" min="0" max="4" step="0.05" value="1.0"></div>
+        <div class="trow"><span>Metal env rot</span><input type="range" id="t-menv-rot" min="0" max="360" step="1" value="0"></div>
+        <div class="trow"><span>Gem env rot</span><input type="range" id="t-genv-rot" min="0" max="360" step="1" value="0"></div>
+        <label class="file" style="padding:8px;font-size:11px;">Upload metal .hdr / .exr<input type="file" id="t-menv-file" accept=".hdr,.exr"></label>
+        <label class="file" style="padding:8px;font-size:11px;">Upload gem .hdr / .exr<input type="file" id="t-genv-file" accept=".hdr,.exr"></label>
+
+        <div class="lbl">Ground</div>
+        <div class="trow"><span>Color</span><input type="color" id="t-gcolor" value="#ffffff"></div>
+        <div class="trow"><span>Roughness</span><input type="range" id="t-grough" min="0" max="1" step="0.01" value="0.5"></div>
 
         <div class="lbl">Scene</div>
+        <div class="trow"><span>Background</span><input type="color" id="t-bgcolor" value="#f4f4eb"></div>
         <div class="trow"><span>Exposure</span><input type="range" id="t-exp" min="0.3" max="2" step="0.01" value="1.16"></div>
         <div class="trow"><span>Contrast</span><input type="range" id="t-contrast" min="0.5" max="2" step="0.01" value="1.48"></div>
         <div class="trow"><span>Saturation</span><input type="range" id="t-sat" min="0" max="2" step="0.01" value="1.91"></div>
         <div class="trow"><span>Shadow dark</span><input type="range" id="t-shadow" min="0" max="3" step="0.05" value="1"></div>
+        <label class="file" style="margin-top:8px;padding:8px;font-size:11px;">Background image<input type="file" id="t-bg-image" accept="image/*"></label>
+        <label class="file" style="padding:8px;font-size:11px;">Ground image (floor)<input type="file" id="t-ground-image" accept="image/*"></label>
+        <button id="t-img-clear" style="margin-top:6px;padding:8px;font-size:11px;background:#fff;color:var(--accent-dark);border:1.5px solid var(--border);">Clear images</button>
     </aside>
 
     <script src="./src/render.ts"></script>

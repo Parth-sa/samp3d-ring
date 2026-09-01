@@ -13,6 +13,13 @@ import {
     FrameFadePlugin,
     TemporalAAPlugin,
     DiamondPlugin,
+    BloomPlugin,
+    VignettePlugin,
+    SSBevelPlugin,
+    SSGIPlugin,
+    GammaCorrectionPlugin,
+    FilmicGrainPlugin,
+    ChromaticAberrationPlugin,
     DRACOLoader2,
     Color,
     Mesh,
@@ -21,6 +28,7 @@ import {
     Matrix4,
     DirectionalLight,
     AmbientLight,
+    DoubleSide,
 } from './webgi-re-exports'
 import { patchGlbWithDiamondMetadata } from './webgiDiamondPatch'
 import JSZip from 'jszip'
@@ -40,15 +48,31 @@ const METAL_ENV = './assets/env_metal_001.hdr'
 const GEM_ENV = './assets/env_gem_002.exr'
 const BONE = '#f4f4eb'
 const DIAMOND_NAME_RE = /diamond|diamonds|gem|stone|solit(er|a)|brilliant|brillant|cz|moissanite|ruby|sapphire|emerald/i
+// Full DiamondMaterial profile — matches the builder's DIAMOND_PROFILE so the
+// gem renders identically here.
 const DIAMOND = {
-    color: '#ffffff', envMapIntensity: 2.0, dispersion: 0.015, refractiveIndex: 2.6,
-    absorptionFactor: 0.4, gammaFactor: 1.2, transmission: 0.0, reflectivity: 0.7, rayBounces: 6,
+    color: '#ffffff', envMapIntensity: 2.0, envMapRotation: 0, dispersion: 0.015,
+    squashFactor: 0.98, geometryFactor: 0.5, gammaFactor: 1.2, absorptionFactor: 0.4,
+    reflectivity: 0.7, transmission: 0.0, refractiveIndex: 2.6, rayBounces: 6,
+    diamondOrientedEnvMap: 0, boostFactors: [1.0, 1.0, 1.0] as [number, number, number],
 }
 const METALS: Record<string, string> = {
     whiteGold: '#c2c2c3', yellowGold: '#c5ad6d', roseGold: '#e6ac97', platinum: '#d6d6d9',
 }
 let metalChoice = 'whiteGold' // or 'original' to keep GLB colours
-const metalP = { roughness: 0.0, env: 1.6, metalness: 1, color: '' }  // color '' = use metalChoice preset
+// Full metal profile — parity with the builder's tuning panel.
+// color '' = use metalChoice preset colour.
+const metalP = {
+    roughness: 0.0, env: 1.6, metalness: 1, color: '',
+    reflectivity: 0.5, clearcoat: 0, clearcoatRoughness: 0.08,
+    specularIntensity: 1.0, specularColor: '#ffffff',
+    sheen: 0, sheenRoughness: 1,
+    iridescence: 0, iridescenceIOR: 1.3,
+    anisotropy: 0, anisotropyRotation: 0,
+    emissive: '#000000',
+    transmission: 0.0, thickness: 0, attenuationDistance: 0, attenuationColor: '#ffffff',
+}
+let metalEnvRotationDeg = 0
 let sceneEnvIntensity = 1.0
 let tonemap: any = null
 const ANGLES: Record<string, { x: number; y: number; z: number }> = {
@@ -95,20 +119,62 @@ function applyMaterials(root: any) {
         for (const m of mats) {
             if (!m) continue
             if (dia) {
+                const d = DIAMOND
                 const ext = m.extensions?.WEBGI_materials_diamond
-                if (ext) { ext.color = new Color(DIAMOND.color).getHex(); ext.dispersion = DIAMOND.dispersion; ext.refractiveIndex = DIAMOND.refractiveIndex; ext.envMapIntensity = DIAMOND.envMapIntensity; ext.transmission = DIAMOND.transmission; ext.rayBounces = DIAMOND.rayBounces; ext.gammaFactor = DIAMOND.gammaFactor; ext.absorptionFactor = DIAMOND.absorptionFactor; ext.reflectivity = DIAMOND.reflectivity }
-                if ('color' in m) m.color = linColor(DIAMOND.color)
-                if ('envMapIntensity' in m) m.envMapIntensity = DIAMOND.envMapIntensity
-                if ('transmission' in m) m.transmission = DIAMOND.transmission
-                if ('refractiveIndex' in m) m.refractiveIndex = DIAMOND.refractiveIndex
+                if (ext) {
+                    ext.color = new Color(d.color).getHex()
+                    ext.envMapIntensity = d.envMapIntensity
+                    ext.envMapRotationOffset = d.envMapRotation * (Math.PI / 180)
+                    ext.dispersion = d.dispersion
+                    ext.squashFactor = d.squashFactor
+                    ext.geometryFactor = d.geometryFactor
+                    ext.gammaFactor = d.gammaFactor
+                    ext.absorptionFactor = d.absorptionFactor
+                    ext.reflectivity = d.reflectivity
+                    ext.transmission = d.transmission
+                    ext.refractiveIndex = d.refractiveIndex
+                    ext.rayBounces = d.rayBounces
+                    ext.diamondOrientedEnvMap = d.diamondOrientedEnvMap
+                    ext.boostFactors = { x: d.boostFactors[0], y: d.boostFactors[1], z: d.boostFactors[2], isVector3: true }
+                }
+                if ('color' in m) m.color = linColor(d.color)
+                if ('envMapIntensity' in m) m.envMapIntensity = d.envMapIntensity
+                if ('dispersion' in m) m.dispersion = d.dispersion
+                if ('absorptionFactor' in m) m.absorptionFactor = d.absorptionFactor
+                if ('refractiveIndex' in m) m.refractiveIndex = d.refractiveIndex
+                if ('squashFactor' in m) m.squashFactor = d.squashFactor
+                if ('geometryFactor' in m) m.geometryFactor = d.geometryFactor
+                if ('gammaFactor' in m) m.gammaFactor = d.gammaFactor
+                if ('transmission' in m) m.transmission = d.transmission
+                if ('reflectivity' in m) m.reflectivity = d.reflectivity
+                if ('rayBounces' in m) m.rayBounces = d.rayBounces
+                if ('diamondOrientedEnvMap' in m) m.diamondOrientedEnvMap = d.diamondOrientedEnvMap
+                if ('boostFactors' in m && m.boostFactors?.set) m.boostFactors.set(d.boostFactors[0], d.boostFactors[1], d.boostFactors[2])
             } else {
                 const mcol = metalP.color || (metalChoice !== 'original' ? (METALS[metalChoice] || METALS.whiteGold) : '')
                 if (mcol && 'color' in m) m.color = linColor(mcol)
                 if ('metalness' in m) m.metalness = metalP.metalness
                 if ('roughness' in m) m.roughness = metalP.roughness
-                if ('reflectivity' in m) m.reflectivity = 0.5
-                if ('clearcoat' in m) m.clearcoat = 0
                 if ('envMapIntensity' in m) m.envMapIntensity = metalP.env
+                if ('reflectivity' in m) m.reflectivity = metalP.reflectivity
+                if ('specularIntensity' in m) m.specularIntensity = metalP.specularIntensity
+                if ('specularColor' in m) m.specularColor = linColor(metalP.specularColor)
+                if ('clearcoat' in m) m.clearcoat = metalP.clearcoat
+                if ('clearcoatRoughness' in m) m.clearcoatRoughness = metalP.clearcoatRoughness
+                if ('sheen' in m) m.sheen = metalP.sheen
+                if ('sheenRoughness' in m) m.sheenRoughness = metalP.sheenRoughness
+                if ('iridescence' in m) m.iridescence = metalP.iridescence
+                if ('iridescenceIOR' in m) m.iridescenceIOR = metalP.iridescenceIOR
+                if ('anisotropy' in m) m.anisotropy = metalP.anisotropy
+                if ('anisotropyRotation' in m) m.anisotropyRotation = metalP.anisotropyRotation
+                if ('emissive' in m) m.emissive = linColor(metalP.emissive)
+                if ('transmission' in m) m.transmission = metalP.transmission
+                if ('thickness' in m) m.thickness = metalP.thickness
+                if ('attenuationDistance' in m) m.attenuationDistance = metalP.attenuationDistance
+                if ('attenuationColor' in m) m.attenuationColor = linColor(metalP.attenuationColor)
+                // iJewel .pmat sets "side": 2 (DoubleSide). Without this the thin
+                // band's inner wall is culled and the ring reads hollow/fake.
+                if ('side' in m) m.side = DoubleSide
             }
             m.needsUpdate = true
         }
@@ -129,6 +195,20 @@ function worldBounds(root: any): Box3 {
     return box
 }
 
+let baseZoom = 5, zoomFactor = 1, panX = 0, panY = 0, frameMaxDim = 1
+
+let CAM_ELEV = 0.42        // top-front tilt (higher = more looking down)
+let CAM_DROP = 0.24        // look above the ring centre → ring sits lower, headroom above
+const STUDIO_BG = '#ece9e3' // warm neutral catalog backdrop
+function applyCamera() {
+    cameraZoom = baseZoom / zoomFactor
+    const cam = viewer.scene.activeCamera
+    const ty = panY + frameMaxDim * CAM_DROP
+    cam.position.set(panX, cameraZoom * CAM_ELEV + ty, cameraZoom)
+    cam.target?.set?.(panX, ty, 0)
+    cam.positionUpdated?.(false); viewer.setDirty()
+}
+
 function frame() {
     const root = getRoot(model); if (!root) return
     root.position.set(0, 0, 0); root.updateMatrixWorld?.(true)
@@ -136,11 +216,11 @@ function frame() {
     const center = box.getCenter(new Vector3()); const size = box.getSize(new Vector3())
     const maxDim = Math.max(size.x, size.y, size.z, 0.01)
     root.position.set(-center.x, -center.y, -center.z); root.updateMatrixWorld?.(true)
-    cameraZoom = maxDim * 3.0
+    frameMaxDim = maxDim
+    baseZoom = maxDim * 3.0
+    panX = 0; panY = 0  // recentre on new model (keep user's zoom)
     if (groundPlugin) { if ('size' in groundPlugin) groundPlugin.size = maxDim * 4.5; if ('yOffset' in groundPlugin) groundPlugin.yOffset = -0.008 * maxDim }
-    const cam = viewer.scene.activeCamera
-    cam.position.set(0, cameraZoom * 0.18, cameraZoom)
-    cam.positionUpdated?.(false); viewer.setDirty()
+    applyCamera()
 }
 
 function setAngle(a: { x: number; y: number; z: number }) {
@@ -177,8 +257,32 @@ async function setBg(mode: string) {
     const r = (viewer.renderer as any)
     const ro = r.rendererObject
     if (mode === 'transparent') { ro.setClearAlpha?.(0); try { viewer.scene.setBackground(null as any) } catch {} ; if (viewer.scene as any) (viewer.scene as any).background = null }
-    else { ro.setClearAlpha?.(1); viewer.scene.setBackground(linColor(mode === 'white' ? '#ffffff' : BONE)) }
+    else { ro.setClearAlpha?.(1); viewer.scene.setBackground(linColor(mode === 'white' ? '#ffffff' : mode === 'studio' ? STUDIO_BG : BONE)) }
     viewer.setDirty()
+}
+
+// One-click soft studio catalog look (warm backdrop, soft realistic ground
+// shadow, gentle lighting + clean diamond) — matches a typical product photo.
+async function applyCatalogLook() {
+    await setBg('studio')
+    // soft, clean tone (less punchy than the default)
+    if (tonemap) { tonemap.exposure = 1.12; tonemap.contrast = 1.22; tonemap.saturation = 1.35 }
+    // strong, visible soft shadow on the surface
+    if (groundPlugin) {
+        groundPlugin.visible = true
+        if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 2.0
+        const gm = groundPlugin.material; if (gm) { gm.transparent = true; gm.opacity = 1.4; gm.needsUpdate = true }
+        if ('darkness' in groundPlugin) (groundPlugin as any).darkness = 1.4
+    }
+    const sh = byId('shadow') as HTMLInputElement | null; if (sh) sh.checked = true
+    // soft neutral metal env
+    const menv = await loadEnvTexture('./assets/env_metal_001.hdr')
+    if (menv?.assetType === 'texture') { await viewer.scene.setEnvironment(menv); const sc = viewer.scene as any; sc.envMapIntensity = sceneEnvIntensity; sc.refreshEnvMapIntensity?.() }
+    // moderate top-front catalog angle
+    CAM_ELEV = 0.30; CAM_DROP = 0.20
+    applyCamera()
+    reapply()
+    prog('Catalog studio look applied')
 }
 
 // Centre-crop the render to a target aspect (4:5 etc.) at a chosen output width
@@ -205,7 +309,7 @@ async function captureBlob(pr: number, aspect = '', outW = 1600): Promise<Blob |
     // not noisy/dark (single-frame grabs the unconverged image)
     const pp = viewer.getPlugin?.(ProgressivePlugin) as any
     pp?.reset?.()
-    for (let i = 0; i < 32; i++) { viewer.setDirty(); await raf() }
+    for (let i = 0; i < 48; i++) { viewer.setDirty(); await raf() }
     const blob = aspect
         ? await cropToAspect(canvas, aspect, outW)
         : await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'))
@@ -227,16 +331,36 @@ async function init() {
     try { await viewer.addPlugin(EXRLoadPlugin) } catch {}
     try { await viewer.addPlugin(FrameFadePlugin) } catch {}
     try { await viewer.addPlugin(TemporalAAPlugin) } catch {}
+    // Realism post-FX (iJewel-style). Conservative so the ring doesn't blow out.
+    try { const bl = await viewer.addPlugin(BloomPlugin) as any; if (bl) { bl.pass && (bl.pass.bloomIterations = 6); bl.intensity = 0.22; bl.threshold = 0.9 } } catch (e) { console.warn('Bloom', e) }
+    try { const vg = await viewer.addPlugin(VignettePlugin) as any; if (vg) vg.power = 0.7 } catch (e) { console.warn('Vignette', e) }
+    try { await viewer.addPlugin(SSBevelPlugin) } catch (e) { console.warn('SSBevel', e) }
+    try { const gi = await viewer.addPlugin(SSGIPlugin) as any; if (gi) gi.intensity = 0.5 } catch (e) { console.warn('SSGI', e) }
+    // iJewel post stack: gamma-correct output + subtle grain & chromatic aberration
+    try { await viewer.addPlugin(GammaCorrectionPlugin) } catch (e) { console.warn('Gamma', e) }
+    try { const fg = await viewer.addPlugin(FilmicGrainPlugin) as any; if (fg && 'intensity' in fg) fg.intensity = Math.min(fg.intensity ?? 0.4, 0.4) } catch (e) { console.warn('Grain', e) }
+    try { await viewer.addPlugin(ChromaticAberrationPlugin) } catch (e) { console.warn('ChromAb', e) }
     try { const dp = await viewer.addPlugin(DiamondPlugin); if (dp) (dp as any).forceSceneEnvMap = false; diamondPlugin = dp } catch {}
     try { groundPlugin = await viewer.addPlugin(ContactShadowGroundPlugin); if (groundPlugin) { groundPlugin.contactShadows = true; if ('blurAmount' in groundPlugin) groundPlugin.blurAmount = 1.6 } } catch {}
 
-    const dl = new DirectionalLight(0xffffff, 3); dl.position.set(5, 10, 7); dl.castShadow = true
-    dl.shadow.mapSize.width = dl.shadow.mapSize.height = 2048; dl.shadow.bias = -0.0001; dl.shadow.normalBias = 0.02; (dl.shadow as any).radius = 8
-    ;(viewer.scene as any).add(dl); (viewer.scene as any).add(new AmbientLight(0xffffff, 0.5))
+    // Three-point studio rig (key + fill + rim). On mirror metal the env map
+    // drives the reflections, but these sculpt form, brighten the diamond and
+    // prongs, and lay a bright edge highlight (rim) for a photographic look.
+    // Only the key casts a shadow so we get one clean contact shadow, at 4096.
+    const key = new DirectionalLight(0xffffff, 3); key.position.set(5, 10, 7); key.castShadow = true
+    key.shadow.mapSize.width = key.shadow.mapSize.height = 4096
+    key.shadow.bias = -0.0001; key.shadow.normalBias = 0.02; (key.shadow as any).radius = 8
+    const fill = new DirectionalLight(0xffffff, 0.9); fill.position.set(-6, 4, 5)   // soft opposite fill, no shadow
+    const rim = new DirectionalLight(0xffffff, 1.6); rim.position.set(-4, 7, -8)     // back/rim catches edges + gem
+    ;(viewer.scene as any).add(key); (viewer.scene as any).add(fill); (viewer.scene as any).add(rim)
+    ;(viewer.scene as any).add(new AmbientLight(0xffffff, 0.4))
 
     const cam = viewer.scene.activeCamera; cam.near = 0.1; cam.far = 1000; cam.setCameraOptions?.({ fov: 25 })
     const ctrl = (cam as any).controls; if (ctrl) ctrl.enabled = false
     viewer.scene.setBackground(linColor(BONE))
+    // iJewel scene flags: world-anchored reflections + stable progressive noise
+    try { (viewer.scene as any).fixedEnvMapDirection = true } catch {}
+    try { (viewer.renderer as any).stableNoise = true } catch {}
 
     await raf()
     const mgr = viewer.getPlugin(AssetManagerPlugin) as any
@@ -267,6 +391,7 @@ function wireUI() {
     const metalSel = byId('metal') as HTMLSelectElement
     metalSel?.addEventListener('change', () => { metalChoice = metalSel.value; if (model) { applyMaterials(getRoot(model)); viewer.setDirty() } })
     go.addEventListener('click', renderAll)
+    byId('catalog-look')?.addEventListener('click', () => applyCatalogLook())
     wireTuning()
 }
 
@@ -286,6 +411,22 @@ function wireTuning() {
     on('t-mmetal', v => metalP.metalness = v)
     on('t-rough', v => metalP.roughness = v)
     on('t-menv', v => metalP.env = v)
+    on('t-mrefl', v => metalP.reflectivity = v)
+    on('t-mspec', v => metalP.specularIntensity = v)
+    onColor('t-mspecc', v => metalP.specularColor = v)
+    on('t-mcc', v => metalP.clearcoat = v)
+    on('t-mccr', v => metalP.clearcoatRoughness = v)
+    on('t-msheen', v => metalP.sheen = v)
+    on('t-msheenr', v => metalP.sheenRoughness = v)
+    on('t-miri', v => metalP.iridescence = v)
+    on('t-miriior', v => metalP.iridescenceIOR = v)
+    on('t-maniso', v => metalP.anisotropy = v)
+    on('t-manisor', v => metalP.anisotropyRotation = v)
+    onColor('t-memis', v => metalP.emissive = v)
+    on('t-mtrans', v => metalP.transmission = v)
+    on('t-mthick', v => metalP.thickness = v)
+    on('t-mattd', v => metalP.attenuationDistance = v)
+    onColor('t-mattc', v => metalP.attenuationColor = v)
     // Diamond
     onColor('t-dcolor', v => DIAMOND.color = v)
     on('t-spark', v => DIAMOND.envMapIntensity = v)
@@ -309,6 +450,58 @@ function wireTuning() {
     byId('t-genv-sel')?.addEventListener('change', async (e: any) => {
         const env = await loadEnvTexture(e.target.value)
         if (env?.assetType === 'texture' && diamondPlugin) { diamondPlugin.envMap = env; diamondPlugin.forceSceneEnvMap = false; diamondPlugin.refreshEnvMaps?.(); viewer.setDirty() }
+    })
+    // Env rotations (parity with builder)
+    on('t-menv-rot', v => {
+        metalEnvRotationDeg = v
+        const env: any = (viewer.scene as any).environment || (viewer.scene as any).getEnvironment?.()
+        if (env) env.rotation = v * (Math.PI / 180)
+        const sc = viewer.scene as any; sc.refreshEnvMapIntensity?.()
+    })
+    on('t-genv-rot', v => { DIAMOND.envMapRotation = v })
+    // Env file uploads (File-with-name so importer detects .hdr/.exr)
+    const loadEnvFile = async (f: File) => { const mgr = viewer.getPlugin(AssetManagerPlugin) as any; try { const t = await mgr.importer.importSingle({ path: f.name, file: f }); return t?.assetType === 'texture' ? t : null } catch { return null } }
+    byId('t-menv-file')?.addEventListener('change', async (e: any) => {
+        const f = e.target.files?.[0]; if (!f) return
+        const env: any = await loadEnvFile(f)
+        if (env) { await viewer.scene.setEnvironment(env); env.rotation = metalEnvRotationDeg * (Math.PI / 180); const sc = viewer.scene as any; sc.envMapIntensity = sceneEnvIntensity; sc.refreshEnvMapIntensity?.(); reapply() }
+        else prog('Not a valid HDR/EXR', true)
+        e.target.value = ''
+    })
+    byId('t-genv-file')?.addEventListener('change', async (e: any) => {
+        const f = e.target.files?.[0]; if (!f) return
+        const env: any = await loadEnvFile(f)
+        if (env && diamondPlugin) { diamondPlugin.envMap = env; diamondPlugin.forceSceneEnvMap = false; diamondPlugin.refreshEnvMaps?.(); viewer.setDirty() }
+        else prog('Not a valid HDR/EXR', true)
+        e.target.value = ''
+    })
+    // Ground color + roughness
+    onColor('t-gcolor', v => { const gm = groundPlugin?.material; if (gm) { gm.color = linColor(v); gm.needsUpdate = true } })
+    on('t-grough', v => { const gm = groundPlugin?.material; if (gm) { gm.roughness = v; gm.needsUpdate = true } })
+    // Background color (any colour, beyond the 3 radios)
+    onColor('t-bgcolor', v => { (viewer.renderer as any).rendererObject.setClearAlpha?.(1); viewer.scene.setBackground(linColor(v)) })
+    // Background + ground image upload (File-with-name so the importer detects type)
+    const loadImg = async (f: File) => { const mgr = viewer.getPlugin(AssetManagerPlugin) as any; try { const t = await mgr.importer.importSingle({ path: f.name, file: f }); return t?.assetType === 'texture' ? t : null } catch { return null } }
+    byId('t-bg-image')?.addEventListener('change', async (e: any) => {
+        const f = e.target.files?.[0]; if (!f) return
+        const tex: any = await loadImg(f)
+        if (tex) { tex.wrapS = 1000; tex.wrapT = 1000; (viewer.renderer as any).rendererObject.setClearAlpha?.(1); (viewer.scene as any).background = tex; viewer.setDirty() }
+        else prog('Not a valid image — use JPG/PNG', true)
+        e.target.value = ''
+    })
+    byId('t-ground-image')?.addEventListener('change', async (e: any) => {
+        const f = e.target.files?.[0]; if (!f) return
+        const gm = groundPlugin?.material; if (!gm) { prog('Ground not available', true); return }
+        const tex: any = await loadImg(f)
+        if (tex) { tex.wrapS = 1000; tex.wrapT = 1000; gm.map = tex; gm.transparent = false; gm.opacity = 1; gm.needsUpdate = true; if (groundPlugin) groundPlugin.visible = true; reapply() }
+        else prog('Not a valid image — use JPG/PNG', true)
+        e.target.value = ''
+    })
+    byId('t-img-clear')?.addEventListener('click', () => {
+        const bg = (document.querySelector('input[name=bg]:checked') as HTMLInputElement)?.value || 'bone'
+        setBg(bg)
+        const gm = groundPlugin?.material; if (gm) { gm.map = null; gm.transparent = true; gm.opacity = 1; gm.needsUpdate = true }
+        reapply()
     })
 }
 
@@ -362,11 +555,29 @@ function setupInteraction() {
     window.addEventListener('mouseup', () => { dragging = false; canvas.style.cursor = 'grab' })
     window.addEventListener('mousemove', e => {
         if (!dragging || !model) return
-        poseY += (e.clientX - lastX) * 0.008
-        poseX += (e.clientY - lastY) * 0.008
+        const dx = e.clientX - lastX, dy = e.clientY - lastY
         lastX = e.clientX; lastY = e.clientY
-        const root = getRoot(model); if (root) { root.rotation.order = 'YXZ'; root.rotation.set(poseX, poseY, 0); root.updateMatrixWorld?.(true); viewer.setDirty() }
+        if (e.shiftKey || e.buttons === 2) {
+            // Shift-drag (or right-drag) = pan the camera
+            panX -= dx * 0.0016 * frameMaxDim * 6
+            panY += dy * 0.0016 * frameMaxDim * 6
+            applyCamera()
+        } else {
+            // Left-drag = rotate the ring (pose)
+            poseY += dx * 0.008
+            poseX += dy * 0.008
+            const root = getRoot(model); if (root) { root.rotation.order = 'YXZ'; root.rotation.set(poseX, poseY, 0); root.updateMatrixWorld?.(true); viewer.setDirty() }
+        }
     })
+    // Wheel = zoom
+    canvas.addEventListener('wheel', e => {
+        if (!model) return
+        e.preventDefault()
+        zoomFactor *= e.deltaY > 0 ? 0.92 : 1.08
+        zoomFactor = Math.max(0.3, Math.min(4, zoomFactor))
+        applyCamera()
+    }, { passive: false })
+    canvas.addEventListener('contextmenu', e => e.preventDefault())  // allow right-drag pan
     byId('save-pose')?.addEventListener('click', () => {
         if (!model) { prog('Load a ring first', true); return }
         customPoses.push({ x: poseX, y: poseY, z: 0 })

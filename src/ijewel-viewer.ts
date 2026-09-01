@@ -88,7 +88,23 @@ interface MetalProfile {
     color: string
     metalness: number
     roughness: number
+    reflectivity: number
     envMapIntensity: number
+    clearcoat: number
+    clearcoatRoughness: number
+    specularIntensity: number
+    specularColor: string
+    sheen: number
+    sheenRoughness: number
+    iridescence: number
+    iridescenceIOR: number
+    anisotropy: number
+    anisotropyRotation: number
+    emissive: string
+    transmission: number
+    thickness: number
+    attenuationDistance: number
+    attenuationColor: string
 }
 
 export class IjewelViewer {
@@ -115,10 +131,13 @@ export class IjewelViewer {
     }
 
     metalProfile: MetalProfile = {
-        color: '#c2bfc3',
-        metalness: 1,
-        roughness: 0,
-        envMapIntensity: 1.0,
+        color: '#c2c2c3', metalness: 1, roughness: 0, reflectivity: 0.5, envMapIntensity: 1.6,
+        clearcoat: 0, clearcoatRoughness: 0.08, specularIntensity: 1.0, specularColor: '#ffffff',
+        sheen: 0, sheenRoughness: 1,
+        iridescence: 0, iridescenceIOR: 1.3,
+        anisotropy: 0, anisotropyRotation: 0,
+        emissive: '#000000',
+        transmission: 0.0, thickness: 0, attenuationDistance: 0, attenuationColor: '#ffffff',
     }
 
     diamondPluginInstance: any = null
@@ -150,6 +169,13 @@ export class IjewelViewer {
         if (Number.isFinite(m.metalness)) this.metalProfile.metalness = Number(m.metalness)
         if (Number.isFinite(m.roughness)) this.metalProfile.roughness = Number(m.roughness)
         if (Number.isFinite(m.envMapIntensity)) this.metalProfile.envMapIntensity = Number(m.envMapIntensity)
+        if (Number.isFinite(m.reflectivity)) this.metalProfile.reflectivity = Number(m.reflectivity)
+        if (Number.isFinite(m.specularIntensity)) this.metalProfile.specularIntensity = Number(m.specularIntensity)
+        if (typeof m.specularColor === 'string' && m.specularColor) this.metalProfile.specularColor = m.specularColor
+        if (Number.isFinite(m.clearcoat)) this.metalProfile.clearcoat = Number(m.clearcoat)
+        if (Number.isFinite(m.clearcoatRoughness)) this.metalProfile.clearcoatRoughness = Number(m.clearcoatRoughness)
+        if (Number.isFinite(m.sheen)) this.metalProfile.sheen = Number(m.sheen)
+        if (Number.isFinite(m.iridescence)) this.metalProfile.iridescence = Number(m.iridescence)
         if (typeof d.color === 'string' && d.color) this.diamondProfile.color = d.color
         if (Number.isFinite(d.transmission)) this.diamondProfile.transmission = Number(d.transmission)
         if (Number.isFinite(d.refractiveIndex)) this.diamondProfile.refractiveIndex = Number(d.refractiveIndex)
@@ -172,6 +198,11 @@ export class IjewelViewer {
         this.setupLights()
 
         if (this.config.sceneConfig?.Environment) {
+            // Wait a frame so AssetManagerPlugin has registered its loaders
+            // (mirrors ring-builder's loadDefaultEnvironments rAF gating — without
+            // it the .hdr importSinglePath can silently no-op and leave the metal
+            // with no env -> renders black).
+            await new Promise<void>(r => requestAnimationFrame(() => r()))
             await this.loadEnvironment(this.config.sceneConfig.Environment)
         }
 
@@ -198,7 +229,7 @@ export class IjewelViewer {
         await this.viewer.addPlugin(GBufferPlugin)
         await this.viewer.addPlugin(new ProgressivePlugin(32))
         const tonemap = await this.viewer.addPlugin(TonemapPlugin)
-        if (tonemap) { tonemap.exposure = 1.0; tonemap.saturation = 1.1; tonemap.contrast = 1.1 }
+        if (tonemap) { tonemap.exposure = 1.16; tonemap.saturation = 1.91; tonemap.contrast = 1.48 }
         const ssao = await this.viewer.addPlugin(SSAOPlugin)
         if (ssao) (ssao as any).intensity = 0.25
         await this.viewer.addPlugin(FrameFadePlugin)
@@ -398,6 +429,9 @@ export class IjewelViewer {
             if (/\b(prong|band|shank|bezel)\b/i.test(combinedName) && !DIAMOND_NAME_REGEX.test(combinedName)) return false
             if (mat.transmission !== undefined && mat.transmission > 0.5) return true
             if (mat.ior !== undefined && mat.ior > 1.8) return true
+            // Metal/structural identity — must stay metal even if geometrically small/gem-like
+            const METAL_IDENTITY = /\b(metal|layer|curve|creation|finger|solid|band|shank|prong|bezel|gold|platinum|white|rose|yellow)\b/i
+            if (METAL_IDENTITY.test(matName) || METAL_IDENTITY.test(meshName)) return false
             const geometry = child?.geometry
             if (geometry) {
                 try {
@@ -487,10 +521,31 @@ export class IjewelViewer {
 
     private applyMetalMaterial(material: any) {
         try {
-            if ('color' in material) material.color = this.createLinearColor(this.metalProfile.color)
-            if ('metalness' in material) material.metalness = this.metalProfile.metalness
-            if ('roughness' in material) material.roughness = this.metalProfile.roughness
-            if ('envMapIntensity' in material) material.envMapIntensity = this.metalProfile.envMapIntensity
+            const mp = this.metalProfile
+            if ('color' in material) material.color = this.createLinearColor(mp.color)
+            if ('metalness' in material) material.metalness = mp.metalness
+            if ('roughness' in material) material.roughness = mp.roughness
+            if ('envMapIntensity' in material) material.envMapIntensity = mp.envMapIntensity
+            if ('reflectivity' in material) material.reflectivity = mp.reflectivity
+            if ('specularIntensity' in material) material.specularIntensity = mp.specularIntensity
+            if ('specularColor' in material) material.specularColor = this.createLinearColor(mp.specularColor)
+            if ('clearcoat' in material) material.clearcoat = mp.clearcoat
+            if ('clearcoatRoughness' in material) material.clearcoatRoughness = mp.clearcoatRoughness
+            if ('sheen' in material) material.sheen = mp.sheen
+            if ('sheenRoughness' in material) material.sheenRoughness = mp.sheenRoughness
+            if ('iridescence' in material) material.iridescence = mp.iridescence
+            if ('iridescenceIOR' in material) material.iridescenceIOR = mp.iridescenceIOR
+            if ('anisotropy' in material) material.anisotropy = mp.anisotropy
+            if ('anisotropyRotation' in material) material.anisotropyRotation = mp.anisotropyRotation
+            if ('emissive' in material) material.emissive = this.createLinearColor(mp.emissive)
+            if ('transmission' in material) material.transmission = mp.transmission
+            if ('thickness' in material) material.thickness = mp.thickness
+            if ('attenuationDistance' in material) material.attenuationDistance = mp.attenuationDistance
+            if ('attenuationColor' in material) material.attenuationColor = this.createLinearColor(mp.attenuationColor)
+            if ('envMap' in material && material.envMap !== this.currentEnvironment && this.currentEnvironment) {
+                material.envMap = this.currentEnvironment
+            }
+            if ('needsUpdate' in material) material.needsUpdate = true
         } catch (error) {
             console.warn('applyMetalMaterial failed', error)
         }
@@ -576,10 +631,23 @@ export class IjewelViewer {
         try {
             const manager = this.viewer.getPlugin(AssetManagerPlugin)
             if (!manager) throw new Error('AssetManagerPlugin not found')
-            const texture = await manager.importer.importSinglePath(url)
-            if (!texture || texture.assetType !== 'texture') throw new Error('importSinglePath did not return a texture')
+
+            // Some loaders register one rAF later; retry a couple times so the
+            // .hdr import reliably resolves (a quiet failure = black metal).
+            let texture: any = null
+            for (let attempt = 0; attempt < 3 && !texture; attempt++) {
+                if (attempt > 0) await new Promise<void>(r => requestAnimationFrame(() => r()))
+                try {
+                    const t = await manager.importer.importSinglePath(url)
+                    if (t && t.assetType === 'texture') texture = t
+                } catch (err) { console.warn('Env attempt', attempt, err) }
+            }
+            if (!texture) throw new Error('importSinglePath did not return a texture')
 
             this.viewer.scene.setEnvironment(texture)
+            const scene: any = this.viewer.scene
+            scene.envMapIntensity = this.metalProfile.envMapIntensity
+            if (typeof scene.refreshEnvMapIntensity === 'function') scene.refreshEnvMapIntensity()
 
             if (this.diamondPluginInstance) {
                 this.diamondPluginInstance.envMap = texture
@@ -589,6 +657,7 @@ export class IjewelViewer {
             }
 
             this.currentEnvironment = texture
+            console.log('DIAG environment loaded OK:', url)
             return texture
         } catch (e) {
             console.warn('Environment load failed:', url, e)
@@ -606,6 +675,14 @@ export class IjewelViewer {
         Object.assign(this.diamondProfile, profile)
         this.applyMaterials()
         this.viewer.setDirty()
+    }
+
+    refreshMaterials() {
+        if (!this.ringModel) return
+        this.applyMaterials()
+        const scene: any = this.viewer?.scene
+        if (scene && typeof scene.refreshEnvMapIntensity === 'function') scene.refreshEnvMapIntensity()
+        this.viewer?.setDirty?.()
     }
 
     getViewerApp(): ViewerApp {

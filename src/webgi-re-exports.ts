@@ -37,6 +37,8 @@ export {
     CanvasTexture,
     Matrix4,
     DoubleSide,
+    MeshBasicMaterial,
+    AdditiveBlending,
     BloomPlugin,
     VignettePlugin,
     SSBevelPlugin,

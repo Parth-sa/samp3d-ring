@@ -197,5 +197,69 @@
     </aside>
 
     <script src="./src/bare-viewer.ts"></script>
+
+    <!-- ============ LIVE TUNE PANEL (debug tool) ============ -->
+    <link rel="stylesheet" href="https://unpkg.com/tweakpane@3.1.0/dist/tweakpane.css">
+    <script src="https://unpkg.com/tweakpane@3.1.0/dist/tweakpane.min.js"></script>
+    <style>
+        #tune-wrap { position: fixed; right: 14px; top: 50%; transform: translateY(-50%); z-index: 4000; }
+        #tune-fab { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(88,74,58,.25);
+            background: rgba(255,255,255,.92); color: #584a3a; font-size: 15px; letter-spacing: .05em; cursor: pointer;
+            box-shadow: 0 4px 18px rgba(58,47,37,.18); }
+        #tune-pane { display: none; }
+        #tune-wrap.open #tune-pane { display: block; }
+    </style>
+    <div id="tune-wrap">
+        <button id="tune-fab" title="Tune (live controls)">Tune</button>
+        <div id="tune-pane"></div>
+    </div>
+    <script>
+    (function () {
+        var wrap = document.getElementById('tune-wrap');
+        var fab = document.getElementById('tune-fab');
+        var holder = document.getElementById('tune-pane');
+        fab.addEventListener('click', function () { wrap.classList.toggle('open'); });
+
+        function whenReady(cb) {
+            if (window.__viewerOpts) return cb();
+            var n = 0, iv = setInterval(function () {
+                if (window.__viewerOpts) { clearInterval(iv); cb(); }
+                else if (++n > 200) clearInterval(iv);
+            }, 50);
+        }
+
+        whenReady(function () {
+            var pane = new Tweakpane({ container: holder });
+            var O = window.__viewerOpts;
+
+            var camF = pane.addFolder({ title: 'Camera' });
+            camF.addBinding(O.cam, 'on', { label: 'Manual on' });
+            camF.addBinding(O.cam, 'x', { min: -8, max: 8, step: 0.05, label: 'pos X' });
+            camF.addBinding(O.cam, 'y', { min: -2, max: 8, step: 0.05, label: 'pos Y' });
+            camF.addBinding(O.cam, 'z', { min: 1, max: 20, step: 0.05, label: 'pos Z' });
+            camF.addBinding(O.cam, 'tx', { min: -3, max: 3, step: 0.05, label: 'target X' });
+            camF.addBinding(O.cam, 'ty', { min: -3, max: 3, step: 0.05, label: 'target Y' });
+            camF.addBinding(O.cam, 'tz', { min: -3, max: 3, step: 0.05, label: 'target Z' });
+            camF.addBinding(O.cam, 'fov', { min: 15, max: 70, step: 0.5, label: 'FOV' });
+            camF.addBinding(oZoom(), 'v', { min: 0.2, max: 5, step: 0.02, label: 'zoom (x ideal)' });
+
+            var rF = pane.addFolder({ title: 'Ring rotation' });
+            rF.addBinding(O.rot, 'on', { label: 'Manual on' });
+            rF.addBinding(O.rot, 'y', { min: -3.14, max: 3.14, step: 0.02, label: 'yaw (Y)' });
+            rF.addBinding(O.rot, 'x', { min: -1.6, max: 1.6, step: 0.02, label: 'tilt (X)' });
+            rF.addBinding(O.rot, 'z', { min: -1.6, max: 1.6, step: 0.02, label: 'roll (Z)' });
+
+            var gF = pane.addFolder({ title: 'Ground' });
+            gF.addBinding(O.ground, 'on', { label: 'Manual on' });
+            gF.addBinding(O.ground, 'size', { min: 1, max: 30, step: 0.2, label: 'size' });
+            gF.addBinding(O.ground, 'yOffset', { min: -1, max: 0, step: 0.01, label: 'yOffset' });
+
+            function oZoom() {
+                var z = { get v() { return O.zoom; }, set v(x) { O.zoom = x; } };
+                return z;
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

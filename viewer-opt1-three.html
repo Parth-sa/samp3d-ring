@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Ring Viewer · Three.js Orbit</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #f4f1ea; font-family: Arial, sans-serif; }
+        #container { width: 100%; height: 100%; }
+        .badge {
+            position: fixed; bottom: 16px; left: 16px; z-index: 10;
+            background: rgba(30,30,30,0.82); color: #fff; padding: 10px 14px;
+            border-radius: 10px; font-size: 12px; line-height: 1.6; max-width: 300px;
+            backdrop-filter: blur(4px); box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+        .badge b { color: #f0a500; }
+        .badge .muted { color: #bbb; font-size: 11px; }
+        #loading {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            color: #333; font-size: 15px; display: none; background: rgba(255,255,255,0.9);
+            padding: 14px 22px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        #loading.show { display: block; }
+        .hint { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+            background: rgba(255,255,255,0.92); color: #444; padding: 8px 16px; border-radius: 20px;
+            font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div class="hint">Drag to orbit · Scroll to zoom (no autorotate)</div>
+    <div class="badge">
+        <b>Option 1 · Vanilla Three.js OrbitControls</b><br>
+        <span class="muted">Exact 3DJewelryViewer camera system: orbit camera, fixed ring at origin,
+        damping on, pan off, auto-fit zoom from bounding sphere.</span>
+    </div>
+    <div id="loading">Loading model…</div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.181.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.181.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+        const loading = document.getElementById('loading');
+        const container = document.getElementById('container');
+
+        let scene, camera, renderer, controls, model;
+        let envTextureMap;
+
+        // ---- init ----
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf4f1ea);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            container.appendChild(renderer.domElement);
+
+            // ---- OrbitControls: orbit camera around fixed ring, 3DJV-style ----
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 1, 0);
+            controls.enablePan = false;
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableRotate = true;
+            controls.enableZoom = true;
+            controls.autoRotate = false;
+            controls.minDistance = 4;
+            controls.maxDistance = 15;
+
+            // lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const dir = new THREE.DirectionalLight(0xffffff, 2);
+            dir.position.set(5, 10, 7);
+            scene.add(dir);
+            const dir2 = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir2.position.set(-5, 3, -5);
+            scene.add(dir2);
+
+            // env for metals
+            const pmrem = new THREE.PMREMGenerator(renderer);
+            pmrem.compileEquirectangularShader();
+            new RGBELoader()
+                .setDataType(THREE.HalfFloatType)
+                .load('./assets/env_metal_001.hdr', (hdr) => {
+                    envTextureMap = pmrem.fromEquirectangular(hdr).texture;
+                    scene.environment = envTextureMap;
+                    if (model) applyMetals();
+                });
+
+            window.addEventListener('resize', onResize);
+            animate();
+            loadModel();
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ---- 3DJV adjustCamera: auto-fit orbit limits from bounding sphere ----
+        function adjustCamera() {
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            const radius = size.length() / 2;
+
+            // re-center model on origin (+y raised so it sits on floor line)
+            model.position.x -= center.x;
+            model.position.z -= center.z;
+            model.position.y -= box.min.y;
+
+            const target = new THREE.Vector3(0, radius * 0.35, 0);
+            controls.target.copy(target);
+
+            const s = 1.4 * radius;
+            const d = radius / Math.tan(0.5 * camera.fov * Math.PI / 180);
+            controls.minDistance = Math.max(s, 0.7 * d);
+            controls.maxDistance = Math.max(s, 3 * d);
+
+            // place camera on +Z at the fit distance, looking at target
+            camera.position.copy(target).add(new THREE.Vector3(0, radius * 0.3, 1.6 * d));
+            camera.lookAt(target);
+            controls.update();
+        }
+
+        // WebGI-style material pipeline: gold metal + gem diamond (matches webgi viewer)
+        const GOLD_COLOR = new THREE.Color(0xc5ad6d);
+        function applyMetals() {
+            if (!scene.environment) return;
+            let radiusLimit = 0.06;
+            model.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    const mats = Array.isArray(child.material) ? child.material : [child.material];
+                    mats.forEach((m) => {
+                        if (!(m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) return;
+                        const isDiamond = /diamond|gem|stone|solit/i.test(m.name || '')
+                            || (child.geometry && child.geometry.boundingSphere
+                                && child.geometry.boundingSphere.radius < radiusLimit);
+                        if (isDiamond) {
+                            m.metalness = 0;
+                            m.roughness = 0;
+                            m.envMapIntensity = 3.0;
+                            if (m.isMeshPhysicalMaterial) {
+                                m.ior = 2.6;
+                                m.transmission = 0;
+                                m.clearcoat = 1;
+                                m.clearcoatRoughness = 0;
+                                if (m.color) m.color.set(0xffffff);
+                            }
+                        } else {
+                            m.metalness = 1.0;
+                            m.roughness = 0.05;
+                            m.envMapIntensity = 1.3;
+                            if (m.color) m.color.copy(GOLD_COLOR);
+                        }
+                    });
+                    if (child.geometry) child.geometry.computeBoundingSphere();
+                }
+            });
+        }
+
+        // ---- load model from ?model= URL param ----
+        function loadModel() {
+            const params = new URLSearchParams(window.location.search);
+            const src = params.get('model') || './assets/m01_main.glb';
+            const loader = new GLTFLoader();
+            loading.classList.add('show');
+            loader.load(src, (gltf) => {
+                model = gltf.scene;
+                // diamond polish pass
+                model.traverse((child) => {
+                    let clearcoat = 0, trans = 0;
+                    if (child.isMesh && child.material) {
+                        const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        mats.forEach((m) => {
+                            if (m.isMeshPhysicalMaterial && /diamond|gem|stone|solit/i.test(m.name || '')) {
+                                m.clearcoat = 0; m.transmission = 0;
+                            }
+                        });
+                    }
+                });
+                scene.add(model);
+                applyMetals();
+                adjustCamera();
+                loading.classList.remove('show');
+            }, undefined, (err) => {
+                loading.textContent = 'Error loading model: ' + (err && err.message ? err.message : err);
+                loading.classList.add('show');
+                console.error('load error', err);
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>

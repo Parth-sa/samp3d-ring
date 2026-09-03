@@ -19,6 +19,9 @@ import {
     DiamondPlugin,
     Mesh,
     DoubleSide,
+    PlaneGeometry,
+    CanvasTexture,
+    MeshBasicMaterial,
 } from './webgi-re-exports'
 
 // Patch three.js r144+ removed methods needed by webgi's bundled code
@@ -41,7 +44,10 @@ if (typeof _obj3dProto.updateWorldMatrix !== 'function') {
 
 const runtimeConfig = (window as any).WEBGI_VIEWER_CONFIG || {}
 const DEFAULT_MODEL_PATH = './assets/lrs-01a.glb'
-const MODEL_PATH = runtimeConfig.modelPath || DEFAULT_MODEL_PATH
+const initialUrlParams = new URLSearchParams(window.location.search)
+const MODEL_PATH = initialUrlParams.get('model')
+    ? decodeURIComponent(initialUrlParams.get('model') as string)
+    : (runtimeConfig.modelPath || DEFAULT_MODEL_PATH)
 
 // Env selection precedence: ?env=filename query param > runtimeConfig.environmentPath > default.
 function resolveEnvPath(): string {
@@ -52,7 +58,7 @@ function resolveEnvPath(): string {
 }
 const ENV_PATH = resolveEnvPath()
 
-const AUTO_ROTATE = runtimeConfig.autoRotate === true
+const AUTO_ROTATE = runtimeConfig.autoRotate !== false
 const ROTATION_SPEED = Number.isFinite(runtimeConfig.rotationSpeed) ? runtimeConfig.rotationSpeed : 0.35
 const BG_BONE_COLOR = '#f4f4eb'
 
@@ -91,45 +97,109 @@ let diamondPluginInstance: any = null
 let ringModel: any = null
 let modelLoaded = false
 let groundPlugin: any = null
+let staticShadow: any = null      // fixed soft radial shadow (does NOT rotate with ring)
 
-// ---- model-viewer style spherical camera orbit ----
-// The ring stays static (centred at origin); the CAMERA orbits it on a sphere.
-// Orbit state mirrors model-viewer's SmoothControls (theta/phi/radius/fov),
-// with per-frame damper (critically-damped) easing for the silky feel.
-const FOV_MAX = 45          // model-viewer maximumFieldOfView
-const FOV_MIN = 10
+// ---- CAMERA-ORBIT (ring stays fixed at xyz(0,0,0)) ----
+// The ring is never rotated — it sits exactly at origin. Only the CAMERA orbits
+// on a sphere around it (theta = yaw, phi = polar, radius = distance). Using
+// webgi's property setters (set position / set target) which auto-sync the
+// THREE camera and auto-lookAt the target, so the ring stays dead-centre.
+const SMOOTHING = 0.12        // critically-damped easing per frame
 const DEFAULT_FOV = 45
-const ZOOM_SENSITIVITY = 0.04
-// Polar-angle limits: phi = π/2 is a level side view; phi near 0 = top-down,
-// phi near π = under the ring. Keep it above the floor so we never see below.
-const minPhi = Math.PI / 2 - 1.25   // ~72° above the horizon (near top-down)
-const maxPhi = Math.PI / 2 + 0.72   // slightly below level, lets you see the underside
-let theta = 0; let goalTheta = 0           // azimuth / yaw around ring
-let phi = Math.PI / 2; let goalPhi = Math.PI / 2   // polar angle from model-up
-let radius = 8; let goalRadius = 8          // camera distance from ring centre
-let logFov = Math.log(DEFAULT_FOV); let goalLogFov = logFov
-let isUserInteracting = false
-let lastX = 0; let lastY = 0
-let orbitTarget = new Vector3(0, 0, 0)   // true world centre of the ring; camera orbits/aims here
-let lastPinchDist = 0
+const DRAG_SPEED = 0.006      // += rad per pixel of drag
+let theta = 0.7               // azimuth / yaw around ring (rad)
+let phi = Math.PI / 2 - 0.52  // polar from model-up: lower phi = more overhead
+let radius = 8                // camera distance from ring centre (origin)
+let goalTheta = 0.7
+let goalPhi = Math.PI / 2 - 0.52
+let goalRadius = 8
+const minPhi = 0.15           // ~near top-down
+const maxPhi = Math.PI * 0.5  // level side view (never below floor)
 let minRadius = 2
 let maxRadius = 60
-let idealDistance = 8
+let idealRadius = 8
 let boundingRadius = 4
-// Damping easing factors (higher = quicker to settle); scale by frame delta.
-const THETA_EASE = 0.10
-const PHI_EASE = 0.10
-const RADIUS_EASE = 0.10
-const FOV_EASE = 0.12
+let isOrbiting = false
+let lastX = 0; let lastY = 0
+let lastPinchDist = 0
 let metalEnvIntensity = 1.0
+let autoRotateGlobal = false
+
+// ── LIVE TUNABLES (window.__viewerOpts) ────────────────────────────────
+// Override the auto-computed camera/rotation/ground each frame. Setting any of
+// the toggles turns control over to you; set them back to null to re-enable
+// auto framing. Exposed on window.__viewerOpts for console tweaking (like the
+// ring-builder's __ringBuilder debug API).
+const camOverride = { on: false, x: 0, y: 0, z: 8, tx: 0, ty: 0, tz: 0, fov: 45 }
+const rotOverride = { on: false, x: -0.25, y: 0, z: 0 }
+const gndOverride = { on: false, size: 10, yOffset: -0.1, y: 0 }
+const camAngle = { theta: 0.7, phi: Math.PI / 2 - 0.52 }  // spherical: drag = theta/phi
 
 const loaderEl = document.getElementById('loader') as HTMLElement
 
-function linColor(hex: string) { return new Color(hex).convertSRGBToLinear() }
+let __optsInstalled = false
 
-// Viewport height used for model-viewer-style orbit sensitivity.
-function viewH() {
-    return window.innerHeight || 600
+function installViewerOpts() {
+    const O: any = {
+        cam: camOverride,
+        rot: rotOverride,
+        ground: gndOverride,
+        angle: camAngle,
+        help: 'Tune live (values apply next frame). Toggles: cam.on, rot.on, ground.on.\n' +
+            '  __viewerOpts.cam    = {on:true, x,y,z (position), tx,ty,tz (target), fov}\n' +
+            '  __viewerOpts.angle  = {theta, phi}  spherical camera orbit (rad): theta=yaw around ring, phi=polar (PI/2 = level height, lower = overhead)\n' +
+            '  __viewerOpts.rot    = {on:true, x,y,z}  ring rotation (only if you want it to move)\n' +
+            '  __viewerOpts.ground = {on:true, size, yOffset}  soft shadow disc\n' +
+            '  __viewerOpts.distance = camera distance from ring (origin)\n' +
+            '  __viewerOpts.theta / __viewerOpts.phi = camera yaw / polar (deg shortcuts)\n' +
+            '  __viewerOpts.yawDeg / __viewerOpts.polarDeg = same in degrees\n' +
+            '  __viewerOpts.reset() restores auto framing',
+        get distance() { return radius },
+        set distance(v) { goalRadius = radius = Math.max(minRadius, Math.min(maxRadius, Number(v))) },
+        get thetaDeg() { return theta * 180 / Math.PI },
+        set thetaDeg(v) { goalTheta = Number(v) * Math.PI / 180 },
+        get phiDeg() { return phi * 180 / Math.PI },
+        set phiDeg(v) { goalPhi = Math.min(maxPhi, Math.max(minPhi, Number(v) * Math.PI / 180)) },
+        set yawDeg(v) { goalTheta = Number(v) * Math.PI / 180 },
+        set polarDeg(v) { goalPhi = Math.min(maxPhi, Math.max(minPhi, Number(v) * Math.PI / 180)) },
+        reset() {
+            camOverride.on = false; rotOverride.on = false; gndOverride.on = false
+            goalTheta = 0.7; goalPhi = Math.PI / 2 - 0.52; goalRadius = idealRadius * 1.5
+            window.location.search = ''
+        },
+    }
+    // Live re-apply on next frame is automatic (read from module state each frame).
+    ;(window as any).__viewerOpts = O
+    console.log('Tune live via window.__viewerOpts. Type __viewerOpts.help for usage.')
+}
+
+const debugOn = new URLSearchParams(window.location.search).has('debug')
+let __dbgFrame = 0
+
+if (debugOn) {
+    const d = document.createElement('div')
+    d.id = '__dbg'
+    d.style.cssText = 'position:fixed;left:10px;top:10px;z-index:99999;background:rgba(0,0,0,.8);color:#0f0;font:11px monospace;white-space:pre;padding:8px;max-width:70vw'
+    document.body.appendChild(d)
+}
+
+function linColor(hex: string) { return new Color(hex).convertSRGBToLinear() }
+function __dbgUpdate() {
+    try {
+        const root = getRingRoot()
+        const cam: any = viewer?.scene?.activeCamera
+        const co = cam?.cameraObject
+        const el = document.getElementById('__dbg')
+        if (!el) return
+        const camP = cam ? `(${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)})` : 'none'
+        const rot = root ? `(${root.rotation.x.toFixed(2)},${root.rotation.y.toFixed(2)},${root.rotation.z.toFixed(2)})` : 'no-root'
+        const aim = (cam && cam.target) ? `aim(${cam.target.x.toFixed(1)},${cam.target.y.toFixed(1)},${cam.target.z.toFixed(1)})` : 'no-target'
+        el.textContent =
+            `frame#${__dbgFrame++} cam=${camP} fov=${co?.fov?.toFixed?.(1) ?? '?'} ${aim}\n` +
+            `orbit theta=${(theta * 180 / Math.PI).toFixed(1)}° phi=${(phi * 180 / Math.PI).toFixed(1)}° dist=${radius.toFixed(2)}\n` +
+            `root.rot ${rot} autoRotate=${autoRotateGlobal}\n` +
+            `ringModel.children=${ringModel?.children != null ? (ringModel as any).children?.length ?? '?' : 'n/a'} modelObject=${!!getRingRoot()}`
+    } catch (e) { /* ignore */ }
 }
 
 function getRingRoot() {
@@ -271,61 +341,117 @@ function getRotationTarget() {
     return getRingRoot()
 }
 
+// Fixed soft radial shadow under the ring. parented to the SCENE ROOT (not the
+// ring root) so it never rotates with the ring — exactly the ask (only the ring
+// spins; the shadow stays put in one place). A static radial-gradient plane,
+// cheaper and steadier than a per-frame dynamic contact shadow.
+function buildStaticShadow(ringCenterY: number, radius: number) {
+    const scene: any = viewer.scene
+    if (!scene) return
+    try {
+        // Radial-gradient texture (soft centre → transparent edge)
+        const canvas = document.createElement('canvas')
+        canvas.width = 256; canvas.height = 256
+        const ctx = canvas.getContext('2d')!
+        const grad = ctx.createRadialGradient(128, 128, 8, 128, 128, 128)
+        grad.addColorStop(0, 'rgba(30,24,16,0.42)')
+        grad.addColorStop(0.45, 'rgba(30,24,16,0.28)')
+        grad.addColorStop(0.75, 'rgba(30,24,16,0.12)')
+        grad.addColorStop(1, 'rgba(30,24,16,0)')
+        ctx.fillStyle = grad
+        ctx.fillRect(0, 0, 256, 256)
+        const tex = new CanvasTexture(canvas)
+
+        const geo = new PlaneGeometry(radius * 2.2, radius * 2.2)
+        const mat = new MeshBasicMaterial({
+            map: tex, transparent: true, depthWrite: false,
+        })
+        const mesh = new Mesh(geo, mat)
+        mesh.rotation.x = -Math.PI / 2
+        mesh.position.set(0, ringCenterY - radius * 0.18, 0)
+        // Anchor to scene root (independent of the rotating ring root).
+        scene.add(mesh)
+        staticShadow = mesh
+    } catch (e) { console.warn('buildStaticShadow', e) }
+}
+
 function frameModel() {
     if (!viewer || !ringModel) return
     const root = getRotationTarget()
     if (!root) return
-    // Do NOT move the ring. Compute its true world-space centre and make the
-    // camera orbit THAT point — exactly how model-viewer frames (model stays
-    // put, camera + target are driven to the bounding-sphere centre).
     root.updateMatrixWorld?.(true)
     const box = worldBounds(root)
     if (box.isEmpty()) return
     const center = box.getCenter(new Vector3())
     const size = box.getSize(new Vector3())
     const maxDim = Math.max(size.x, size.y, size.z, 0.01)
-    orbitTarget.copy(center)
+    // CENTER the root at the origin. Now `root.rotation` spins the ring about
+    // its own centre — the ring can never precess or drift off-screen.
+    root.position.sub(center)
+    root.updateMatrixWorld?.(true)
 
-    // Size the contact shadow ground to the ring so it reads as a soft spot
-    // shadow just under the metal — not a huge slab that the ring orbits over.
-    if (groundPlugin) {
-        if ('size' in groundPlugin) groundPlugin.size = maxDim * 3.5
-        if ('yOffset' in groundPlugin) groundPlugin.yOffset = -0.012 * maxDim
+    // Fixed soft shadow: a static radial plane parented to the SCENE ROOT so it
+    // never rotates with the ring. The dynamic contact-shadow pattern tracked the
+    // ring's top-down silhouette and visibly spun — disable it, use our static one.
+    const ringBottomY = -size.y / 2
+    if (gndOverride.on) {
+        buildStaticShadow(ringBottomY + gndOverride.yOffset, gndOverride.size)
+    } else {
+        buildStaticShadow(ringBottomY - 0.02 * maxDim, maxDim)
+        if (groundPlugin) {
+            try { if ('visible' in groundPlugin) groundPlugin.visible = false } catch {}
+        }
     }
 
-    // Bounding sphere framing (model-viewer): idealDistance = radius / sin(fov/2)
-    // so the ring fills the frame at any orbit angle without clipping.
+    // Framing: ring sits at origin; orbit radius images it via bounding radius
+    // / sin(fov/2), standing the camera 1.5x back on the sphere so it fills frame.
     boundingRadius = maxDim / 2
-    idealDistance = boundingRadius / Math.sin((DEFAULT_FOV / 2) * Math.PI / 180)
-    minRadius = idealDistance * 0.35
-    maxRadius = idealDistance * 4.5
-    radius = idealDistance * 1.5
+    idealRadius = boundingRadius / Math.sin((DEFAULT_FOV / 2) * Math.PI / 180)
+    minRadius = idealRadius * 0.35
+    maxRadius = idealRadius * 4.5
+    radius = idealRadius * 1.5
     goalRadius = radius
-    logFov = Math.log(DEFAULT_FOV); goalLogFov = logFov
 
-    // Default hero angle: slightly above the equator (~30°) for the showroom look.
-    goalTheta = 0.7; theta = goalTheta
-    goalPhi = Math.PI / 2 - 0.52; phi = goalPhi
-    isUserInteracting = false
+    // Default hero pose: camera yaw/polar for a slight showroom look-down.
+    theta = 0.7; goalTheta = 0.7
+    phi = Math.PI / 2 - 0.52; goalPhi = phi
 
     const cam = viewer.scene.activeCamera
-    if ('fov' in cam) cam.fov = DEFAULT_FOV
-    moveCamera(cam)
+    const co = cam.cameraObject
+    if (co && 'fov' in co) co.fov = DEFAULT_FOV
+    else if ('fov' in cam) cam.fov = DEFAULT_FOV
+    positionCamera(cam)
     viewer.setDirty()
 }
 
-// Place the camera on a sphere around the ring's true centre (orbitTarget) and
-// aim it at that centre. webgi re-orients toward cam.target on positionUpdated,
-// so pointing target at the ring centre keeps it dead-centre at any orbit angle.
-function moveCamera(cam: any) {
-    const cosPhi = Math.cos(phi)
-    const dx = radius * Math.sin(phi) * Math.sin(theta)
-    const dy = radius * cosPhi
-    const dz = radius * Math.sin(phi) * Math.cos(theta)
-    cam.position.set(orbitTarget.x + dx, orbitTarget.y + dy, orbitTarget.z + dz)
-    try { (cam as any).target?.set?.(orbitTarget.x, orbitTarget.y, orbitTarget.z) } catch {}
-    if ('fov' in cam) { cam.fov = Math.exp(logFov); try { cam.updateProjectionMatrix() } catch {} }
-    if (typeof cam.positionUpdated === 'function') cam.positionUpdated(false)
+// Camera moves on a sphere around the origin while the RING stays fixed at
+// xyz(0,0,0). Each frame we recompute the cartesian position from the spherical
+// orbit variables and aim the camera at the origin. The ring never moves, so it
+// can never drift — only the viewing angle changes.
+function positionCamera(cam: any) {
+    try {
+        let px: number, py: number, pz: number
+        let tx = 0, ty = 0, tz = 0
+        let fov = DEFAULT_FOV
+        if (camOverride.on) {
+            // Manual Cartesian position + target (set cam.on=true).
+            px = camOverride.x; py = camOverride.y; pz = camOverride.z
+            tx = camOverride.tx; ty = camOverride.ty; tz = camOverride.tz
+            fov = camOverride.fov
+        } else {
+            // Spherical orbit about the origin. theta = yaw around ring,
+            // phi = polar from model-up (lower = more overhead, PI/2 = level height).
+            const sinPhi = Math.sin(phi)
+            px = radius * sinPhi * Math.sin(theta)
+            py = radius * Math.cos(phi)
+            pz = radius * sinPhi * Math.cos(theta)
+        }
+        if (cam.target) cam.target = new Vector3(tx, ty, tz)
+        cam.position = new Vector3(px, py, pz)
+        const co = cam.cameraObject
+        if (co && 'fov' in co) { co.fov = fov; try { co.updateProjectionMatrix() } catch {} }
+        try { cam.setDirty?.() } catch {}
+    } catch (e) { console.warn('positionCamera', e) }
 }
 
 function dumpMatDiag() {
@@ -414,6 +540,7 @@ async function setup() {
         const canvas = document.getElementById('webgi-canvas') as HTMLCanvasElement
 
         viewer = new ViewerApp({ canvas, useGBufferDepth: true, isAntialiased: false })
+        installViewerOpts()
 
         const r = (viewer.renderer as any).rendererObject
         if (r) {
@@ -483,8 +610,14 @@ async function setup() {
         cam.near = 0.1; cam.far = 1000
         cam.setCameraOptions?.({ fov: 25 })
         try { (cam as any).target?.set?.(0, 0, 0) } catch {}
-        const ctrl = (cam as any).controls
-        if (ctrl) ctrl.enabled = false
+        // Fully drop webgi's built-in OrbitControls. We drive the camera manually,
+        // so any built-in controls would fight our orbit and re-aim at a stale
+        // target (ring swinging off-screen). autoLookAtTarget handles aiming.
+        try {
+            cam.setCameraOptions?.({ controlsEnabled: false, controlsMode: "" })
+            cam.autoLookAtTarget = true
+        } catch (e) { console.warn('disable controls', e) }
+        try { const ctrl = (cam as any).controls; if (ctrl) ctrl.enabled = false } catch {}
 
         viewer.scene.setBackground(linColor(BG_BONE_COLOR))
 
@@ -513,67 +646,59 @@ async function setup() {
         dumpMatDiag()
         ;(window as any).__ringViewer = viewer
 
-        const easeTo = (start: number, goal: number, k: number) => start + (goal - start) * k
-
-        // model-viewer adjustOrbit: change theta/phi and, on zoom, radius AND fov together.
-        const adjustOrbit = (dTheta: number, dPhi: number, dZoom: number) => {
-            goalTheta += dTheta
-            goalPhi = Math.max(minPhi, Math.min(maxPhi, goalPhi - dPhi))
-            if (dZoom !== 0) {
-                const deltaRatio = ((dZoom > 0 ? maxRadius : minRadius) - radius) /
-                    (Math.log(dZoom > 0 ? FOV_MAX : FOV_MIN) - goalLogFov)
-                goalRadius = Math.max(minRadius, Math.min(maxRadius, radius + dZoom * deltaRatio))
-                goalLogFov = Math.min(Math.log(FOV_MAX), Math.max(Math.log(FOV_MIN), goalLogFov + dZoom))
-            }
-        }
-        const pixelAngle = (px: number) => 2 * Math.PI * px / (viewH())
-
         viewer.addEventListener('preFrame', () => {
             if (!modelLoaded) return
-            if (autoRotate && !isUserInteracting) { goalTheta += ROTATION_SPEED * 0.01 }
-            // Keep theta in range so we don't accumulate huge values over time.
-            goalTheta = goalTheta % (Math.PI * 2)
-            // Per-frame damper easing toward goals (model-viewer smooth feel).
-            theta = easeTo(theta, goalTheta, THETA_EASE)
-            phi = easeTo(phi, goalPhi, PHI_EASE)
-            radius = easeTo(radius, goalRadius, RADIUS_EASE)
-            logFov = easeTo(logFov, goalLogFov, FOV_EASE)
-            // Clamp: never clip inside the ring (radius) and never dive below it (phi).
-            theta %= (Math.PI * 2)
-            goalPhi = Math.max(minPhi, Math.min(maxPhi, goalPhi))
-            goalRadius = Math.max(minRadius, Math.min(maxRadius, goalRadius))
-            radius = Math.max(minRadius, Math.min(maxRadius, radius))
-            const cam = viewer.scene.activeCamera
-            moveCamera(cam)
+            const root = getRotationTarget()
+            if (root) {
+                // Auto-rotate = camera orbits (theta keeps growing).
+                if (autoRotate && !isOrbiting) goalTheta += ROTATION_SPEED * 0.012
+                // Critically-damped easing of the orbit angles toward goals.
+                theta += (goalTheta - theta) * SMOOTHING
+                phi += (goalPhi - phi) * SMOOTHING
+                radius = Math.max(minRadius, Math.min(maxRadius, radius + (goalRadius - radius) * SMOOTHING))
+                const cam = viewer.scene.activeCamera
+                positionCamera(cam)
+                // Ring STAYS FIXED at xyz(0,0,0) — only rotates if explicitly
+                // overridden (rot.on). Default: untouched, dead-centred.
+                if (rotOverride.on) {
+                    root.rotation.order = 'YXZ'
+                    root.rotation.x = rotOverride.x
+                    root.rotation.y = rotOverride.y
+                    root.rotation.z = rotOverride.z
+                    root.updateMatrixWorld?.(true)
+                }
+            }
             try { const rr = (viewer.renderer as any).rendererObject; if (rr?.shadowMap) rr.shadowMap.needsUpdate = true } catch {}
+            if (debugOn && __dbgFrame % 5 === 0) __dbgUpdate()
             viewer.setDirty()
         })
 
         const resetView = () => {
-            isUserInteracting = false
-            // Ease back to the default hero angle + framing distance.
-            adjustOrbit(0.7 - goalTheta, 0, 0)
+            isOrbiting = false
+            // Ease the camera back to the default hero orbit + framing distance.
+            goalTheta = 0.7
             goalPhi = Math.PI / 2 - 0.52
-            goalLogFov = Math.log(DEFAULT_FOV)
-            goalRadius = idealDistance * 1.5
+            goalRadius = idealRadius * 1.5
             viewer.setDirty()
         }
 
-        // ---- Drag to orbit: model-viewer sensitivity (full sweep = 360°) ----
-        canvas.addEventListener('mousedown', (e) => { isUserInteracting = true; lastX = e.clientX; lastY = e.clientY })
+        // ---- Drag to ORBIT the camera (ring stays fixed at origin) ----
+        canvas.addEventListener('mousedown', (e) => { isOrbiting = true; lastX = e.clientX; lastY = e.clientY })
         window.addEventListener('mousemove', (e) => {
-            if (!isUserInteracting || !modelLoaded) return
+            if (!isOrbiting || !modelLoaded) return
             const dx = e.clientX - lastX; const dy = e.clientY - lastY
-            adjustOrbit(-pixelAngle(dx), -pixelAngle(dy), 0)
+            goalTheta -= dx * DRAG_SPEED
+            goalPhi = Math.max(minPhi, Math.min(maxPhi, goalPhi + dy * DRAG_SPEED * 0.75))
             lastX = e.clientX; lastY = e.clientY; viewer.setDirty()
         })
-        window.addEventListener('mouseup', () => { isUserInteracting = false })
+        window.addEventListener('mouseup', () => { isOrbiting = false })
 
-        // ---- Touch: single-finger orbit, two-finger pinch zoom ----
+        // ---- Touch: single-finger orbit (camera), two-finger pinch zoom ----
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
-                isUserInteracting = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY
+                isOrbiting = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY
             } else if (e.touches.length === 2) {
+                isOrbiting = false
                 lastPinchDist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY)
@@ -587,24 +712,25 @@ async function setup() {
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY)
                 if (lastPinchDist > 0) {
-                    adjustOrbit(0, 0, ZOOM_SENSITIVITY * (lastPinchDist - d) * 50 / (viewH()))
+                    goalRadius = Math.max(minRadius, Math.min(maxRadius, radius + (lastPinchDist - d) * 0.06))
                 }
                 lastPinchDist = d; viewer.setDirty()
-            } else if (e.touches.length === 1 && isUserInteracting) {
+            } else if (e.touches.length === 1 && isOrbiting) {
                 const dx = e.touches[0].clientX - lastX; const dy = e.touches[0].clientY - lastY
-                adjustOrbit(-pixelAngle(dx), -pixelAngle(dy), 0)
+                goalTheta -= dx * DRAG_SPEED
+                goalPhi = Math.max(minPhi, Math.min(maxPhi, goalPhi + dy * DRAG_SPEED * 0.75))
                 lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; viewer.setDirty()
             }
         }, { passive: false })
-        window.addEventListener('touchend', () => { isUserInteracting = false; lastPinchDist = 0 })
-        window.addEventListener('touchcancel', () => { isUserInteracting = false; lastPinchDist = 0 })
+        window.addEventListener('touchend', () => { isOrbiting = false; lastPinchDist = 0 })
+        window.addEventListener('touchcancel', () => { isOrbiting = false; lastPinchDist = 0 })
 
-        // ---- Wheel zoom (model-viewer adjustOrbit: radius + fov in sync) ----
+        // ---- Wheel zoom: move the camera toward/away (radius), ring stays put ----
         canvas.addEventListener('wheel', (e) => {
             if (!modelLoaded) return
             e.preventDefault()
-            const dZoom = e.deltaY * ((e as WheelEvent).deltaMode == 1 ? 18 : 1) * ZOOM_SENSITIVITY / 30
-            adjustOrbit(0, 0, dZoom)
+            const d = e.deltaY * ((e as WheelEvent).deltaMode == 1 ? 18 : 1)
+            goalRadius = Math.max(minRadius, Math.min(maxRadius, radius + d * 0.06))
             viewer.setDirty()
         }, { passive: false })
 
@@ -630,6 +756,7 @@ async function setup() {
         let autoRotate = AUTO_ROTATE
         const setAuto = (on: boolean) => {
             autoRotate = on
+            autoRotateGlobal = on
             if (on) autoBtn.classList.add('on'); else autoBtn.classList.remove('on')
         }
         setAuto(autoRotate)

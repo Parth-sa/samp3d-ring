@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Larajewels 3D Ring</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+    #webgi-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+
+    #metal-switcher, #bg-switcher {
+        position: fixed; right: 18px; z-index: 30;
+        display: flex; align-items: flex-end; gap: 14px;
+        background: rgba(255,255,255,0.92);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 16px;
+        padding: 10px 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+        font-family: Arial, Helvetica, sans-serif;
+    }
+    #metal-switcher { bottom: 18px; }
+    #bg-switcher { bottom: 96px; }
+    #metal-switcher .title {
+        font-size: 11px; color: #888; letter-spacing: 0.06em; text-transform: uppercase;
+        align-self: center; padding-right: 2px; user-select: none;
+    }
+    .metal-option {
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+        cursor: pointer; user-select: none; padding: 2px 1px;
+    }
+    .metal-swatch {
+        width: 26px; height: 26px; border-radius: 50%;
+        border: 2px solid #e4e4e4; transition: transform .12s, box-shadow .12s, border-color .12s;
+        position: relative;
+    }
+    .metal-option:hover .metal-swatch { transform: scale(1.12); }
+    .metal-option.active .metal-swatch {
+        border-color: #2a2a2a;
+        box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #2a2a2a;
+    }
+    .metal-option .name {
+        font-size: 11px; color: #555; white-space: nowrap; line-height: 1;
+    }
+    .metal-option.active .name { color: #111; font-weight: 700; }
+</style>
+</head>
+<body>
+<canvas id="webgi-canvas"></canvas>
+
+<div id="metal-switcher">
+    <span class="title">Metal</span>
+    <span class="metal-option active" data-color="#c2c2c3"><span class="metal-swatch" style="background:#c2c2c3"></span><span class="name">Platinum</span></span>
+    <span class="metal-option" data-color="#e8eaed"><span class="metal-swatch" style="background:#e8eaed"></span><span class="name">White</span></span>
+    <span class="metal-option" data-color="#c5ad6d"><span class="metal-swatch" style="background:#c5ad6d"></span><span class="name">Yellow</span></span>
+    <span class="metal-option" data-color="#e8a48c"><span class="metal-swatch" style="background:#e8a48c"></span><span class="name">Rose</span></span>
+    <span class="metal-option" data-color="#181818" data-overrides='{"envIntensity":4.2,"specularIntensity":1.6,"clearcoat":1,"clearcoatRoughness":0.08}'><span class="metal-swatch" style="background:#181818;background-image:linear-gradient(135deg,#181818 40%,#4a4a50 60%,#181818)"></span><span class="name">Black</span></span>
+</div>
+
+<div id="bg-switcher">
+    <span class="title">Background</span>
+    <span class="metal-option active" data-color="#ffffff"><span class="metal-swatch" style="background:#ffffff"></span><span class="name">White</span></span>
+    <span class="metal-option" data-color="#f6f1e7"><span class="metal-swatch" style="background:#f6f1e7"></span><span class="name">Ivory</span></span>
+    <span class="metal-option" data-color="#eef0f2"><span class="metal-swatch" style="background:#eef0f2"></span><span class="name">Grey</span></span>
+    <span class="metal-option" data-color="#ffeef0"><span class="metal-swatch" style="background:#ffeef0"></span><span class="name">Blush</span></span>
+    <span class="metal-option" data-color="#eaf4ee"><span class="metal-swatch" style="background:#eaf4ee"></span><span class="name">Sage</span></span>
+    <span class="metal-option" data-color="#1a1a1a"><span class="metal-swatch" style="background:#1a1a1a"></span><span class="name">Black</span></span>
+</div>
+
+<script src="webgi-orbit4.js?metal=%23c2c2c3"></script>
+<script>
+    (function () {
+        var metalOptions = document.querySelectorAll('.metal-option');
+        function setActive(list, el) {
+            list.forEach(function (s) { s.classList.remove('active'); });
+            el.classList.add('active');
+        }
+        function wire(list, globalFn) {
+            list.forEach(function (opt) {
+                opt.addEventListener('click', function () {
+                    setActive(list, opt);
+                    var color = opt.getAttribute('data-color');
+                    var overrides = opt.getAttribute('data-overrides');
+                    var parsedOverrides = null;
+                    if (overrides) { try { parsedOverrides = JSON.parse(overrides); } catch (e) { parsedOverrides = null; } }
+                    function apply() {
+                        if (typeof window[globalFn] === 'function') {
+                            if (globalFn === '__optSetMetalProfile') window[globalFn](color, parsedOverrides);
+                            else window[globalFn](color);
+                            return true;
+                        }
+                        return false;
+                    }
+                    if (!apply()) {
+                        var tries = 0;
+                        var t = setInterval(function () {
+                            tries++;
+                            if (apply()) clearInterval(t);
+                            else if (tries > 200) clearInterval(t);
+                        }, 50);
+                    }
+                });
+            });
+        }
+        var metalSwitcher = document.getElementById('metal-switcher');
+        var bgSwitcher = document.getElementById('bg-switcher');
+        wire(metalSwitcher.querySelectorAll('.metal-option'), '__optSetMetalProfile');
+        wire(bgSwitcher.querySelectorAll('.metal-option'), '__optSetBackground');
+    })();
+</script>
+</body>
+</html>

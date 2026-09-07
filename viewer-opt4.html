@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Ring Viewer · WebGI GLB (Auto-Patched)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #ffffff; font-family: Arial, sans-serif; }
+        #wrapper { width: 100%; height: 100%; position: relative; }
+        #webgi-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+        .badge {
+            position: fixed; bottom: 16px; left: 16px; z-index: 10;
+            background: rgba(30,30,30,0.82); color: #fff; padding: 10px 14px;
+            border-radius: 10px; font-size: 12px; line-height: 1.6; max-width: 300px;
+            backdrop-filter: blur(4px); box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+        .badge b { color: #f0a500; }
+        .badge .muted { color: #bbb; font-size: 11px; }
+        #loader {
+            position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+            background: #ffffff; color: #333; font-size: 15px; transition: opacity .4s;
+        }
+        #loader.hidden { opacity: 0; pointer-events: none; }
+        .hint { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+            background: rgba(255,255,255,0.92); color: #444; padding: 8px 16px; border-radius: 20px;
+            font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+        .panel {
+            position: fixed; top: 16px; right: 16px; z-index: 15;
+            background: rgba(30,30,30,0.86); color: #fff; padding: 12px 14px; border-radius: 12px;
+            font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.28); backdrop-filter: blur(4px);
+            min-width: 170px;
+        }
+        .panel b { color: #f0a500; display: block; margin-bottom: 8px; }
+        .swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .swatch {
+            width: 24px; height: 24px; border-radius: 6px; cursor: pointer; border: 2px solid #555;
+            transition: transform .1s;
+        }
+        .swatch:hover { transform: scale(1.15); }
+        .panel input[type=color] { width: 100%; height: 30px; border: none; border-radius: 6px; cursor: pointer; background: transparent; }
+    </style>
+</head>
+<body>
+    <div id="wrapper">
+        <canvas id="webgi-canvas"></canvas>
+    </div>
+    <div id="loader">Loading model…</div>
+    <div class="hint">Drag to orbit · Scroll to zoom · Any GLB auto-patched with diamond plugin</div>
+    <div class="panel" id="metal-panel">
+        <b>Metal Color</b>
+        <div class="swatches">
+            <div class="swatch" style="background:#c5ad6d" data-color="#c5ad6d" title="Yellow Gold"></div>
+            <div class="swatch" style="background:#e8a48c" data-color="#e8a48c" title="Rose Gold"></div>
+            <div class="swatch" style="background:#f0c75e" data-color="#f0c75e" title="Pale Gold"></div>
+            <div class="swatch" style="background:#ffffff" data-color="#ffffff" title="White Gold / Silver"></div>
+            <div class="swatch" style="background:#d7d7d7" data-color="#d7d7d7" title="Platinum"></div>
+            <div class="swatch" style="background:#3a3a3a" data-color="#3a3a3a" title="Black"></div>
+        </div>
+        <input type="color" id="metal-color" value="#c5ad6d">
+    </div>
+    <div class="badge">
+        <b>Option 4 · WebGI GLB (Auto-Patched)</b><br>
+        <span class="muted">Loads a GLB file, auto-detects diamond/gem materials and patches them
+        with WebGI diamond plugin metadata. Works fully offline.</span>
+    </div>
+    <script src="src/viewer-opt4.ts"></script>
+</body>
+</html>

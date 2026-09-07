@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLB Diamond Patcher</title>
+    <title>Diamond Patcher — GLB / STL / 3DM</title>
     <style>
         :root {
             --panel-bg: rgba(255, 252, 247, 0.95);
@@ -371,19 +371,27 @@
             color: var(--error);
         }
     </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/"
+        }
+    }
+    </script>
 </head>
 <body>
     <div class="container">
         <div class="panel">
-            <h1>GLB Diamond Patcher</h1>
-            <p class="subtitle">Upload a jewelry GLB file and patch it with WebGI diamond material metadata. The patched file will be saved with a new name.</p>
+            <h1>Diamond Patcher</h1>
+            <p class="subtitle">Upload a GLB, STL, or 3DM jewelry file and patch it with WebGI diamond material metadata. The patched file will be downloaded as a ready-to-use GLB.</p>
 
             <div class="dropzone" id="dropzone">
                 <div class="dropzone-icon">💎</div>
-                <p>Drop your .glb file here</p>
+                <p>Drop your .glb, .stl, or .3dm file here</p>
                 <p>or click to browse</p>
                 <p class="filename" id="filename"></p>
-                <input type="file" id="file-input" accept=".glb,model/gltf-binary">
+                <input type="file" id="file-input" accept=".glb,.stl,.3dm,model/gltf-binary">
             </div>
 
             <div class="divider-text" style="text-align: center; color: var(--text-muted); margin: 16px 0;">
@@ -392,10 +400,10 @@
 
             <div class="dropzone" id="folder-dropzone" style="background: rgba(160, 106, 43, 0.1);">
                 <div class="dropzone-icon">📁</div>
-                <p>Drop a folder with multiple .glb files</p>
+                <p>Drop a folder with multiple .glb / .stl / .3dm files</p>
                 <p>or click to browse folder</p>
                 <p class="filename" id="folder-count"></p>
-                <input type="file" id="folder-input" accept=".glb" webkitdirectory multiple style="display: none;">
+                <input type="file" id="folder-input" accept=".glb,.stl,.3dm" webkitdirectory multiple style="display: none;">
             </div>
 
             <div class="preview" id="preview" style="display: none;">
@@ -407,7 +415,13 @@
             </div>
 
             <div class="sample-patterns">
-                <h4>Diamond/Gem Detection Patterns</h4>
+                <h4>Supported Formats & Diamond Detection</h4>
+                <div style="font-size:12px; color:#6f5c4a; margin-bottom:8px;">
+                    <strong>GLB:</strong> Detects diamonds by material/mesh name.<br>
+                    <strong>STL:</strong> No materials — detects by geometry size (small meshes = gems).<br>
+                    <strong>3DM:</strong> Extracts Rhino materials & mesh names for detection.
+                </div>
+                <p style="font-size:12px; color:#6f5c4a; margin-bottom:6px;"><strong>Diamond name patterns:</strong></p>
                 <div class="pattern-list">
                     <span class="pattern-tag">diamond</span>
                     <span class="pattern-tag">gem</span>
@@ -429,7 +443,7 @@
             <div class="save-section">
                 <label for="output-name">Output File Name</label>
                 <input type="text" id="output-name" placeholder="jewelry-patched.glb">
-                <p class="hint">The patched file will be downloaded/saved with this name</p>
+                <p class="hint">The patched file will be downloaded with this name</p>
             </div>
 
             <div class="options">
@@ -451,7 +465,7 @@
             </div>
 
             <button class="patch-btn" id="patch-btn" disabled>
-                📥 Upload GLB First, Then Click Here to Patch & Download
+                📥 Upload a File First, Then Click Here to Patch & Download
             </button>
             <p id="btn-hint" style="text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 8px;">
                 Button will activate after you upload a GLB file
@@ -478,13 +492,15 @@
             <div class="steps" id="steps">
                 <h3 style="color: var(--text-main); margin-bottom: 12px; font-size: 14px;">How to use:</h3>
                 <ol style="color: var(--text-muted); font-size: 13px; padding-left: 20px; line-height: 1.8;">
-                    <li><strong>Step 1:</strong> Upload your .glb file (drag & drop or click)</li>
-                    <li><strong>Step 2:</strong> Check the output filename (auto-generated)</li>
+                    <li><strong>Step 1:</strong> Upload a .glb, .stl, or .3dm file (drag & drop or click)</li>
+                    <li><strong>Step 2:</strong> Check the output filename (auto-generated). 3DM/STL are converted to GLB first.</li>
                     <li><strong>Step 3:</strong> Click the button below to patch & save</li>
                 </ol>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/rhino3dm@8.17.0/rhino3dm.js"></script>
 
     <script>
         const GLB_JSON_CHUNK_TYPE = 0x4E4F534A;
@@ -523,7 +539,7 @@
         let selectedFile = null;
         let selectedFolderFiles = [];
         
-        const defaultBtnText = '📥 Upload GLB First, Then Click Here to Patch & Download';
+        const defaultBtnText = '📥 Upload a File First, Then Click Here to Patch & Download';
 
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file-input');
@@ -561,6 +577,161 @@
 
         function deepClone(value) {
             return JSON.parse(JSON.stringify(value));
+        }
+
+        // ── STL / 3DM → GLB conversion (uses Three.js + rhino3dm from CDN) ──
+        let _threeAudit = null;
+        async function loadThree() {
+            if (_threeAudit) return _threeAudit;
+            const THREE = await import('three');
+            const STLLoader = (await import('three/addons/loaders/STLLoader.js')).STLLoader;
+            const GLTFExporter = (await import('three/addons/exporters/GLTFExporter.js')).GLTFExporter;
+            _threeAudit = { THREE, STLLoader, GLTFExporter };
+            return _threeAudit;
+        }
+
+        function threeMeshToGlb(scene) {
+            return new Promise((resolve, reject) => {
+                const exporter = _threeAudit.GLTFExporter;
+                const exp = new exporter();
+                // Include materials so WebGI can render the metal profile
+                exp.parse(scene, (result) => {
+                    if (result instanceof ArrayBuffer) resolve(result);
+                    else if (result && result.arrayBuffer) resolve(result.arrayBuffer);
+                    else reject(new Error('Could not build GLB from geometry'));
+                }, (err) => reject(err), { binary: true });
+            });
+        }
+
+        async function stlToGlb(file) {
+            const { THREE, STLLoader } = await loadThree();
+            const text = await file.text();
+            const loader = new STLLoader();
+            let geometry;
+            try { geometry = loader.parse(text); }
+            catch { geometry = loader.parse(await file.arrayBuffer()); }
+            const mat = new THREE.MeshPhysicalMaterial({ color: 0xc5ad6d, metalness: 1, roughness: 0.15, envMapIntensity: 1.0 });
+            const mesh = new THREE.Mesh(geometry, mat);
+            mesh.name = file.name.replace(/\.stl$/i, '');
+            const group = new THREE.Group();
+            group.add(mesh);
+            return threeMeshToGlb(group);
+        }
+
+        async function rhino3dmWasm() {
+            if (!window.rhino3dm) throw new Error('rhino3dm failed to load from CDN');
+            const rhino = await window.rhino3dm();
+            const wasm = await fetch('https://cdn.jsdelivr.net/npm/rhino3dm@8.17.0/rhino3dm.wasm');
+            rhino.wasmBinary = await wasm.arrayBuffer();
+            return rhino;
+        }
+
+        async function three4dmToGlb(file) {
+            const { THREE } = await loadThree();
+            const rhino = await rhino3dmWasm();
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const f3dm = rhino.File3dm.fromByteArray(bytes);
+            if (!f3dm) throw new Error('Failed to parse 3DM file');
+            const objs = f3dm.objects();
+            const group = new THREE.Group();
+            const matCache = new Map();
+            const metalMat = new THREE.MeshPhysicalMaterial({ color: 0xc5ad6d, metalness: 1, roughness: 0.18, envMapIntensity: 1.0 });
+
+            for (let i = 0; i < objs.count; i++) {
+                try {
+                    const obj = objs.get(i);
+                    const g = obj && obj.geometry ? obj.geometry() : null;
+                    if (!g) continue;
+                    const type = obj.attributes ? obj.attributes.objectType : null;
+                    if (type === 1 || type === 2 || type === 5) continue; // light/camera/text
+
+                    // 1. Try real mesh (brep/surface/mesh geometry)
+                    let meshGeom = null;
+                    try {
+                        const toMesh = g.toMesh && typeof g.toMesh === 'function' ? g.toMesh(f3dm) : null;
+                        if (toMesh) meshGeom = geometryFromRhino(toMesh);
+                    } catch {}
+                    if (meshGeom) {
+                        const nm = (obj.attributes && obj.attributes.name) || ('brep_' + i);
+                        const mesh = new THREE.Mesh(meshGeom, getRhinoMaterial(rhino, g, matCache, THREE));
+                        mesh.name = nm;
+                        group.add(mesh);
+                        continue;
+                    }
+
+                    // 2. Curve / polyline object -> render as a metal tube so it's visible
+                    if (typeof g.vertices === 'function') {
+                        const verts = g.vertices();
+                        if (verts && verts.count > 1) {
+                            const pts = [];
+                            for (let v = 0; v < verts.count; v++) {
+                                const p = verts.get(v);
+                                pts.push(new THREE.Vector3(p[0], p[1], p[2]));
+                            }
+                            const spline = new THREE.CatmullRomCurve3(pts);
+                            const tubeGeo = new THREE.TubeGeometry(spline, 128, 0.0006, 8, false);
+                            const tube = new THREE.Mesh(tubeGeo, metalMat);
+                            tube.name = 'curve_' + i;
+                            group.add(tube);
+                        }
+                    }
+                } catch {}
+            }
+            if (group.children.length === 0) throw new Error('No geometry found in 3DM file');
+            return threeMeshToGlb(group);
+        }
+
+        function geometryFromRhino(meshGeom) {
+            const v = meshGeom.vertices();
+            const f = meshGeom.faces();
+            if (!v || !v.count || !f || !f.count) return null;
+            const THREE = _threeAudit.THREE;
+            const pos = new Float32Array(v.count * 3);
+            for (let i = 0; i < v.count; i++) {
+                const p = v.get(i);
+                pos[i * 3] = p[0]; pos[i * 3 + 1] = p[1]; pos[i * 3 + 2] = p[2];
+            }
+            const idx = [];
+            for (let i = 0; i < f.count; i++) {
+                const face = f.get(i);
+                const a = face[0], b = face[1], c = face[2], d = face[3];
+                idx.push(a, b, c);
+                if (d !== c) idx.push(a, c, d);
+            }
+            if (idx.length === 0 || idx.length % 3 !== 0) return null;
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setIndex(idx);
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        function getRhinoMaterial(rhino, geom, cache, THREE) {
+            // If the geometry has render material index, pull colour from it; else default metal
+            let color = 0xc5ad6d;
+            let name = 'Material';
+            try {
+                const ri = geom.renderMaterial && typeof geom.renderMaterial === 'function' ? geom.renderMaterial() : null;
+                if (ri) {
+                    const diffuse = ri.diffuseColor ? ri.diffuseColor : null;
+                    if (diffuse) color = new THREE.Color(diffuse[0], diffuse[1], diffuse[2]).getHex();
+                    if (ri.name) name = ri.name;
+                    return new THREE.MeshPhysicalMaterial({ color, metalness: 0.1, roughness: 0.3, envMapIntensity: 1.0, name });
+                }
+            } catch {}
+            return new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.2, envMapIntensity: 1.0, name });
+        }
+
+        async function fileToGlbBuffer(file) {
+            const name = file.name.toLowerCase();
+            if (name.endsWith('.glb')) {
+                return new Uint8Array(await file.arrayBuffer());
+            } else if (name.endsWith('.stl')) {
+                return new Uint8Array(await stlToGlb(file));
+            } else if (name.endsWith('.3dm')) {
+                return new Uint8Array(await three4dmToGlb(file));
+            }
+            throw new Error('Unsupported file type: ' + file.name);
         }
 
         function parseGlb(arrayBuffer) {
@@ -682,11 +853,33 @@
 
                     const usage = collectMaterialUsageNames(json);
                     const patchFirstMaterial = document.getElementById('patch-first-material').checked;
+                    const patchBySize = options.patchBySize === true;
 
                     const metalPatterns = /gold|silver|platinum|body|rose_gold|yellow_gold|white_gold|metal|band|shank|prong|setting|base|ring|14k|18k|10k|24k|925|sterling/i;
 
                     const diamondIndices = [];
                     const metalIndices = [];
+                    const sizeByMat = new Map();
+
+                    // For STL/3DM-converted GLBs, detect diamonds by geometry size
+                    function meshSizeOfMaterial(mIndex) {
+                        // returns max dimension (world-ish) of smallest mesh using this material
+                        let smallest = Infinity;
+                        for (const mesh of (json.meshes || [])) {
+                            for (const prim of (mesh.primitives || [])) {
+                                if (prim.material !== mIndex) continue;
+                                const accIdx = prim.attributes && prim.attributes.POSITION;
+                                const acc = accIdx != null ? json.accessors[accIdx] : null;
+                                if (!acc || !acc.min || !acc.max) continue;
+                                const dx = acc.max[0] - acc.min[0];
+                                const dy = acc.max[1] - acc.min[1];
+                                const dz = acc.max[2] - acc.min[2];
+                                const d = Math.max(dx, Math.max(dy, dz));
+                                if (d < smallest) smallest = d;
+                            }
+                        }
+                        return smallest === Infinity ? null : smallest;
+                    }
 
                     materials.forEach((material, index) => {
                         const names = `${material?.name || ''} ${(usage.get(index) || []).join(' ')}`;
@@ -696,10 +889,31 @@
                         } else if (metalPatterns.test(names)) {
                             metalIndices.push(index);
                             logs.push(`✓ Metal detected: "${material.name || 'material_' + index}" (index ${index})`);
+                        } else if (patchBySize) {
+                            const d = meshSizeOfMaterial(index);
+                            sizeByMat.set(index, d === null ? Infinity : d);
+                            if (d !== null && d < 2.5) {
+                                diamondIndices.push(index);
+                                logs.push(`✓ Diamond by size: "${material.name || 'material_' + index}" (max ${d.toFixed(2)})`);
+                            } else {
+                                metalIndices.push(index);
+                                logs.push(`○ Metal by size: "${material.name || 'material_' + index}" (max ${d !== null ? d.toFixed(2) : 'n/a'})`);
+                            }
                         } else {
                             logs.push(`○ Other: "${material.name || 'material_' + index}" (index ${index})`);
                         }
                     });
+
+                    // In size mode, guarantee at least one diamond: promote the smallest material
+                    if (patchBySize && diamondIndices.length === 0 && metalIndices.length > 0) {
+                        let smallestIdx = metalIndices[0];
+                        for (const ix of metalIndices) {
+                            if ((sizeByMat.get(ix) ?? Infinity) < (sizeByMat.get(smallestIdx) ?? Infinity)) smallestIdx = ix;
+                        }
+                        diamondIndices.push(smallestIdx);
+                        metalIndices.splice(metalIndices.indexOf(smallestIdx), 1);
+                        logs.push(`💎 Forced smallest material as diamond: material_${smallestIdx}`);
+                    }
 
                     if (diamondIndices.length === 0 && metalIndices.length === 0) {
                         if (patchFirstMaterial) {
@@ -785,36 +999,44 @@
         function handleFileSelect(file) {
             if (!file) return;
             
-            if (!file.name.toLowerCase().endsWith('.glb')) {
-                setStatus('error', 'Please select a .glb file');
+            const lower = file.name.toLowerCase();
+            if (!lower.endsWith('.glb') && !lower.endsWith('.stl') && !lower.endsWith('.3dm')) {
+                setStatus('error', 'Please select a .glb, .stl, or .3dm file');
                 return;
             }
 
             selectedFile = file;
             filename.textContent = file.name;
-            outputName.value = file.name.replace('.glb', '-patched.glb');
+            outputName.value = file.name.replace(/\.(glb|stl|3dm)$/i, '-patched.glb');
             fileSize.textContent = formatFileSize(file.size);
             
             preview.style.display = 'block';
             patchBtn.disabled = false;
-            patchBtn.textContent = '💎 Patch & Download Patched GLB';
+            patchBtn.textContent = '💎 Patch & Download (converts to GLB if needed)';
             btnHint.style.display = 'none';
             log.classList.remove('show');
             setStatus('', '');
 
-            const tempInfo = [];
-            const arrayBuffer = file.arrayBuffer();
-            
-            arrayBuffer.then(buffer => {
-                try {
-                    const { json } = parseGlb(buffer);
-                    tempInfo.push(`<p>Meshes: <span class="highlight">${json.meshes?.length || 0}</span></p>`);
-                    tempInfo.push(`<p>Materials: <span class="highlight">${json.materials?.length || 0}</span></p>`);
-                    tempInfo.push(`<p>Nodes: <span class="highlight">${json.nodes?.length || 0}</span></p>`);
-                    previewInfo.innerHTML = tempInfo.join('');
-                } catch (e) {
-                    previewInfo.innerHTML = '<p style="color: var(--error);">Could not parse GLB structure</p>';
+            // Preview structural info
+            file.arrayBuffer().then(buffer => {
+                const view = new DataView(buffer);
+                const isGlb = view.byteLength >= 12 && view.getUint32(0, true) === 0x46546c67;
+                const tempInfo = [];
+                if (isGlb) {
+                    try {
+                        const { json } = parseGlb(buffer);
+                        tempInfo.push(`<p>Format: <span class="highlight">GLB</span></p>`);
+                        tempInfo.push(`<p>Meshes: <span class="highlight">${json.meshes?.length || 0}</span></p>`);
+                        tempInfo.push(`<p>Materials: <span class="highlight">${json.materials?.length || 0}</span></p>`);
+                        tempInfo.push(`<p>Nodes: <span class="highlight">${json.nodes?.length || 0}</span></p>`);
+                    } catch (e) {
+                        tempInfo.push('<p style="color: var(--error);">Could not parse GLB structure</p>');
+                    }
+                } else {
+                    tempInfo.push(`<p>Format: <span class="highlight">${lower.endsWith('.stl') ? 'STL' : '3DM'}</span> → converted to GLB</p>`);
+                    tempInfo.push('<p style="color: var(--text-muted);">No material naming — diamonds detected by geometry size.</p>');
                 }
+                previewInfo.innerHTML = tempInfo.join('');
             });
         }
 
@@ -844,20 +1066,41 @@
             if (!selectedFile) return;
 
             patchBtn.disabled = true;
-            
-            try {
-                const { file: patchedFile } = await patchGlbWithDiamondMetadata(selectedFile);
-                
-                const url = URL.createObjectURL(patchedFile);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = patchedFile.name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+            setStatus('loading', 'Processing file...');
 
-                setStatus('success', '✓ Patched GLB downloaded successfully!');
+            try {
+                // Convert STL/3DM to GLB first (GLB passes through unchanged)
+                let glbBuffer = await fileToGlbBuffer(selectedFile);
+                // If input was already GLB, parse & patch in place; else we need to inspect the converted GLB
+                if (selectedFile.name.toLowerCase().endsWith('.glb')) {
+                    const { file: patchedFile } = await patchGlbWithDiamondMetadata(selectedFile);
+
+                    const url = URL.createObjectURL(patchedFile);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = patchedFile.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    setStatus('success', '✓ Patched GLB downloaded successfully!');
+                } else {
+                    // PATCH a converted GLB buffer
+                    const convertedFile = new File([glbBuffer], selectedFile.name.replace(/\.(stl|3dm)$/i, '.glb'), { type: 'model/gltf-binary' });
+                    const { file: patchedFile } = await patchGlbWithDiamondMetadata(convertedFile, undefined, { patchBySize: true });
+
+                    const url = URL.createObjectURL(patchedFile);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = document.getElementById('output-name').value.trim() || patchedFile.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    setStatus('success', '✓ Converted & patched! Downloaded as GLB.');
+                }
             } catch (error) {
                 setStatus('error', 'Error: ' + error.message);
                 console.error('Patching error:', error);
@@ -867,13 +1110,13 @@
         });
 
         function handleFolderSelect(files) {
-            const glbFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.glb'));
+            const glbFiles = Array.from(files).filter(f => /\.(glb|stl|3dm)$/i.test(f.name));
             if (glbFiles.length === 0) {
-                setStatus('error', 'No .glb files found in selected folder');
+                setStatus('error', 'No .glb/.stl/.3dm files found in selected folder');
                 return;
             }
             selectedFolderFiles = glbFiles;
-            folderCount.textContent = `${glbFiles.length} .glb files selected`;
+            folderCount.textContent = `${glbFiles.length} GLB/STL/3DM file(s) selected`;
             bulkPatchBtn.disabled = false;
             bulkHint.style.display = 'none';
         }
@@ -923,61 +1166,23 @@
                 bulkFileList.scrollTop = bulkFileList.scrollHeight;
 
                 try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const { json, binChunk } = parseGlb(arrayBuffer);
+                    const isGlb = /\.glb$/i.test(file.name);
+                    const glbBuffer = await fileToGlbBuffer(file);
+                    const convName = isGlb ? file.name : file.name.replace(/\.(stl|3dm)$/i, '.glb');
+                    const convFile = new File([glbBuffer], convName, { type: 'model/gltf-binary' });
 
-                    const materials = json.materials || [];
-                    const usage = collectMaterialUsageNames(json);
-                    const diamondIndices = [];
-                    const metalIndices = [];
-
-                    materials.forEach((material, index) => {
-                        const names = `${material?.name || ''} ${(usage.get(index) || []).join(' ')}`;
-                        if (DIAMOND_NAME_REGEX.test(names)) {
-                            diamondIndices.push(index);
-                        } else {
-                            metalIndices.push(index);
-                        }
-                    });
-
-                    if (diamondIndices.length === 0 && metalIndices.length === 0) {
-                        diamondIndices.push(0);
-                    }
-
-                    json.extensionsUsed = Array.from(new Set([...(json.extensionsUsed || []), 'WEBGI_materials_diamond']));
-
-                    diamondIndices.forEach(index => {
-                        const extension = deepClone(diamondExtensionTemplate);
-                        const uuid = createUuid();
-                        extension.uuid = uuid;
-                        extension.userData.uuid = uuid;
-                        const material = materials[index] || {};
-                        material.name = extension.name;
-                        material.extensions = { ...(material.extensions || {}), WEBGI_materials_diamond: extension };
-                        material.extras = { ...(material.extras || {}), separateEnvMapIntensity: true, uuid };
-                        materials[index] = material;
-                    });
-
-                    const bgImageUrl = document.getElementById('bg-image-url').value.trim();
-                    if (bgImageUrl) {
-                        json.extras = json.extras || {};
-                        json.extras.webgiBackground = bgImageUrl;
-                    }
-
-                    const patchedBlob = buildGlb(json, binChunk);
-                    const outputFileName = file.name.replace('.glb', '-patched.glb');
-                    const patchedFile = new File([patchedBlob], outputFileName, { type: 'model/gltf-binary' });
+                    const { file: patchedFile } = await patchGlbWithDiamondMetadata(convFile, { patchBySize: !isGlb });
 
                     const url = URL.createObjectURL(patchedFile);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = outputFileName;
+                    a.download = document.getElementById('output-name').value.trim() || patchedFile.name;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
 
-                    fileItem.textContent = `✓ ${file.name} → ${outputFileName}`;
+                    fileItem.textContent = `✓ ${file.name} → ${patchedFile.name}`;
                     fileItem.classList.add('success');
                     successCount++;
 

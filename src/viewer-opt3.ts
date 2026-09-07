@@ -22,6 +22,7 @@ import {
     CanvasTexture,
     MeshBasicMaterial,
 } from './webgi-re-exports'
+import { patchGlbWithDiamondMetadata } from './webgiDiamondPatch'
 
 const viewerRoot = (window as any) as any
 
@@ -50,7 +51,7 @@ if (typeof _obj3dProto.updateWorldMatrix !== 'function') {
     }
 }
 
-const BG_COLOR = '#f4f1ea'
+const BG_COLOR = '#ffffff'
 const metalProfile = {
     color: '#c5ad6d', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6,
     clearcoat: 0, clearcoatRoughness: 0.08, specularIntensity: 1.0, specularColor: '#ffffff',
@@ -60,10 +61,10 @@ const metalProfile = {
 }
 const DIAMOND_NAME_RE = /diamond|diamonds|gem|stone|solit(er|a)|soliter|brilliant|brillant|cz|moissanite|ruby|sapphire|emerald/i
 const DIAMOND_PROFILE = {
-    color: '#ffffff', envMapIntensity: 2.0, envMapRotation: 0, dispersion: 0.015,
-    squashFactor: 0.98, geometryFactor: 0.5, gammaFactor: 1.2, absorptionFactor: 0.4,
-    reflectivity: 0.7, transmission: 0.0, refractiveIndex: 2.6, rayBounces: 6,
-    diamondOrientedEnvMap: 0, boostFactors: [1.0, 1.0, 1.0] as [number, number, number],
+    color: '#ffffff', envMapIntensity: 2.8, envMapRotation: 0, dispersion: 0.02,
+    squashFactor: 0.98, geometryFactor: 0.5, gammaFactor: 1.3, absorptionFactor: 0.4,
+    reflectivity: 0.85, transmission: 0.0, refractiveIndex: 2.6, rayBounces: 8,
+    diamondOrientedEnvMap: 0, boostFactors: [1.3, 1.3, 1.3] as [number, number, number],
 }
 
 let viewer: any = null
@@ -91,11 +92,20 @@ function getRingRoot(): any {
     return ringModel
 }
 
-function isDiamondMesh(mesh: any): boolean {
-    const n = (mesh.name || '') + ' ' + (mesh.material?.name || '')
-    if (DIAMOND_NAME_RE.test(n)) return true
-    const r = (mesh.geometry?.boundingSphere?.radius) ?? NaN
-    return Number.isFinite(r) && r < 0.06
+function isDiamondMesh(mesh: any) {
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    for (const m of mats) {
+        if (m?.extensions?.WEBGI_materials_diamond) return true
+        if (m?.isDiamondMaterialParameters || m?.type === 'DiamondMaterial') return true
+    }
+    const name = `${mesh.name || ''} ${mats.map((m: any) => m?.name || '').join(' ')}`.toLowerCase()
+    if (/\b(prong|shank|bezel)\b/i.test(name) && !DIAMOND_NAME_RE.test(name)) return false
+    if (DIAMOND_NAME_RE.test(name)) return true
+    for (const m of mats) {
+        if (m?.transmission !== undefined && m.transmission > 0.5) return true
+        if (m?.ior !== undefined && m.ior > 1.8) return true
+    }
+    return false
 }
 
 function applyMetal(mat: any) {
@@ -114,15 +124,40 @@ function applyMetal(mat: any) {
 
 function applyDiamond(mat: any) {
     if (!mat) return
+    const d = DIAMOND_PROFILE
     try {
-        if (mat.userData && !mat.userData.separateEnvMapIntensity) mat.userData.separateEnvMapIntensity = true
-        if ('color' in mat) mat.color = linColor(DIAMOND_PROFILE.color)
-        if ('envMapIntensity' in mat) mat.envMapIntensity = DIAMOND_PROFILE.envMapIntensity
-        if ('dispersion' in mat) mat.dispersion = DIAMOND_PROFILE.dispersion
-        if ('reflectivity' in mat) mat.reflectivity = DIAMOND_PROFILE.reflectivity
-        if ('transmission' in mat) mat.transmission = DIAMOND_PROFILE.transmission
-        if ('refractiveIndex' in mat) mat.refractiveIndex = DIAMOND_PROFILE.refractiveIndex
-    } catch (e) { /* ignore */ }
+        const ext = mat?.extensions?.WEBGI_materials_diamond
+        if (ext) {
+            ext.color = new Color(d.color).getHex()
+            ext.envMapIntensity = d.envMapIntensity
+            ext.envMapRotationOffset = d.envMapRotation * (Math.PI / 180)
+            ext.dispersion = d.dispersion
+            ext.squashFactor = d.squashFactor
+            ext.geometryFactor = d.geometryFactor
+            ext.gammaFactor = d.gammaFactor
+            ext.absorptionFactor = d.absorptionFactor
+            ext.reflectivity = d.reflectivity
+            ext.transmission = d.transmission
+            ext.refractiveIndex = d.refractiveIndex
+            ext.rayBounces = d.rayBounces
+            ext.diamondOrientedEnvMap = d.diamondOrientedEnvMap
+            ext.boostFactors = { x: d.boostFactors[0], y: d.boostFactors[1], z: d.boostFactors[2], isVector3: true }
+        }
+        if ('color' in mat) mat.color = linColor(d.color)
+        if ('envMapIntensity' in mat) mat.envMapIntensity = d.envMapIntensity
+        if ('dispersion' in mat) mat.dispersion = d.dispersion
+        if ('absorptionFactor' in mat) mat.absorptionFactor = d.absorptionFactor
+        if ('refractiveIndex' in mat) mat.refractiveIndex = d.refractiveIndex
+        if ('squashFactor' in mat) mat.squashFactor = d.squashFactor
+        if ('geometryFactor' in mat) mat.geometryFactor = d.geometryFactor
+        if ('gammaFactor' in mat) mat.gammaFactor = d.gammaFactor
+        if ('transmission' in mat) mat.transmission = d.transmission
+        if ('reflectivity' in mat) mat.reflectivity = d.reflectivity
+        if ('rayBounces' in mat) mat.rayBounces = d.rayBounces
+        if ('diamondOrientedEnvMap' in mat) mat.diamondOrientedEnvMap = d.diamondOrientedEnvMap
+        if ('boostFactors' in mat && mat.boostFactors?.set) mat.boostFactors.set(d.boostFactors[0], d.boostFactors[1], d.boostFactors[2])
+        mat.needsUpdate = true
+    } catch {}
 }
 
 function applyMaterials(root: any) {
@@ -136,6 +171,26 @@ function applyMaterials(root: any) {
     })
     if (diamondPluginInstance?.refreshEnvMaps) diamondPluginInstance.refreshEnvMaps()
 }
+
+function reapplyMetalMaterials() {
+    const root = getRingRoot()
+    if (!root?.traverse) return
+    root.traverse((child: any) => {
+        if (!child?.isMesh || !child.material) return
+        if (isDiamondMesh(child)) return
+        const ms = Array.isArray(child.material) ? child.material : [child.material]
+        for (const m of ms) applyMetal(m)
+    })
+    viewer?.setDirty?.()
+}
+
+function setMetalColor(hex: string) {
+    metalProfile.color = hex
+    reapplyMetalMaterials()
+    try { (viewer.renderer as any).refreshPipeline() } catch {}
+    viewer?.setDirty?.()
+}
+(window as any).__opt3SetMetalColor = setMetalColor
 
 function worldBounds(root: any): Box3 {
     const box = new Box3(); const v = new Vector3()
@@ -290,7 +345,7 @@ async function setup() {
         try { (viewer.scene as any).fixedEnvMapDirection = true } catch {}
         try { (viewer.renderer as any).stableNoise = true } catch {}
 
-        // load env (correct WebGI pipeline: import texture, then setEnvironment)
+        // load metal env for the scene (lights metal)
         const envSrc = runtimeConfig.environmentPath || './assets/env_metal_001.hdr'
         let metalEnvironment: any = null
         try {
@@ -304,15 +359,29 @@ async function setup() {
             }
         } catch (e) { console.warn('env import', e) }
 
-        // load ring model
+        // load dedicated GEM env for the DiamondPlugin (drives diamond sparkle)
+        const gemEnvSrc = './assets/env_gem_002.exr'
+        let gemEnvironment: any = null
+        try {
+            const manager = viewer.getPlugin(AssetManagerPlugin) as any
+            const env = await manager.importer.importSinglePath(gemEnvSrc)
+            if (env && env.assetType === 'texture') gemEnvironment = env
+        } catch (e) { console.warn('gem env import', e) }
+
+        // load ring model — fetch GLB, patch diamond metadata, import through WebGI pipeline
         const manager = viewer.getPlugin(AssetManagerPlugin) as any
-        const result = await manager.importer.importSingle({ path: MODEL_PATH })
+        const res = await fetch(MODEL_PATH)
+        if (!res.ok) throw new Error('Failed to fetch ' + MODEL_PATH + ' (' + res.status + ')')
+        const blob = await res.blob()
+        const file = new File([blob], MODEL_PATH.split('/').pop() || 'model.glb', { type: 'model/gltf-binary' })
+        const patched = await patchGlbWithDiamondMetadata(file, undefined, { fallbackToFirst: false } as any)
+        const result = await manager.importer.importSingle({ path: file.name, file: patched })
         if (!result) throw new Error('importSingle returned null')
         viewer.scene.addSceneObject(result, { autoScale: false })
         ringModel = result
 
-        if (diamondPluginInstance && metalEnvironment) {
-            diamondPluginInstance.envMap = metalEnvironment
+        if (diamondPluginInstance) {
+            diamondPluginInstance.envMap = gemEnvironment || metalEnvironment
             diamondPluginInstance.forceSceneEnvMap = false
             if (typeof diamondPluginInstance.refreshEnvMaps === 'function') diamondPluginInstance.refreshEnvMaps()
         }
@@ -334,6 +403,20 @@ async function setup() {
             if (controls) controls.update()
             try { const rr = (viewer.renderer as any).rendererObject; if (rr?.shadowMap) rr.shadowMap.needsUpdate = true } catch {}
             viewer.setDirty()
+        })
+
+        // ---- metal color control UI ----
+        const panel = document.getElementById('metal-panel') as HTMLElement
+        const colorInput = document.getElementById('metal-color') as HTMLInputElement
+        panel?.querySelectorAll('.swatch').forEach((sw: any) => {
+            sw.addEventListener('click', () => {
+                const hex = sw.getAttribute('data-color') as string
+                if (colorInput) colorInput.value = hex
+                setMetalColor(hex)
+            })
+        })
+        colorInput?.addEventListener('input', (e: any) => {
+            setMetalColor(e.target.value)
         })
 
     } catch (err) {

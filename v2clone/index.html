@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0"
+    />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/gh/repalash/gilroy-free-webfont@master/Gilroy-Extrabold.css"
+      rel="stylesheet"
+    />
+    <title>iJewel3d Playground V2</title>
+    <meta name="description" content="iJewel3D Playground - An interactive 3D jewelry design tool." />
+    <meta
+      name="keywords"
+      content="3D, jewelry, design, interactive, rendering, iJewel3D, three.js, webgi, pixotronics"
+    />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W1KSP9Y4Q3"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', 'G-W1KSP9Y4Q3');
+    </script>
+    <!-- End Google tag (gtag.js) -->
+
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+          'gtm.start': new Date().getTime(),
+          event: 'gtm.js',
+        });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != 'dataLayer' ? '&l=' + l : '';
+        j.async = true;
+        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', 'GTM-KK72HM9D');
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <style>
+      .card {
+        padding: 2em;
+        color: #222;
+      }
+
+      .loader {
+        width: 48px;
+        height: 48px;
+        border: 5px solid #333;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+      }
+
+      @keyframes rotation {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .font-inter {
+        font-family: 'Inter', sans-serif !important;
+      }
+
+      .font-gilroy {
+        font-family: 'Gilroy', sans-serif !important;
+      }
+
+      :root {
+        font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+        line-height: 1.5;
+        font-weight: 400;
+
+        color-scheme: light dark;
+        color: rgba(255, 255, 255, 0.87);
+        background-color: #242424;
+
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: white;
+        display: flex;
+        place-items: center;
+        min-width: 320px;
+        min-height: 100vh;
+      }
+
+      #overlay {
+        width: 100%;
+        height: 100vh;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        place-items: center;
+        align-items: center;
+        justify-content: center;
+        /* padding: 2rem; */
+        text-align: center;
+        z-index: 100000;
+        background: white;
+        transition: opacity ease 500ms;
+        position: absolute;
+      }
+
+      .logo {
+        height: 6em;
+        padding-left: 4rem;
+        will-change: filter;
+        transition: filter 300ms;
+      }
+
+      .logo:hover {
+        filter: drop-shadow(0 0 2em #646cffaa);
+      }
+    </style>
+    <script>if('serviceWorker'in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){})})}</script>
+    <script type="module" crossorigin src="assets/index-BqPefU4L.js"></script>
+  </head>
+
+  <body>
+    <noscript>
+      <div>
+        <h1>iJewel3D Playground</h1>
+        <p>
+          Welcome to the iJewel3D Playground. This interactive tool allows you to design 3D jewelry. Please
+          enable JavaScript to use the full functionality of the site.
+        </p>
+      </div>
+    </noscript>
+
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-KK72HM9D"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <div id="overlay">
+      <div>
+        <a href="https://ijewel3d.com" target="_blank" style="display: block">
+          <img src="logo_black.svg" class="logo" alt="iJewel3D Playground" />
+        </a>
+        <div class="card">Loading Playground</div>
+        <span class="loader"></span>
+      </div>
+    </div>
+    <div id="root" style="width: 100vw; height: 100vh; display: flex"></div>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"338ab206732e49a1939a0da8a2024d1a","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

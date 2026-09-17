@@ -1,0 +1,10 @@
+const fs = require('fs');
+const js = fs.readFileSync('v2clone/assets/index-BqPefU4L.js', 'utf8');
+const re = /(?:["'])([^"' \\]*assets\/[A-Za-z0-9_\-.%]+\.(?:js|css))(?:["'])/g;
+const refs = [...new Set(js.match(re) || [])].map(x => x.replace(/^["']|["']$/g, ''));
+const re2 = /(["'])\.\/assets\/([A-Za-z0-9_\-]+\.js)\1/g;
+const lazy = [...new Set(js.match(re2) || [])].map(x => x.replace(/^["']|["']$/g, ''));
+console.log('refs chunk-relative:', refs);
+console.log('lazy:', lazy);
+const abs = (js.match(/\/v2\/assets\/[A-Za-z0-9_\-\.]+(?:js|css)/g) || []);
+console.log('abs /v2/assets:', [...new Set(abs)]);

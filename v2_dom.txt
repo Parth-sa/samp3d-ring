@@ -1,0 +1,13 @@
+noscript "<div>
+        <h1>iJewel3D Playground</h"
+noscript "<iframe
+        src="https://www.googlet"
+div#overlay
+  div
+    a
+      img.logo
+    div.card "Loading Playground"
+    span.loader
+div#root
+script
+script

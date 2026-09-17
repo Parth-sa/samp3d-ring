@@ -1,0 +1,13 @@
+const fs = require('fs');
+let s = fs.readFileSync('src/ring-editor.ts', 'utf8');
+const old1 = "if (r && this.selectedObj) collect(this.selectedObj)\n        else if (this.ringModel) collect(this.ringModel)";
+const new1 = "if (r && this.selectedObj) collect(this.selectedObj)\n        else collect(this.modelTree())";
+s = s.split(old1).join(new1);
+const old2 = "const walk = (o: any) => { if (!o) return; if (o.isMesh && /diamond|gem|stone|solit/i.test(o.name)) n++; (o.children || []).forEach(walk) }\n        if (this.ringModel) walk(this.ringModel)";
+const new2 = "const walk = (o: any) => { if (!o) return; if (o.isMesh && /diamond|gem|stone|solit/i.test(o.name)) n++; (o.children || []).forEach(walk) }\n        walk(this.modelTree())";
+s = s.split(old2).join(new2);
+const old3 = "const walk = (o: any) => { if (!o) return; if (o.isMesh && o.material && /diamond|gem|stone|solit/i.test(o.name)) mats.push(o.material); (o.children || []).forEach(walk) }\n        if (this.ringModel) walk(this.ringModel)";
+const new3 = "const walk = (o: any) => { if (!o) return; if (o.isMesh && o.material && /diamond|gem|stone|solit/i.test(o.name)) mats.push(o.material); (o.children || []).forEach(walk) }\n        walk(this.modelTree())";
+s = s.split(old3).join(new3);
+fs.writeFileSync('src/ring-editor.ts', s);
+console.log('done');

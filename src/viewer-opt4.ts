@@ -83,6 +83,9 @@ let metalEnvironment: any = null
 
 // ---- CAMERA: 3DJV / Option 1 style via WebGI built-in OrbitControls ----
 const DEFAULT_FOV = 45
+const fitFactor = parseFloat(initialUrlParams.get('fit') || '') || 1.15
+const modelScaleFactor = 1 / fitFactor
+let framingUntil = 0
 let controls: any = null
 let minRadius = 4
 let maxRadius = 15
@@ -302,7 +305,8 @@ function frameModel() {
     const s = 1.4 * r
     minRadius = Math.max(s, 0.7 * d)
     maxRadius = Math.max(s, 3 * d)
-    fitDistance = d * 1.15
+    fitDistance = d * fitFactor
+    framingUntil = Date.now() + 2200
 
     const cam = viewer.scene.activeCamera
     const co = cam.cameraObject
@@ -322,6 +326,10 @@ function frameModel() {
         raw.position.set(0, fitDistance * 0.35, fitDistance)
         controls.update()
     }
+    if (modelScaleFactor !== 1) {
+        root.scale.multiplyScalar(modelScaleFactor)
+        root.updateMatrixWorld?.(true)
+    }
     cam.setDirty?.()
     viewer.setDirty()
 }
@@ -335,7 +343,7 @@ async function setup() {
         if (r) {
             r.shadowMap.enabled = true; r.shadowMap.type = 1
             r.physicallyCorrectLights = true; r.outputEncoding = 3001
-            r.toneMapping = 4; r.toneMappingExposure = 1.2
+            r.toneMapping = 4; r.toneMappingExposure = 1.3
         }
         const _dpr = window.devicePixelRatio || 1
         ;(viewer.renderer as any).displayCanvasScaling = Math.min(Math.max(_dpr, 2), 2.5)
@@ -346,14 +354,14 @@ async function setup() {
         await viewer.addPlugin(GBufferPlugin)
         const pp = await viewer.addPlugin(ProgressivePlugin)
         const tonemap = await viewer.addPlugin(TonemapPlugin)
-        if (tonemap) { tonemap.exposure = 1.16; tonemap.saturation = 1.91; tonemap.contrast = 1.48 }
+        if (tonemap) { tonemap.exposure = 1.3; tonemap.saturation = 1.35; tonemap.contrast = 1.15 }
         const ssao = await viewer.addPlugin(SSAOPlugin)
-        if (ssao) (ssao as any).intensity = 0.25
+        if (ssao) (ssao as any).intensity = 0.1
         try { await viewer.addPlugin(EXRLoadPlugin) } catch (e) { console.warn('EXRLoadPlugin', e) }
         try { await viewer.addPlugin(FrameFadePlugin) } catch {}
         try { await viewer.addPlugin(TemporalAAPlugin) } catch {}
-        try { const bl = await viewer.addPlugin(BloomPlugin) as any; if (bl) { bl.intensity = 0.16; bl.threshold = 0.92 } } catch {}
-        try { const vg = await viewer.addPlugin(VignettePlugin) as any; if (vg) vg.power = 0.78 } catch {}
+        try { const bl = await viewer.addPlugin(BloomPlugin) as any; if (bl) { bl.intensity = 0.1; bl.threshold = 0.95 } } catch {}
+        try { const vg = await viewer.addPlugin(VignettePlugin) as any; if (vg) vg.power = 0 } catch {}
 
         try { const dp = await viewer.addPlugin(DiamondPlugin); if (dp) (dp as any).forceSceneEnvMap = false; diamondPluginInstance = dp } catch {}
 
@@ -371,7 +379,7 @@ async function setup() {
         key.shadow.camera.near = 0.1; key.shadow.camera.far = 100
         key.shadow.camera.left = -20; key.shadow.camera.right = 20
         key.shadow.camera.top = 20; key.shadow.camera.bottom = -20
-        const ambient = new AmbientLight(0xffffff, 0.5)
+        const ambient = new AmbientLight(0xffffff, 0.7)
         ;(viewer.scene as any).add(key); (viewer.scene as any).add(ambient)
 
         const cam = viewer.scene.activeCamera
@@ -384,14 +392,16 @@ async function setup() {
         try { (viewer.renderer as any).stableNoise = true } catch {}
 
         // load metal env for the scene (lights metal)
-        const envSrc = runtimeConfig.environmentPath || './assets/env_metal_001.hdr'
+        const envSrc = initialUrlParams.get('env')
+            ? decodeURIComponent(initialUrlParams.get('env') as string)
+            : runtimeConfig.environmentPath || './assets/env_metal_001.hdr'
         try {
             const manager = viewer.getPlugin(AssetManagerPlugin) as any
             const env = await manager.importer.importSinglePath(envSrc)
             if (env && env.assetType === 'texture') {
                 await viewer.scene.setEnvironment(env)
                 metalEnvironment = env
-                viewer.scene.envMapIntensity = 1.6
+                viewer.scene.envMapIntensity = 1.9
                 if (typeof viewer.scene.refreshEnvMapIntensity === 'function') viewer.scene.refreshEnvMapIntensity()
             }
         } catch (e) { console.warn('env import', e) }
@@ -438,6 +448,11 @@ async function setup() {
         // ---- preFrame: drive WebGI built-in OrbitControls (damping, orbit, no autorotate) ----
         viewer.addEventListener('preFrame', () => {
             if (!modelLoaded) return
+            if (Date.now() < framingUntil) {
+                const _cam = viewer.scene.activeCamera
+                const _co = _cam.cameraObject || _cam
+                _co.position.set(0, fitDistance * 0.35, fitDistance)
+            }
             if (controls) controls.update()
             try { const rr = (viewer.renderer as any).rendererObject; if (rr?.shadowMap) rr.shadowMap.needsUpdate = true } catch {}
             viewer.setDirty()

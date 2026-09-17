@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Larajewels Virtual Try-On</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #101010; font-family: Arial, Helvetica, sans-serif; }
+    #stage { position: fixed; inset: 0; background: #000; }
+    #cam, #gl { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+    body.mirror #cam, body.mirror #gl { transform: scaleX(-1); }
+
+    #hero {
+        position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 26px; text-align: center;
+        background: radial-gradient(120% 120% at 50% 30%, #2b2b2b 0%, #101010 70%);
+        transition: opacity .5s ease;
+    }
+    #hero.done { opacity: 0; pointer-events: none; }
+
+    /* Mirror handled inside the WebGL backdrop for correctness; the raw #cam
+       element is hidden and only used as the source stream. #gl owns the view. */
+    #cam { display: block; position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; visibility: hidden; }
+    #gl { transform: none !important; }
+    #hero .brand { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #fff; }
+    #hero .sub { font-size: 11px; letter-spacing: .34em; text-transform: uppercase; color: #b98a2f; margin-top: 6px; }
+    #tryItOn {
+        cursor: pointer; border: none; background: #b98a2f; color: #fff; font-size: 15px;
+        font-weight: 700; letter-spacing: .1em; padding: 17px 42px; border-radius: 999px;
+        box-shadow: 0 10px 40px rgba(185,138,47,.35); transition: transform .15s, background .15s;
+    }
+    #tryItOn:hover { transform: scale(1.05); background: #c99a38; }
+    #hero .hint { font-size: 12px; color: #aaa; max-width: 320px; line-height: 1.6; }
+    #viewerLink { color: #b98a2f; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 12px; letter-spacing: .06em; }
+
+    .panel {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+        background: linear-gradient(0deg, rgba(15,15,15,.94) 0%, rgba(15,15,15,.55) 60%, transparent 100%);
+        padding: 12px 16px 16px; display: none;
+    }
+    .panel.show { display: block; }
+    .row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .title { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.6); align-self: center; }
+    .metal-option { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+    .metal-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); transition: transform .12s, border-color .12s; }
+    .metal-option.active .metal-swatch { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.22); transform: scale(1.1); }
+    .metal-option .name { font-size: 10px; color: rgba(255,255,255,.8); }
+    .metal-option.active .name { color: #fff; font-weight: 700; }
+
+    #bootMsg { position: fixed; inset: auto; display: none; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+    <video id="cam" playsinline muted autoplay></video>
+    <canvas id="gl"></canvas>
+</div>
+
+<div id="hero">
+    <div>
+        <div class="brand">Larajewels</div>
+        <div class="sub">Virtual Try-On</div>
+    </div>
+    <button id="tryItOn">TRY IT ON</button>
+    <div class="hint">See this engagement ring on your hand in real time — change gold color while wearing it, then capture a photo.</div>
+    <button id="viewerLink">Continue in 3D Viewer →</button>
+</div>
+
+<div id="tryon-mount"></div>
+
+<div class="panel" id="metalPanel">
+    <div class="row">
+        <span class="title">Metal</span>
+        <span class="metal-option active" data-color="#c2c2c3"><span class="metal-swatch" style="background:#c2c2c3"></span><span class="name">Platinum</span></span>
+        <span class="metal-option" data-color="#e8eaed"><span class="metal-swatch" style="background:#e8eaed"></span><span class="name">White</span></span>
+        <span class="metal-option" data-color="#d4af37" data-overrides='{"envIntensity":2.4,"specularIntensity":1.35,"roughness":0.05,"clearcoat":0.15,"clearcoatRoughness":0.09,"emissive":"#2b1d05"}'><span class="metal-swatch" style="background:radial-gradient(circle at 30% 30%,#f6d96b 0%,#d4af37 55%,#a67c00 100%)"></span><span class="name">Yellow</span></span>
+        <span class="metal-option" data-color="#e8a48c"><span class="metal-swatch" style="background:#e8a48c"></span><span class="name">Rose</span></span>
+        <span class="metal-option" data-color="#181818" data-overrides='{"envIntensity":4.2,"specularIntensity":1.6,"clearcoat":1,"clearcoatRoughness":0.08}'><span class="metal-swatch" style="background:#181818;background-image:linear-gradient(135deg,#181818 40%,#4a4a50 60%,#181818)"></span><span class="name">Black</span></span>
+    </div>
+</div>
+<div class="panel" id="gemPanel">
+    <div class="row">
+        <span class="title">Stone</span>
+        <span class="metal-option active" data-gem="#ffffff" data-rx='{"ior":2.41,"transmission":0.92,"envIntensity":2.8,"dispersion":0.015,"attenuationColor":"#ffffff"}'><span class="metal-swatch" style="background:#ffffff"></span><span class="name">White</span></span>
+        <span class="metal-option" data-gem="#f4d03f" data-rx='{"envIntensity":2.6,"attenuationColor":"#f4d03f"}'><span class="metal-swatch" style="background:#f4d03f"></span><span class="name">Canary</span></span>
+        <span class="metal-option" data-gem="#f5a0b8" data-rx='{"envIntensity":2.6,"attenuationColor":"#f5a0b8"}'><span class="metal-swatch" style="background:#f5a0b8"></span><span class="name">Pink</span></span>
+        <span class="metal-option" data-gem="#5dade2" data-rx='{"envIntensity":2.6,"attenuationColor":"#5dade2"}'><span class="metal-swatch" style="background:#5dade2"></span><span class="name">Blue</span></span>
+        <span class="metal-option" data-gem="#50c878" data-rx='{"envIntensity":2.6,"attenuationColor":"#50c878"}'><span class="metal-swatch" style="background:#50c878"></span><span class="name">Emerald</span></span>
+        <span class="metal-option" data-gem="#e0115f" data-rx='{"envIntensity":2.6,"attenuationColor":"#e0115f"}'><span class="metal-swatch" style="background:#e0115f"></span><span class="name">Ruby</span></span>
+        <span class="metal-option" data-gem="#9966cc" data-rx='{"envIntensity":2.6,"attenuationColor":"#9966cc"}'><span class="metal-swatch" style="background:#9966cc"></span><span class="name">Amethyst</span></span>
+        <span class="metal-option" data-gem="#d4a574" data-rx='{"envIntensity":2.4,"attenuationColor":"#d4a574"}'><span class="metal-swatch" style="background:#d4a574"></span><span class="name">Cognac</span></span>
+    </div>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+<script type="module">
+import VirtualTryOnManager from './tryon/VirtualTryOnManager.js';
+
+const $ = (id) => document.getElementById(id);
+
+const ENGINE_URL = 'https://ring-options.pages.dev/ring-clean';
+
+const PRODUCT = {
+    id: 'LRS-02',
+    modelUrl: './assets/LRS-02.glb',
+    envUrl: './assets/env_metal_studio.hdr',
+    physicalDimensions: {
+        innerDiameterMM: 17.8,
+        outerDiameterMM: 20.2,
+        bandWidthMM: 1.9,
+        stoneLengthMM: 6.3,
+        stoneWidthMM: 6.3
+    },
+    tryOn: {
+        enabled: true,
+        finger: 'ring',
+        modelAxis: 'y',
+        anchorRatio: 0.5,
+        positionOffset: { x: 0, y: 0, z: 0 },
+        rotationOffset: { x: 0, y: 0, z: 0 },
+        scaleMultiplier: 1.0,
+        minScale: 0.35,
+        maxScale: 3
+    }
+};
+
+const vto = new VirtualTryOnManager({
+    product: PRODUCT,
+    mount: $('tryon-mount'),
+    video: $('cam'),
+    canvas: $('gl'),
+    cameraPrefer: 'back',
+    exitUrl: ENGINE_URL,
+    diag: true
+});
+
+vto.preload().then(() => {
+    if (location.search.indexOf('autostart') >= 0) {
+        $('hero').classList.add('done');
+        vto.show();
+        vto.start();
+    }
+}).catch((e) => console.warn('preload', e));
+
+$('tryItOn').addEventListener('click', () => {
+    $('hero').classList.add('done');
+    vto.show();
+});
+
+$('viewerLink').addEventListener('click', () => { location.href = ENGINE_URL; });
+
+// live metal customization while wearing the ring
+const metalRow = document.querySelectorAll('#metalPanel .metal-option');
+metalRow.forEach((opt) => {
+    opt.addEventListener('click', () => {
+        metalRow.forEach((o) => o.classList.remove('active'));
+        opt.classList.add('active');
+        let ov = null;
+        try { ov = JSON.parse(opt.getAttribute('data-overrides') || 'null'); } catch (e) {}
+        vto.setMetalProfile(opt.getAttribute('data-color'), ov);
+    });
+});
+
+// ijewel stone (diamond/gem) customization
+const gemRow = document.querySelectorAll('#gemPanel .metal-option');
+gemRow.forEach((opt) => {
+    opt.addEventListener('click', () => {
+        gemRow.forEach((o) => o.classList.remove('active'));
+        opt.classList.add('active');
+        let rx = {};
+        try { rx = JSON.parse(opt.getAttribute('data-rx') || '{}'); } catch (e) {}
+        vto.setDiamondConfig({ color: opt.getAttribute('data-gem'), ior: 2.41, transmission: 0.92, envIntensity: 2.8, rx });
+    });
+});
+
+function showMetalPanel() {
+    $('metalPanel').classList.add('show');
+    $('gemPanel').classList.add('show');
+    if (/debug|cal=/.test(location.search)) vto.openCalibration();
+}
+setTimeout(showMetalPanel, 1200);
+
+window.__tryOn = {
+    setMetal: (hex, ov) => vto.setMetalProfile(hex, ov || null),
+    setDiamond: (cfg) => vto.setDiamondConfig(cfg),
+    setCalibration: (c) => vto.setCalibration(c),
+    openCalibration: () => vto.openCalibration(),
+    setOcclusion: (on) => vto.setOcclusion(!!on),
+    close: () => vto.close(),
+    instance: vto
+};
+
+// occlusion & lighting tuned to studio env defaults
+// ijewel-profile diamond defaults (Cartier-grade): dispersion + attenuation + sparkle
+vto.setDiamondConfig({ color: '#ffffff', ior: 2.41, transmission: 0.92, envIntensity: 2.8, rx: { dispersion: 0.015, attenuationColor: '#ffffff', thickness: 1.4, specularIntensity: 1.2 } });
+</script>
+<script>
+(function(){var d=document.createElement('div');d.style.cssText='position:fixed;left:6px;bottom:6px;z-index:999;display:none;max-width:70vw;max-height:36vh;overflow:auto;background:rgba(18,18,18,.95);border:1px solid #ff5f56;color:#ff9d97;border-radius:10px;padding:6px 10px;font:10.5px ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;cursor:pointer';document.body.appendChild(d);var n=0;function a(m){n++;d.style.display='block';d.textContent='#'+n+' '+m;};window.addEventListener('error',function(e){a('onerror: '+(e.message||e.type));return false;},true);window.addEventListener('unhandledrejection',function(e){var r=e.reason;a('rejection: '+(r&&r.message?r.message:String(r)));});var oe=console.error.bind(console);console.error=function(){try{oe.apply(console,arguments)}catch(_){} try{a(Array.prototype.slice.call(arguments).map(function(x){return x instanceof Error?x.message:typeof x==='object'&&x?JSON.stringify(x):String(x)}).join(' ').slice(0,500))}catch(_){}};d.addEventListener('click',function(){d.style.display='none'});})();
+</script>
+</body>
+</html>

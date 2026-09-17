@@ -1,0 +1,90 @@
+noscript "<div>
+        <h1>iJewel3D Playground</h"
+noscript "<iframe
+        src="https://www.googlet"
+div#overlay
+  div
+    a
+      img.logo
+    div.card "Loading Playground"
+    span.loader
+div#root
+  div
+    div#_rht_toaster
+    div.h-screen.w-screen.relative
+      header.flex.items-center.justify-between
+        div.flex.items-center.h-full
+          a.mr-3.sm:mr-8.h-full
+            img.h-full
+          nav.hidden.sm:flex.gap-x-unit-lg
+            a.z-0.group.relative
+              svg
+                path
+              span.block.lg:ml-3 "Explore"
+        div.flex.items-center.justify-end
+          div.flex.justify-end.
+            button#react-aria8954768849-:r11:.group.relative.items-center
+          button.z-0.group.relative
+            svg
+              path
+            span.block.lg:ml-3 "Share"
+      div..h-full.overflow-hidden
+        div.w-full.h-full
+          div#webgi-canvas-container.w-full.h-full.flex
+            div.w-full.h-full
+              div#mini-editor-wrapper.w-screen.h-full.!font-inter
+                div.flex.relative.w-full
+                  div#modes-tabs.w-auto.flex.h-full
+                    div.h-full.flex.justify-center
+                      div.w-unit-xs.h-unit-4xl.rounded-lg
+                    div.h-full.flex.flex-col
+                      div.w-full.text-default-foreground.font-inherit
+                        div
+                        p.flex.items-center.gap-unit-md "Viewer"
+                        button.z-0.group.relative
+                      div.flex.h-full.items-start
+                        div#tweakpaneMainPanelSlot.z-10.rounded-small.h-full
+                    div.w-[50px].flex.flex-col
+                      div.bg-primary.absolute.w-full
+                      div.inline-flex.w-full.h-full
+                        div#react-aria7285300385-:r9:.items-center.flex-nowrap.overflow-x-scroll
+                          [12 children]
+                      div
+                  div#canvas-wrapper.flex-1.h-full.overflow-hidden
+                    div
+                    div#dropzone-bg.w-full.h-full.overflow-hidden
+                      button.group.inline-flex.items-center
+                        div.w-8.h-8.p-2
+                      div.z-10.w-full.flex
+                        div..flex.flex-col
+                        div.flex.flex-col.items-center
+                      img.w-full.h-full.object-cover
+                    div#webgi-mini-editor-canvas-container.w-full.h-full.text-center
+                      [11 children]
+                    div.w-full.h-full.flex-col
+                      div.relative.w-full.h-full
+                        div.absolute.top-[-500px].flex
+                        div.w-unit-9xl.absolute.top-0
+                  div#editor-tabs.flex.h-full.overflow-visible
+                    div.h-full.flex.items-center
+                    div.list-container.h-full.flex
+                      div.overflow-y-auto.data-[top-scroll=true]:[mask-image:linear-gradient(0deg,#000_calc(100%_-_var(--scroll-shadow-size)),transparent)].data-[bottom-scroll=true]:[mask-image:linear-gradient(180deg,#000_calc(100%_-_var(--scroll-shadow-size)),transparent)]
+                        p.text-default-foreground.font-inherit.!text-sm
+                        div.flex.h-fit.items-start
+                    div#menu-tabs-container.w-[50px].flex.flex-col
+script
+script
+script
+script
+script
+div.mode-buttons-container.button-bar
+  div.mode-button.button-bar-button.mode-button-selected "Viewer"
+  div.mode-button.button-bar-button "Picking"
+  div.mode-button.button-bar-button "Scene"
+  div.mode-button.button-bar-button "Anti-aliasing"
+  div.mode-button.button-bar-button "Post Processing"
+  div.mode-button.button-bar-button "Export"
+  div.mode-button.button-bar-button "Animations"
+  div.mode-button.button-bar-button "Modifiers"
+  div.mode-button.button-bar-button "Configurators"
+  div.mode-button.button-bar-button "Plugins"

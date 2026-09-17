@@ -1,0 +1,2499 @@
+{
+  "version": "0.9.13",
+  "type": "ViewerApp",
+  "metadata": {
+    "generator": "WebGiViewerApp",
+    "version": 1
+  },
+  "plugins": [
+    {
+      "exportOptions": {
+        "compress": false,
+        "name": "ss-001",
+        "viewerConfig": true,
+        "encodeUint16Rgbe": false,
+        "convertMeshToIndexed": false,
+        "embedUrlImagePreviews": false,
+        "embedUrlImages": false,
+        "dracoOptions": {
+          "encodeSpeed": 5,
+          "method": 1,
+          "quantizationVolume": "mesh",
+          "quantizationBits": {
+            "POSITION": 14,
+            "NORMAL": 10,
+            "COLOR": 8,
+            "TEX_COORD": 12,
+            "GENERIC": 12
+          }
+        },
+        "encrypt": false,
+        "encryptKey": ""
+      },
+      "type": "AssetExporterPlugin"
+    },
+    {
+      "type": "GLTFDracoExportPlugin"
+    },
+    {
+      "enabled": true,
+      "type": "LoadingScreenPlugin"
+    },
+    {
+      "enabled": false,
+      "type": "CannonPhysics"
+    },
+    {
+      "enabled": true,
+      "autoFocus": false,
+      "type": "Picking"
+    },
+    {
+      "enabled": true,
+      "type": "GBuffer",
+      "pass": {}
+    },
+    {
+      "maxFrameCount": 32,
+      "jitter": true,
+      "type": "Progressive",
+      "passes": {
+        "progressive": {
+          "enabled": true
+        }
+      }
+    },
+    {
+      "extension": {
+        "enabled": false,
+        "aberrationIntensity": 0.01
+      },
+      "enabled": true,
+      "type": "ChromaticAberration"
+    },
+    {
+      "extension": {
+        "toneMapping": 4,
+        "tonemapBackground": false,
+        "clipBackground": false,
+        "exposure": 1,
+        "saturation": 1,
+        "contrast": 1.1
+      },
+      "enabled": true,
+      "type": "Tonemap"
+    },
+    {
+      "extension": {
+        "enabled": false,
+        "lutBackground": false,
+        "intensity": 1
+      },
+      "enabled": true,
+      "type": "LUTPlugin1"
+    },
+    {
+      "extension": {
+        "enabled": false,
+        "power": 0.5,
+        "bgcolor": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "isColor": true
+        }
+      },
+      "enabled": true,
+      "type": "Vignette"
+    },
+    {
+      "extension": {
+        "enabled": false,
+        "grainMultiply": false,
+        "grainIntensity": 10
+      },
+      "enabled": true,
+      "type": "FilmicGrain"
+    },
+    {
+      "extension": {},
+      "enabled": true,
+      "type": "GammaCorrection"
+    },
+    {
+      "type": "SSReflection",
+      "passes": {
+        "ssr": {
+          "intensity": 1,
+          "boost": {
+            "x": 1,
+            "y": 1,
+            "z": 1,
+            "isVector3": true
+          },
+          "objectRadius": 1,
+          "autoRadius": true,
+          "power": 1.1,
+          "tolerance": 0.5,
+          "stepCount": 16,
+          "lowQualityFrames": 0,
+          "maskFrontRays": true,
+          "maskFrontFactor": -0.2,
+          "enabled": true
+        }
+      }
+    },
+    {
+      "type": "SSAO",
+      "passes": {
+        "ssao": {
+          "bilateralPass": {
+            "smoothEnabled": true,
+            "edgeSharpness": 0.1,
+            "enabled": true
+          },
+          "parameters": {
+            "intensity": 0.25,
+            "occlusionWorldRadius": 1,
+            "bias": 0.001,
+            "falloff": 1.3,
+            "edgeSharpness": 0.3,
+            "blurEnabled": true
+          },
+          "enabled": true
+        }
+      }
+    },
+    {
+      "envMap": {
+        "uuid": "8bdf3800-889c-40ce-907f-8206f57d7633",
+        "resource": "textures"
+      },
+      "forceSceneEnvMap": false,
+      "type": "Diamond"
+    },
+    {
+      "enabled": true,
+      "type": "FrameFade",
+      "pass": {
+        "enabled": true
+      }
+    },
+    {
+      "autoIncrementTime": true,
+      "loopAnimations": true,
+      "loopRepetitions": "Infinity",
+      "timeScale": 1,
+      "animationSpeed": 1,
+      "animateOnScroll": false,
+      "animateOnDrag": false,
+      "dragAxis": "y",
+      "autoplayOnLoad": false,
+      "syncMaxDuration": false,
+      "type": "GLTFAnimation"
+    },
+    {
+      "enabled": true,
+      "type": "AnisotropyPlugin"
+    },
+    {
+      "enabled": true,
+      "type": "TriplanarUVMappingPlugin"
+    },
+    {
+      "enabled": true,
+      "type": "ThinFilmLayerPlugin"
+    },
+    {
+      "enabled": true,
+      "type": "FragmentClippingExtensionPlugin1"
+    },
+    {
+      "enabled": true,
+      "type": "NoiseBumpMaterialPlugin"
+    },
+    {
+      "enabled": true,
+      "bicubicFiltering": true,
+      "type": "CustomBumpMapPlugin"
+    },
+    {
+      "enabled": true,
+      "type": "ClearcoatTintPlugin"
+    },
+    {
+      "enabled": false,
+      "type": "VelocityBuffer",
+      "pass": {}
+    },
+    {
+      "enabled": true,
+      "type": "TAA",
+      "pass": {
+        "feedBack": {
+          "x": 0.88,
+          "y": 0.97,
+          "isVector2": true
+        },
+        "enabled": true
+      }
+    },
+    {
+      "cameraViews": [
+        {
+          "position": {
+            "x": 9.669723360065811,
+            "y": 2.5486284927922114,
+            "z": -0.030707418083113062,
+            "isVector3": true
+          },
+          "target": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "isVector3": true
+          },
+          "quaternion": {
+            "x": -0.09071648247452022,
+            "y": 0.7023573810472884,
+            "z": 0.09100502144918633,
+            "w": 0.7001304986692677,
+            "isQuaternion": true
+          },
+          "up": {
+            "x": -0.2548615641945049,
+            "y": 0.9669772117569664,
+            "z": 0.0008093448295902195,
+            "isVector3": true
+          },
+          "name": "side",
+          "serializableClassId": "CameraView"
+        },
+        {
+          "position": {
+            "x": 0.0000099986218919311,
+            "y": 9.999999999994978,
+            "z": -1.6601283734219327e-7,
+            "isVector3": true
+          },
+          "target": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "isVector3": true
+          },
+          "quaternion": {
+            "x": -0.49583206149445164,
+            "y": 0.5041334893608769,
+            "z": 0.5041329852052311,
+            "w": 0.4958325573488004,
+            "isQuaternion": true
+          },
+          "up": {
+            "x": -0.9998621891927788,
+            "y": 0.0000010000444496949259,
+            "z": 0.016601283734213938,
+            "isVector3": true
+          },
+          "name": "top",
+          "serializableClassId": "CameraView"
+        },
+        {
+          "position": {
+            "x": 2.368909759505687,
+            "y": 9.41984089593972,
+            "z": 2.3779958045589686,
+            "isVector3": true
+          },
+          "target": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "isVector3": true
+          },
+          "quaternion": {
+            "x": -0.5326823276339913,
+            "y": 0.3120092107590492,
+            "z": 0.22004721012523085,
+            "w": 0.7553006126993748,
+            "isQuaternion": true
+          },
+          "up": {
+            "x": -0.6648071705214997,
+            "y": 0.33565752628507145,
+            "z": -0.6673570641503574,
+            "isVector3": true
+          },
+          "name": "angle",
+          "serializableClassId": "CameraView"
+        }
+      ],
+      "viewLooping": false,
+      "viewPauseTime": 200,
+      "animEase": "easeInOutSine",
+      "animDuration": 1000,
+      "rotationOffset": 0.25,
+      "interpolateMode": "spherical",
+      "seekOnScroll": false,
+      "type": "CameraViews"
+    },
+    {
+      "enabled": false,
+      "rdLight": {
+        "object": {
+          "uuid": "a733ad08-ee63-46ef-a2f9-f816430cdedb",
+          "type": "DirectionalLight",
+          "castShadow": true,
+          "layers": 0,
+          "matrix": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ],
+          "color": 13430527,
+          "intensity": 1,
+          "shadow": {
+            "bias": -0.001,
+            "radius": 2,
+            "mapSize": [
+              1024,
+              1024
+            ],
+            "camera": {
+              "uuid": "4915fc57-5434-44c3-8661-be37948bd13e",
+              "type": "OrthographicCamera",
+              "layers": 1,
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "zoom": 1,
+              "left": -2,
+              "right": 2,
+              "top": 2,
+              "bottom": -2,
+              "near": -2,
+              "far": 9,
+              "view": {
+                "enabled": true,
+                "fullWidth": 1024,
+                "fullHeight": 1024,
+                "offsetX": -0.25,
+                "offsetY": 0.375,
+                "width": 1024,
+                "height": 1024
+              }
+            }
+          }
+        },
+        "userData": {},
+        "type": "DirectionalLight2",
+        "target": [
+          0,
+          0,
+          -1
+        ],
+        "shadowParams": {
+          "enabled": true,
+          "radius": 2,
+          "width": 1024,
+          "height": 1024,
+          "bias": -0.001,
+          "normalBias": 0,
+          "near": 1.5,
+          "far": 4,
+          "frustumSize": 4
+        },
+        "randomParams": {
+          "focus": 1,
+          "spread": 0.01,
+          "distanceScale": 50,
+          "minDistanceScale": {
+            "x": 10,
+            "y": 10,
+            "z": 10,
+            "isVector3": true
+          },
+          "normalDirection": {
+            "x": 0.010203019316098974,
+            "y": 0.9998958929776994,
+            "z": 0.010203019316098974,
+            "isVector3": true
+          },
+          "direction": {
+            "x": -0.9,
+            "y": 0.5,
+            "z": -1,
+            "isVector3": true
+          }
+        }
+      },
+      "lightLayers": 1,
+      "type": "RandomizedDirectionalLight"
+    },
+    {
+      "enabled": false,
+      "worldRadius": 100,
+      "tripodHeight": 10,
+      "originPosition": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "isVector3": true
+      },
+      "type": "HDRiGroundPlugin"
+    },
+    {
+      "enableEdit": false,
+      "focalPoint": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "isVector3": true
+      },
+      "crossFadeTime": 200,
+      "enabled": false,
+      "type": "DepthOfField",
+      "pass": {
+        "nearFarBlurScale": {
+          "x": 0.25,
+          "y": 0.25,
+          "isVector2": true
+        },
+        "focalDepthRange": {
+          "x": 0.5,
+          "y": 1.5,
+          "isVector2": true
+        },
+        "enabled": false
+      }
+    },
+    {
+      "enabled": false,
+      "radius": 0.015,
+      "intensity": 1,
+      "tolerance": 1.5,
+      "onlySSCSDebug": false,
+      "stepCount": 2,
+      "type": "SSContactShadows"
+    },
+    {
+      "type": "SSGI",
+      "passes": {
+        "ssrtgi": {
+          "bilateralPass": {
+            "smoothEnabled": true,
+            "edgeSharpness": 0.1,
+            "enabled": true
+          },
+          "intensity": 2,
+          "power": 1.1,
+          "autoRadius": true,
+          "objectRadius": 2,
+          "tolerance": 1,
+          "bias": 0.15,
+          "falloff": 0.7,
+          "rayCount": 2,
+          "stepCount": 4,
+          "smoothEnabled": true,
+          "enabled": false
+        }
+      }
+    },
+    {
+      "enabled": false,
+      "type": "NormalBufferPlugin",
+      "pass": {}
+    },
+    {
+      "enabled": false,
+      "type": "SSBevelPlugin",
+      "pass": {
+        "enabled": false
+      }
+    },
+    {
+      "enabled": false,
+      "enableEdit": false,
+      "invert": false,
+      "sensitivity": 0.5,
+      "focalPoint": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "isVector3": true
+      },
+      "damping": 0.5,
+      "cameraView": "",
+      "type": "ParallaxCameraControllerPlugin"
+    },
+    {
+      "enabled": true,
+      "type": "Bloom",
+      "pass": {
+        "threshold": 2,
+        "softThreshold": 0.5,
+        "intensity": 0.2,
+        "bloomIterations": 4,
+        "radius": 0.6,
+        "power": 1,
+        "enabled": true
+      }
+    },
+    {
+      "bakedShadows": true,
+      "groundReflection": false,
+      "physicalReflections": false,
+      "shadowBaker": {
+        "randomizedLight": {
+          "object": {
+            "uuid": "4388faa4-e0b4-4530-8b2f-525108f7bbe5",
+            "type": "DirectionalLight",
+            "castShadow": true,
+            "layers": 32,
+            "matrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ],
+            "color": 16777215,
+            "intensity": 10,
+            "shadow": {
+              "radius": 10,
+              "mapSize": [
+                1024,
+                1024
+              ],
+              "camera": {
+                "uuid": "f34e075f-f20e-4925-9d02-aa8036f7b73e",
+                "type": "OrthographicCamera",
+                "layers": 1,
+                "up": [
+                  0,
+                  1,
+                  0
+                ],
+                "zoom": 1,
+                "left": -2,
+                "right": 2,
+                "top": 2,
+                "bottom": -2,
+                "near": -2,
+                "far": 41,
+                "view": {
+                  "enabled": true,
+                  "fullWidth": 1024,
+                  "fullHeight": 1024,
+                  "offsetX": -0.25,
+                  "offsetY": 0.375,
+                  "width": 1024,
+                  "height": 1024
+                }
+              }
+            }
+          },
+          "userData": {},
+          "type": "DirectionalLight2",
+          "target": [
+            0.32473752069747025,
+            -0.9332239006122425,
+            0.1537488015476269
+          ],
+          "shadowParams": {
+            "enabled": true,
+            "radius": 10,
+            "width": 1024,
+            "height": 1024,
+            "bias": 0,
+            "normalBias": 0,
+            "near": 1.5,
+            "far": 20,
+            "frustumSize": 4
+          },
+          "randomParams": {
+            "focus": 0.6400712089334843,
+            "spread": 1,
+            "distanceScale": 20,
+            "minDistanceScale": {
+              "x": 10,
+              "y": 10,
+              "z": 10,
+              "isVector3": true
+            },
+            "normalDirection": {
+              "x": 0,
+              "y": 1,
+              "z": 0,
+              "isVector3": true
+            },
+            "direction": {
+              "x": -0.00754991027012477,
+              "y": 0.9622504486493761,
+              "z": -0.00754991027012477,
+              "isVector3": true
+            }
+          }
+        },
+        "maxFrameNumber": 400,
+        "smoothShadow": false,
+        "shadowMapType": 0,
+        "groundMapMode": "map",
+        "alphaVignette": false,
+        "alphaVignetteAxis": "xy",
+        "maxBakeCount": "Infinity"
+      },
+      "material": {
+        "uuid": "f91205b1-a229-4691-8bfa-4c25c59ce1d7",
+        "resource": "materials"
+      },
+      "visible": true,
+      "size": 8,
+      "yOffset": 0,
+      "renderToDepth": true,
+      "tonemapGround": false,
+      "limitCameraAboveGround": true,
+      "type": "Ground"
+    },
+    {
+      "type": "InteractionPromptPlugin"
+    },
+    {
+      "extension": {
+        "enabled": true,
+        "enableHighlight": false,
+        "enableDynamicSelection": true,
+        "outlineIntensity": 2,
+        "highlightTransparency": 0.84,
+        "outlineColor": {
+          "r": 0.8148465722120952,
+          "g": 0.2541520943200296,
+          "b": 0.13013647668074665,
+          "isColor": true
+        }
+      },
+      "enabled": true,
+      "type": "Outline"
+    },
+    {
+      "enabled": false,
+      "stepCount": 12,
+      "binaryStepCount": 3,
+      "type": "ReliefParallaxMapping"
+    },
+    {
+      "enabled": false,
+      "overCanvas": true,
+      "type": "CSS3DRenderer"
+    },
+    {
+      "enabled": false,
+      "type": "ObjectRotationPlugin"
+    },
+    {
+      "type": "ShapeTubeExtrudePlugin"
+    },
+    {
+      "applyToMap": true,
+      "applyToBumpMap": false,
+      "applyToAlphaMap": true,
+      "inverseAlphaMap": false,
+      "type": "SimpleTextPlugin"
+    },
+    {
+      "variations": [
+        {
+          "uuid": "Metal 01",
+          "title": "Metal 01",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "c9976d3c-bb51-43ff-8399-a7617c1001a0",
+              "resource": "materials"
+            },
+            {
+              "uuid": "714086ed-7a89-4943-b16a-97d741aa91b5",
+              "resource": "materials"
+            },
+            {
+              "uuid": "cf5b9658-16b5-4ee8-84e4-a192348f5de0",
+              "resource": "materials"
+            }
+          ]
+        },
+        {
+          "uuid": "Metal 02",
+          "title": "Metal 02",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "100154b3-c027-47e2-b6a1-548a5c311ec6",
+              "resource": "materials"
+            },
+            {
+              "uuid": "9514a912-8b3d-45d5-bdd3-de19859bcb0e",
+              "resource": "materials"
+            },
+            {
+              "uuid": "b570938f-82ac-4750-a7e1-464c83fb51de",
+              "resource": "materials"
+            }
+          ]
+        },
+        {
+          "uuid": "Metal 03",
+          "title": "Metal 03",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "de21647d-6172-4e93-bf10-a98ee18d14ec",
+              "resource": "materials"
+            },
+            {
+              "uuid": "8904d52e-e0f7-4acd-b346-7cd959626f38",
+              "resource": "materials"
+            },
+            {
+              "uuid": "07bce701-644f-4c57-9c37-84d8b62df154",
+              "resource": "materials"
+            }
+          ]
+        },
+        {
+          "uuid": "Gem 01",
+          "title": "Gem 01",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "c7a0a7e0-7e28-429e-915d-c8d679b92cf5",
+              "resource": "materials"
+            },
+            {
+              "uuid": "7c317077-10ee-44ea-b938-748035f0de70",
+              "resource": "materials"
+            },
+            {
+              "uuid": "5fd0ed8b-fea6-4434-b29e-5dc6e876d886",
+              "resource": "materials"
+            },
+            {
+              "uuid": "122745f3-d9a6-4b21-9481-4158050914fa",
+              "resource": "materials"
+            },
+            {
+              "uuid": "bf0461fc-2d30-4625-9ab0-fb9419cefdbc",
+              "resource": "materials"
+            }
+          ]
+        },
+        {
+          "uuid": "Gem 02",
+          "title": "Gem 02",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "366ec489-a1ca-459e-8552-a7758122d2ab",
+              "resource": "materials"
+            },
+            {
+              "uuid": "d044d1f8-734a-42b7-8d2f-fbe80122c85e",
+              "resource": "materials"
+            },
+            {
+              "uuid": "db11ee17-2cdf-4588-ad9c-0dc882908d01",
+              "resource": "materials"
+            },
+            {
+              "uuid": "e66b2a3b-9d06-4942-b184-9e61830adf61",
+              "resource": "materials"
+            },
+            {
+              "uuid": "f7442e92-341a-482e-b016-80e495e1de00",
+              "resource": "materials"
+            }
+          ]
+        },
+        {
+          "uuid": "Gem 03",
+          "title": "Gem 03",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "b6dcd844-18a2-48df-b7fb-be007067fb67",
+              "resource": "materials"
+            },
+            {
+              "uuid": "f57217e4-d636-47fc-bd35-e0869b09a6b4",
+              "resource": "materials"
+            },
+            {
+              "uuid": "c10268c8-5647-4691-8540-7b3b73587193",
+              "resource": "materials"
+            },
+            {
+              "uuid": "322086a7-c8a6-4f45-aa55-0517eedd09a5",
+              "resource": "materials"
+            },
+            {
+              "uuid": "6e27bcc8-e407-41fb-ae9e-de04e661870c",
+              "resource": "materials"
+            }
+          ]
+        },
+        {
+          "uuid": "Diamond",
+          "title": "Diamond",
+          "preview": "color",
+          "materials": [
+            {
+              "uuid": "94a3494c-d5cc-4df4-84ea-aa9a815fdcae",
+              "resource": "materials"
+            },
+            {
+              "uuid": "28864320-5ff2-44be-a7e9-5a0dfcc3d74d",
+              "resource": "materials"
+            }
+          ]
+        }
+      ],
+      "type": "MaterialConfiguratorPlugin"
+    },
+    {
+      "variations": [],
+      "type": "SwitchNodePlugin"
+    },
+    {
+      "type": "MaterialLibraryPlugin"
+    },
+    {
+      "convergeMode": true,
+      "mimeType": "video/mp4",
+      "videoFrameRate": 30,
+      "type": "CanvasRecorder"
+    },
+    {
+      "filename": "snapshot.png",
+      "type": "CanvasSnipper"
+    },
+    {
+      "version": 1,
+      "mode": "full",
+      "scale": 1,
+      "type": "RendererParamsUiPlugin"
+    },
+    {
+      "useNormals": true,
+      "chartOptions": {
+        "fixWinding": false,
+        "maxBoundaryLength": 0,
+        "maxChartArea": 0,
+        "maxCost": 2,
+        "maxIterations": 1,
+        "normalDeviationWeight": 2,
+        "normalSeamWeight": 4,
+        "roundnessWeight": 0.009999999776482582,
+        "straightnessWeight": 6,
+        "textureSeamWeight": 0.5,
+        "useInputMeshUvs": false,
+        "serializableClassId": "UChartOptions"
+      },
+      "packOptions": {
+        "bilinear": true,
+        "blockAlign": false,
+        "bruteForce": false,
+        "createImage": false,
+        "maxChartSize": 0,
+        "padding": 0,
+        "resolution": 0,
+        "rotateCharts": true,
+        "rotateChartsToAxis": true,
+        "texelsPerUnit": 0,
+        "serializableClassId": "UPackOptions"
+      },
+      "type": "XAtlasPlugin"
+    }
+  ],
+  "renderManager": {
+    "stableNoise": true,
+    "useLegacyLights": false,
+    "serializableClassId": "RenderManager"
+  },
+  "scene": {
+    "defaultCamera": {
+      "userData": {},
+      "camControls": {
+        "type": "OrbitControls",
+        "dollyZoom": false,
+        "enableDamping": true,
+        "dampingFactor": 0.08,
+        "autoRotate": false,
+        "autoRotateSpeed": 2,
+        "enableZoom": true,
+        "zoomSpeed": 0.15,
+        "maxZoomSpeed": 0.2,
+        "enableRotate": true,
+        "rotateSpeed": 2,
+        "enablePan": true,
+        "panSpeed": 1,
+        "autoPushTarget": false,
+        "autoPullTarget": false,
+        "minDistance": 0.35,
+        "maxDistance": 1000,
+        "minZoom": 0.01,
+        "maxZoom": 1000,
+        "minPolarAngle": 0,
+        "maxPolarAngle": 3.141592653589793,
+        "minAzimuthAngle": -10000,
+        "maxAzimuthAngle": 10000,
+        "clampMin": {
+          "x": -10000,
+          "y": -10000,
+          "z": -10000,
+          "isVector3": true
+        },
+        "clampMax": {
+          "x": 10000,
+          "y": 10000,
+          "z": 10000,
+          "isVector3": true
+        },
+        "screenSpacePanning": true,
+        "keyPanSpeed": 7
+      },
+      "camOptions": {
+        "type": "PerspectiveCamera",
+        "aspect": "auto",
+        "focus": 10,
+        "fov": 25,
+        "zoom": 1,
+        "frustumSize": 1,
+        "top": 1,
+        "bottom": -1,
+        "left": -1,
+        "right": 1,
+        "controlsMode": "orbit",
+        "controlsEnabled": true
+      },
+      "position": {
+        "x": 2.368909759505687,
+        "y": 9.41984089593972,
+        "z": 2.3779958045589686,
+        "isVector3": true
+      },
+      "target": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "isVector3": true
+      }
+    },
+    "envMapIntensity": 1,
+    "fixedEnvMapDirection": true,
+    "backgroundIntensity": 1,
+    "environment": {
+      "uuid": "b9e9cad0-bdd5-4945-87f5-fe5686466f50",
+      "resource": "textures"
+    },
+    "background": null,
+    "backgroundColor": {
+      "r": 1,
+      "g": 1,
+      "b": 1,
+      "isColor": true
+    }
+  },
+  "backgroundIntensity": 1,
+  "useLegacyLights": false,
+  "background": {
+    "r": 1,
+    "g": 1,
+    "b": 1,
+    "isColor": true
+  },
+  "resources": {
+    "geometries": {},
+    "materials": {
+      "f91205b1-a229-4691-8bfa-4c25c59ce1d7": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "f91205b1-a229-4691-8bfa-4c25c59ce1d7",
+        "type": "MeshStandardMaterial2",
+        "name": "BaseGroundMaterial",
+        "color": 16777215,
+        "roughness": 1,
+        "metalness": 0,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "opacity": 0.95,
+        "transparent": true,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "runtimeMaterial": true,
+          "renderToDepth": true,
+          "postTonemap": false,
+          "ssaoDisabled": true,
+          "sscsDisabled": true,
+          "ssreflDisabled": false,
+          "ssreflNonPhysical": true,
+          "gMapMode": "map",
+          "ALPHA_I_RGBA_PACKING": false,
+          "_7a060e64-fa5e-48fb-a536-e2328c8b8f2e_version": 5,
+          "_c49bea25-c782-418d-9c4e-2f03281063ca_version": 23,
+          "_8448a6b1-a38a-4cc9-9037-a7f47f3b0598_version": 6,
+          "_0ca8ae15-e9a9-4b78-901a-3b80e7e6c31d_version": 1,
+          "_67712192-1fe1-4571-910e-c813998dd6bd_version": 4,
+          "_1ed7e963-b37a-44a9-9f3b-c635448332ed_version": 2,
+          "_260262c6-a537-4f5b-8801-c370f625b28a_version": 1,
+          "_86b43b5d-f327-451e-99cc-6a11140d3699_version": 2,
+          "_7ce9de72-5791-4431-acc1-367fd0ea9b37_version": 2,
+          "_3e69ba78-e4ac-4dfe-9a44-fbb49e14ce42_version": 4,
+          "_a94977ac-c249-431f-8503-ccd0186c30a5_version": 1,
+          "_3cff6f03-9c12-4144-8a5f-32cf32bcd309_version": 4,
+          "enableLUT": true,
+          "_1330dca6-50c1-4ad5-9ddf-fdbc76d67b52_version": 6,
+          "_79f96ea4-ec72-4356-a3d1-892f70a308cb_version": 4,
+          "_dcefbebb-1554-4227-acb7-0880988f0fe4_version": 9,
+          "_0f5c4465-2b63-44d6-9b3d-e8806dd9c552_version": 6,
+          "_526d341b-b6ee-4846-8618-8c9bfafc3706_version": 3,
+          "_c3a1706d-5328-47a8-a71c-eff8f660dfb1_version": 1,
+          "_3af7e85a-937b-4b28-a02d-69270737da2e_version": 1,
+          "_557deb3e-5004-4acf-b4ce-e13668eb7633_version": 1,
+          "_37c50b9f-062c-4a2d-ab71-bac34d5d14f9_version": 1,
+          "_ba696b80-1440-4a42-ab65-660b3579f0af_version": 1,
+          "_d7cf1500-e61c-4a9b-820e-ce8c1806a6e3_version": 1,
+          "_574dfb31-59c1-42c2-9db4-9e4bc8d3d612_version": 1,
+          "_8d0b7e71-3be8-4445-a674-3c04cbccb714_version": 1,
+          "_a5e3f2b6-2c7c-42b6-8c39-2175397fab46_version": 1,
+          "_28bf8030-850d-4037-ba0d-07eb748cf9fd_version": 1,
+          "_182caea6-3a61-4d51-a0b7-271d892fdc7d_version": 1,
+          "_9a376e0e-7c97-4677-85b7-8867226d6b4a_version": 1,
+          "_0cc5741e-8bac-4434-875c-4b3db120bea9_version": 1,
+          "_b256468d-05c6-4d0c-b060-50d26473329f_version": 1,
+          "_060a124a-1b7d-4cf1-8cc6-ebc401ac8d33_version": 1,
+          "_3d1ee1bf-1d7c-4b8c-9170-3caf38a942f1_version": 1,
+          "_6ce09e38-d70f-4cae-9c96-5a35d29cae4b_version": 1,
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "_b5e836b7-d8f7-484c-8b44-cdb7e4830c83_version": 1,
+          "_737fcca1-7d3d-433f-9053-2a44578b1c63_version": 9,
+          "_c84e26b9-7de8-41b0-829f-5352b5567f96_version": 1,
+          "_d0c49473-35df-4557-8e77-9df27b01b72a_version": 1,
+          "_cc06b6b6-bf90-431a-b1e5-26d1a5bb9e86_version": 1,
+          "_e9256686-0d46-4dee-8cf3-928308d9d45d_version": 1,
+          "_bc0cadc5-ebb5-4ec8-951a-7d15d228c6cf_version": 1,
+          "_24b20795-79af-4e03-b85b-1d16fb340a70_version": 1,
+          "_564c43a8-31de-4f25-a6f7-3b6ee4600c6e_version": 1,
+          "_3dc93534-84a6-44f3-96dc-ddff4e365013_version": 1,
+          "_ee10e944-26e6-4a2c-b9e6-6dc2d956d68b_version": 1,
+          "_99fc134b-191e-4c1d-8f1b-a53d513f591b_version": 1,
+          "_5d4d5434-9e1c-4bff-85f1-4a19a55ac239_version": 1,
+          "_55c29cce-dcd1-4530-aec3-721dcd9f4180_version": 1,
+          "_aa0e530e-6100-4063-be62-cee6dec09b39_version": 1,
+          "_7726fee6-8a15-4db3-b9b0-0c1e971b9d4b_version": 1,
+          "_76565647-6df3-46f4-8978-c8e0f34eb822_version": 1,
+          "_7daf8bb9-f976-48b1-8458-d5fd5a9cf692_version": 1,
+          "_7145d859-fdad-45b1-af25-d51d08ba56b0_version": 1,
+          "_7e32bab3-df75-4434-8cc8-013202b49d54_version": 1,
+          "_91e01c97-6c4b-4596-b554-2f7993399a34_version": 1,
+          "_d4fddeb5-dbd0-442c-bc99-05b00eb77c91_version": 1,
+          "_941c5e76-81b2-43e0-938a-4a37976fb7b2_version": 1,
+          "_4cfc85e5-864c-47bd-9848-1395a8f557cd_version": 1,
+          "_d5290f11-5580-4f90-9e91-ea71e7912431_version": 1,
+          "_54f86e18-2e0c-477b-b6aa-a91ddaadbe71_version": 1,
+          "_d77f1e0f-d79f-4a86-9772-da870deefe19_version": 1,
+          "_b7aeb3e6-3460-49ec-9de9-b8d5ef268686_version": 2,
+          "_5a4c55b3-5fbd-479d-bc58-8279603ef6b3_version": 1,
+          "_387ab4ba-485d-4b70-9f16-41caa07f2b6d_version": 1,
+          "_c32bf93f-19b5-4bc5-8256-42a65ab8ca3a_version": 1,
+          "_48bd9d53-321d-4cd8-b4ed-99283e2d6dfa_version": 3,
+          "_4662c763-fdb9-4d3f-9050-233be3ca472e_version": 1,
+          "_07a7554d-0fba-466f-b8dc-8dd782218e1f_version": 1,
+          "_376e6f25-bb17-4818-afac-0b6c157b62d7_version": 1,
+          "_cab978fa-5eb1-4b79-9461-add6c38b3a07_version": 1,
+          "_46a9e9f1-e394-4141-a1d2-f7d52677aed0_version": 1,
+          "_a30c2d4e-c9a8-44f7-81e4-392b0e57c657_version": 1,
+          "_4334817d-159a-4453-9e7e-ed3e11db79df_version": 1,
+          "_4cb36fb6-0602-4bc0-966e-a01f47f75df6_version": 1,
+          "_e5d63aec-93ea-4dc2-a2a3-ecaa992386b3_version": 1,
+          "_5204f210-4231-4b30-b079-10847c831b6e_version": 1,
+          "_3d6a0795-aada-4253-9e25-2d3723732ccf_version": 1,
+          "_092a037c-3255-4ca8-b894-e8260aa498ed_version": 1,
+          "_6506d1ea-de86-4cfb-b1f0-261b584d4a39_version": 1,
+          "_531646fd-bef4-469c-b79d-6a296d8458ce_version": 1,
+          "_163fcd57-78cd-4a41-a519-6b4694bc1f5b_version": 1,
+          "_87351ff5-46c0-4fe9-a5dc-e7b623c5e958_version": 1,
+          "_fc90c628-824b-4428-a35c-0a87a432b429_version": 1,
+          "_d83d0ce6-6f2b-4f2e-bb2d-20a2ba1940db_version": 1,
+          "_54e8fc58-4c02-4cfb-9440-75452b323b17_version": 1,
+          "_c7367e85-ce31-406f-a15c-e4cf5b031cd1_version": 1,
+          "_6816f4f1-09d9-48c6-be97-6f560cf1caf5_version": 1,
+          "_8bea9dd4-7823-4dbe-8d2e-e230a07cc11d_version": 1,
+          "_bc621615-48bf-450f-b9b8-677a40b5c3b6_version": 1,
+          "_fcf2ca5e-cd9e-4c44-a4c6-402db47cbe4e_version": 1,
+          "_63f7390f-76f9-452f-8870-fee283d5d3f7_version": 1,
+          "_bf558311-646d-4292-aa15-dde37374fe76_version": 1,
+          "_5ba31308-3d0e-45d5-b5bf-db0a4003edd6_version": 1,
+          "_3c9ffadb-0f4e-40ff-98e1-9c3acc4a9533_version": 1,
+          "_24479529-2432-41fd-bd48-6a6db173f035_version": 1,
+          "_e291b90e-08f1-4f61-bd56-7ac24666c036_version": 1,
+          "_d43f176e-f953-410f-a018-8a303e5ce7f1_version": 1,
+          "_51ed6ac1-2139-4dbb-a90a-1d435b4fda4f_version": 1,
+          "_ef7bbf4e-881f-455c-88dd-07620cb6ef37_version": 1,
+          "_2fe2188a-8c59-4c03-a587-216baa0a25a7_version": 1,
+          "_9a77765c-043f-458d-998d-7390c56870e3_version": 1,
+          "_63655a57-d3df-4a0d-a193-2b51726f88d3_version": 1,
+          "_9ac7e56f-815a-43db-b06e-9557725d62ee_version": 1,
+          "_dcad5d97-713a-4969-af07-64e095f3c954_version": 1,
+          "_4a8dbcff-4b6e-434c-a618-728ffdb49706_version": 3,
+          "_f7073032-a843-4425-acf7-fb2b940a16d2_version": 1,
+          "_418c7a44-1106-4725-94cd-25c8f8893f5b_version": 1,
+          "_c3d5e692-6752-41d0-ba58-a6f0248b4105_version": 1,
+          "_7fd2c652-5673-4ee8-8db5-1f68f805280f_version": 1,
+          "_eb022343-df42-4a07-b6e4-0370de36ef31_version": 1,
+          "_7650a42e-da76-428b-9cdf-ec29cf9af64b_version": 1,
+          "_7a0db6b7-6da2-4378-a2b1-823fab260f6e_version": 1,
+          "_80a824f7-7271-48d6-9b02-d9d647b699be_version": 1,
+          "_3c98a117-506c-406b-aad8-e0f2723dc2f3_version": 1,
+          "_57faf09d-12a3-4fcb-af8b-e8977127f023_version": 2,
+          "_cdf5057a-b79f-4e35-b676-f828e9e6989e_version": 1,
+          "_0ef249e8-3e37-4e76-b884-652084f81baf_version": 1,
+          "_bd15128b-0d1d-4dd3-ab8a-49bd1758f460_version": 1,
+          "_d1de81f6-1d8d-46a0-bea7-fc1611308f52_version": 1,
+          "_807e81d8-6048-4257-af81-27e74e396364_version": 2,
+          "_c8c7bda5-5ce3-4679-a23f-75c016f0bc2b_version": 1,
+          "_ee113cae-21fe-483c-8cdf-4f2de96ac1f4_version": 1,
+          "_9967f555-384d-4508-94cf-bfd26b6517ed_version": 3,
+          "_8faab281-60f4-4032-86ee-0cb902620f3a_version": 1,
+          "_869a6e4c-71cd-4917-9d3e-456763b5b6cd_version": 1,
+          "_86bf0dd1-79fb-4410-bf0d-67893d9d8468_version": 1,
+          "_67575b29-0c63-47fb-bcf0-ed269395b378_version": 1,
+          "uuid": "f91205b1-a229-4691-8bfa-4c25c59ce1d7"
+        }
+      },
+      "c9976d3c-bb51-43ff-8399-a7617c1001a0": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "c9976d3c-bb51-43ff-8399-a7617c1001a0",
+        "type": "MeshStandardMaterial2",
+        "name": "White Gold",
+        "color": 13158600,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "c9976d3c-bb51-43ff-8399-a7617c1001a0"
+        }
+      },
+      "714086ed-7a89-4943-b16a-97d741aa91b5": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "714086ed-7a89-4943-b16a-97d741aa91b5",
+        "type": "MeshStandardMaterial2",
+        "name": "Gold",
+        "color": 16434308,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "714086ed-7a89-4943-b16a-97d741aa91b5"
+        }
+      },
+      "cf5b9658-16b5-4ee8-84e4-a192348f5de0": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "cf5b9658-16b5-4ee8-84e4-a192348f5de0",
+        "type": "MeshStandardMaterial2",
+        "name": "Rose Gold",
+        "color": 15379072,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "cf5b9658-16b5-4ee8-84e4-a192348f5de0"
+        }
+      },
+      "100154b3-c027-47e2-b6a1-548a5c311ec6": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "100154b3-c027-47e2-b6a1-548a5c311ec6",
+        "type": "MeshStandardMaterial2",
+        "name": "White Gold",
+        "color": 13158600,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "100154b3-c027-47e2-b6a1-548a5c311ec6"
+        }
+      },
+      "9514a912-8b3d-45d5-bdd3-de19859bcb0e": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "9514a912-8b3d-45d5-bdd3-de19859bcb0e",
+        "type": "MeshStandardMaterial2",
+        "name": "Gold",
+        "color": 16434308,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "9514a912-8b3d-45d5-bdd3-de19859bcb0e"
+        }
+      },
+      "b570938f-82ac-4750-a7e1-464c83fb51de": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "b570938f-82ac-4750-a7e1-464c83fb51de",
+        "type": "MeshStandardMaterial2",
+        "name": "Rose Gold",
+        "color": 15379072,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "b570938f-82ac-4750-a7e1-464c83fb51de"
+        }
+      },
+      "de21647d-6172-4e93-bf10-a98ee18d14ec": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "de21647d-6172-4e93-bf10-a98ee18d14ec",
+        "type": "MeshStandardMaterial2",
+        "name": "White Gold",
+        "color": 13158600,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1_1",
+          "cloneCount": 0,
+          "uuid": "de21647d-6172-4e93-bf10-a98ee18d14ec"
+        }
+      },
+      "8904d52e-e0f7-4acd-b346-7cd959626f38": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "8904d52e-e0f7-4acd-b346-7cd959626f38",
+        "type": "MeshStandardMaterial2",
+        "name": "Gold",
+        "color": 16434308,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "8904d52e-e0f7-4acd-b346-7cd959626f38"
+        }
+      },
+      "07bce701-644f-4c57-9c37-84d8b62df154": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Material",
+          "generator": "Material.toJSON"
+        },
+        "uuid": "07bce701-644f-4c57-9c37-84d8b62df154",
+        "type": "MeshStandardMaterial2",
+        "name": "Rose Gold",
+        "color": 15379072,
+        "roughness": 0,
+        "metalness": 1,
+        "sheen": 0,
+        "sheenColor": 0,
+        "sheenRoughness": 1,
+        "emissive": 0,
+        "specularIntensity": 1,
+        "specularColor": 16777215,
+        "clearcoat": 0,
+        "clearcoatRoughness": 0,
+        "iridescence": 0,
+        "iridescenceIOR": 1.3,
+        "iridescenceThicknessRange": [
+          100,
+          400
+        ],
+        "anisotropy": 0,
+        "anisotropyRotation": 0,
+        "envMapIntensity": 1,
+        "reflectivity": 0.49999999999999983,
+        "transmission": 0,
+        "thickness": 0,
+        "attenuationDistance": 0,
+        "attenuationColor": 16777215,
+        "side": 2,
+        "depthFunc": 3,
+        "depthTest": true,
+        "depthWrite": true,
+        "colorWrite": true,
+        "stencilWrite": false,
+        "stencilWriteMask": 255,
+        "stencilFunc": 519,
+        "stencilRef": 0,
+        "stencilFuncMask": 255,
+        "stencilFail": 7680,
+        "stencilZFail": 7680,
+        "stencilZPass": 7680,
+        "fog": false,
+        "userData": {
+          "gltfExtensions": {},
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "07bce701-644f-4c57-9c37-84d8b62df154"
+        }
+      },
+      "c7a0a7e0-7e28-429e-915d-c8d679b92cf5": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Diamond",
+        "uuid": "c7a0a7e0-7e28-429e-915d-c8d679b92cf5",
+        "color": 16777215,
+        "envMapIntensity": 1.3,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1,
+        "reflectivity": 0.5,
+        "refractiveIndex": 2.42,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "_baseMaterial": "61391681-615a-4810-a8c6-dce5594b2759",
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "c7a0a7e0-7e28-429e-915d-c8d679b92cf5"
+        }
+      },
+      "7c317077-10ee-44ea-b938-748035f0de70": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Sapphire",
+        "uuid": "7c317077-10ee-44ea-b938-748035f0de70",
+        "color": 6992612,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.7699999999999998,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1.2,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "cloneId": "0_2",
+          "cloneCount": 0,
+          "uuid": "7c317077-10ee-44ea-b938-748035f0de70"
+        }
+      },
+      "5fd0ed8b-fea6-4434-b29e-5dc6e876d886": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Ruby",
+        "uuid": "5fd0ed8b-fea6-4434-b29e-5dc6e876d886",
+        "color": 14762614,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.8,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.7699999999999998,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1.3,
+          "y": 0.15999999999999992,
+          "z": 0.9,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "5fd0ed8b-fea6-4434-b29e-5dc6e876d886"
+        }
+      },
+      "122745f3-d9a6-4b21-9481-4158050914fa": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Emerald",
+        "uuid": "122745f3-d9a6-4b21-9481-4158050914fa",
+        "color": 2285475,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 7.182839392716467e-19,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.58,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": -0.30000000000000004,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "122745f3-d9a6-4b21-9481-4158050914fa"
+        }
+      },
+      "bf0461fc-2d30-4625-9ab0-fb9419cefdbc": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Yellow Sapphire",
+        "uuid": "bf0461fc-2d30-4625-9ab0-fb9419cefdbc",
+        "color": 16772540,
+        "envMapIntensity": 1.3,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 0.9,
+        "reflectivity": 0.3,
+        "refractiveIndex": 1.7700000000000002,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1.5,
+          "y": 1.3,
+          "z": 0,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1_1",
+          "cloneCount": 0,
+          "_baseMaterial": "61391681-615a-4810-a8c6-dce5594b2759",
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "uuid": "bf0461fc-2d30-4625-9ab0-fb9419cefdbc"
+        }
+      },
+      "366ec489-a1ca-459e-8552-a7758122d2ab": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Diamond",
+        "uuid": "366ec489-a1ca-459e-8552-a7758122d2ab",
+        "color": 16777215,
+        "envMapIntensity": 1.2,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1,
+        "reflectivity": 0.5,
+        "refractiveIndex": 2.42,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "_baseMaterial": "b342eee9-c0aa-4129-8017-f36030caee51",
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "366ec489-a1ca-459e-8552-a7758122d2ab"
+        }
+      },
+      "d044d1f8-734a-42b7-8d2f-fbe80122c85e": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Sapphire",
+        "uuid": "d044d1f8-734a-42b7-8d2f-fbe80122c85e",
+        "color": 6992612,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.7699999999999998,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1.2,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "d044d1f8-734a-42b7-8d2f-fbe80122c85e"
+        }
+      },
+      "db11ee17-2cdf-4588-ad9c-0dc882908d01": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Ruby",
+        "uuid": "db11ee17-2cdf-4588-ad9c-0dc882908d01",
+        "color": 14762614,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.7699999999999998,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1.3,
+          "y": 0.15999999999999992,
+          "z": 0.9,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "db11ee17-2cdf-4588-ad9c-0dc882908d01"
+        }
+      },
+      "e66b2a3b-9d06-4942-b184-9e61830adf61": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Emerald",
+        "uuid": "e66b2a3b-9d06-4942-b184-9e61830adf61",
+        "color": 2285475,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 7.182839392716467e-19,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.58,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": -0.30000000000000004,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "e66b2a3b-9d06-4942-b184-9e61830adf61"
+        }
+      },
+      "f7442e92-341a-482e-b016-80e495e1de00": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Yellow Sapphire",
+        "uuid": "f7442e92-341a-482e-b016-80e495e1de00",
+        "color": 16772540,
+        "envMapIntensity": 1.3,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 0.9,
+        "reflectivity": 0.3,
+        "refractiveIndex": 1.7700000000000002,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1.5,
+          "y": 1.3,
+          "z": 0,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "_baseMaterial": "61391681-615a-4810-a8c6-dce5594b2759",
+          "cloneId": "0_1_1_1",
+          "cloneCount": 0,
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "uuid": "f7442e92-341a-482e-b016-80e495e1de00"
+        }
+      },
+      "b6dcd844-18a2-48df-b7fb-be007067fb67": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Diamond",
+        "uuid": "b6dcd844-18a2-48df-b7fb-be007067fb67",
+        "color": 16777215,
+        "envMapIntensity": 1.2,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1,
+        "reflectivity": 0.5,
+        "refractiveIndex": 2.4,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "_baseMaterial": "122a0338-8afb-45ac-8a1e-c7913835c8a1",
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "b6dcd844-18a2-48df-b7fb-be007067fb67"
+        }
+      },
+      "f57217e4-d636-47fc-bd35-e0869b09a6b4": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Sapphire",
+        "uuid": "f57217e4-d636-47fc-bd35-e0869b09a6b4",
+        "color": 6992612,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.7699999999999998,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1.2,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "f57217e4-d636-47fc-bd35-e0869b09a6b4"
+        }
+      },
+      "c10268c8-5647-4691-8540-7b3b73587193": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Ruby",
+        "uuid": "c10268c8-5647-4691-8540-7b3b73587193",
+        "color": 14762614,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.7699999999999998,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1.3,
+          "y": 0.15999999999999992,
+          "z": 0.9,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "c10268c8-5647-4691-8540-7b3b73587193"
+        }
+      },
+      "322086a7-c8a6-4f45-aa55-0517eedd09a5": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Emerald",
+        "uuid": "322086a7-c8a6-4f45-aa55-0517eedd09a5",
+        "color": 2285475,
+        "envMapIntensity": 1,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 7.182839392716467e-19,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1.6,
+        "reflectivity": 0.5,
+        "refractiveIndex": 1.58,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": -0.30000000000000004,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1",
+          "cloneCount": 0,
+          "uuid": "322086a7-c8a6-4f45-aa55-0517eedd09a5"
+        }
+      },
+      "6e27bcc8-e407-41fb-ae9e-de04e661870c": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Yellow Sapphire",
+        "uuid": "6e27bcc8-e407-41fb-ae9e-de04e661870c",
+        "color": 16772540,
+        "envMapIntensity": 1.3,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 0.9,
+        "reflectivity": 0.3,
+        "refractiveIndex": 1.7700000000000002,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1.5,
+          "y": 1.3,
+          "z": 0,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "_baseMaterial": "61391681-615a-4810-a8c6-dce5594b2759",
+          "cloneId": "0_1_1_1",
+          "cloneCount": 0,
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "uuid": "6e27bcc8-e407-41fb-ae9e-de04e661870c"
+        }
+      },
+      "94a3494c-d5cc-4df4-84ea-aa9a815fdcae": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Diamond_0_1_3_1_3_1_1_1",
+        "uuid": "94a3494c-d5cc-4df4-84ea-aa9a815fdcae",
+        "color": 16777215,
+        "envMapIntensity": 1.2,
+        "envMapIndex": 0,
+        "envMapRotationOffset": 0,
+        "dispersion": 0.01,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 1,
+        "reflectivity": 0.5,
+        "refractiveIndex": 2.42,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1_3_1_3_1_1_1",
+          "cloneCount": 0,
+          "_baseMaterial": "b342eee9-c0aa-4129-8017-f36030caee51",
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "uuid": "94a3494c-d5cc-4df4-84ea-aa9a815fdcae"
+        }
+      },
+      "28864320-5ff2-44be-a7e9-5a0dfcc3d74d": {
+        "metadata": {
+          "version": 4.6,
+          "type": "DiamondMaterial",
+          "generator": "DiamondMaterial.toJSON"
+        },
+        "name": "Diamond_0_1_3_1_3_1_1_2",
+        "uuid": "28864320-5ff2-44be-a7e9-5a0dfcc3d74d",
+        "color": 855309,
+        "envMapIntensity": 1.2,
+        "envMapIndex": 1,
+        "envMapRotationOffset": 0,
+        "dispersion": 0.01,
+        "squashFactor": 0.98,
+        "geometryFactor": 0.5,
+        "gammaFactor": 1,
+        "absorptionFactor": 8,
+        "reflectivity": 0.5,
+        "refractiveIndex": 2.42,
+        "rayBounces": 5,
+        "diamondOrientedEnvMap": 0,
+        "boostFactors": {
+          "x": 1,
+          "y": 1,
+          "z": 1,
+          "isVector3": true
+        },
+        "transmission": 0,
+        "isDiamondMaterialParameters": true,
+        "type": "DiamondMaterial",
+        "userData": {
+          "separateEnvMapIntensity": true,
+          "cloneId": "0_1_3_1_3_1_1_2",
+          "cloneCount": 0,
+          "_baseMaterial": "b342eee9-c0aa-4129-8017-f36030caee51",
+          "LUTPlugin1": {
+            "enable": false,
+            "index": 0
+          },
+          "uuid": "28864320-5ff2-44be-a7e9-5a0dfcc3d74d"
+        }
+      }
+    },
+    "textures": {
+      "8bdf3800-889c-40ce-907f-8206f57d7633": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Texture",
+          "generator": "Texture.toJSON"
+        },
+        "uuid": "8bdf3800-889c-40ce-907f-8206f57d7633",
+        "name": "",
+        "image": "2f526822-dd0a-4f7f-ac7f-61ab9e479e1b",
+        "mapping": 300,
+        "channel": 0,
+        "repeat": [
+          1,
+          1
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "center": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "wrap": [
+          1001,
+          1001
+        ],
+        "format": 1023,
+        "internalFormat": null,
+        "type": 1016,
+        "colorSpace": "srgb-linear",
+        "encoding": 3000,
+        "minFilter": 1006,
+        "magFilter": 1006,
+        "anisotropy": 1,
+        "flipY": false,
+        "generateMipmaps": false,
+        "premultiplyAlpha": false,
+        "unpackAlignment": 1,
+        "userData": {
+          "rootPath": "https://playground.ijewel3d.com/assets/hdrmaps/gem/env-gem-001.exr"
+        }
+      },
+      "b9e9cad0-bdd5-4945-87f5-fe5686466f50": {
+        "metadata": {
+          "version": 4.6,
+          "type": "Texture",
+          "generator": "Texture.toJSON"
+        },
+        "uuid": "b9e9cad0-bdd5-4945-87f5-fe5686466f50",
+        "name": "",
+        "image": "cce305e0-26ec-41a3-af5f-c9fbcd497dbf",
+        "mapping": 303,
+        "channel": 0,
+        "repeat": [
+          1,
+          1
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "center": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "wrap": [
+          1001,
+          1001
+        ],
+        "format": 1023,
+        "internalFormat": null,
+        "type": 1016,
+        "colorSpace": "srgb-linear",
+        "encoding": 3000,
+        "minFilter": 1006,
+        "magFilter": 1006,
+        "anisotropy": 1,
+        "flipY": true,
+        "generateMipmaps": false,
+        "premultiplyAlpha": false,
+        "unpackAlignment": 1,
+        "userData": {
+          "rootPath": "https://playground.ijewel3d.com/assets/hdrmaps/metal/env-metal-001.hdr"
+        }
+      }
+    },
+    "images": {},
+    "shapes": {},
+    "skeletons": {},
+    "animations": {},
+    "extras": {}
+  }
+}

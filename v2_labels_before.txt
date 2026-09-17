@@ -1,0 +1,252 @@
+Explore
+Tutorials
+English
+Share
+Log in
+Get started for free
+Configuration
+Full Screen
+Enter FullScreen
+Exit FullScreen
+Toggle FullScreen
+Renderer
+Camera
+Zoom in
+Zoom out
+Orbit Controls
+Loading Screen
+Toggle preview
+Minimize
+Maximize
+Drop Options
+Select local file
+Background / Environment
+Background Sampler
+Set Transparent BG
+Asset Export
+GLB Export
+DRACO Options
+Quantization Bits
+Export GLB
+Preset/Config export
+Plugins
+Select none
+Select all
+Export Plugins
+Export All Viewer Config
+GLTF Animations
+Play
+Stop
+Reset
+Progressive Shadow
+Directional Light
+Hierarchy
+Material Library
+Diamonds
+Make Diamond
+Make Standard
+Auto Instance Diamonds (dev)
+Clear Cache
+Transform Controls
+Pivot Controls
+Pivot Edit
+Pivot to Center
+Pivot to Bottom
+Pivot to Origin
+Picker
+Ground
+Randomized Light
+Physical Material
+map Sampler
+Rough/Metal
+roughnessMap Sampler
+metalnessMap Sampler
+Bump/Normal
+bumpMap Sampler
+normalMap Sampler
+displacementMap Sampler
+Sheen
+sheenColorMap Sampler
+sheenRoughnessMap Sampler
+Clearcoat
+clearcoatMap Sampler
+clearcoatRoughnessMap Sampler
+clearcoatNormalMap Sampler
+Emission
+emissiveMap Sampler
+Refraction
+transmissionMap Sampler
+thicknessMap Sampler
+Blending
+alphaMap Sampler
+AO/Lightmap
+aoMap Sampler
+lightMap Sampler
+Iridescence
+iridescenceMap Sampler
+iridescenceThicknessMap Sampler
+Environment
+Download pmat
+LUT
+Anisotropy
+Sampler
+Triplanar
+ThinFilmLayer
+FragmentClipping
+Flat Material
+Make 2D
+SparkleBump (NoiseBump)
+CustomBumpMap
+_customBumpMap Sampler
+ClearcoatTint
+SSBevel (Dev)
+Bloom
+Screen Space Reflections
+Camera Views
+Animate All Views
+Record All Views
+Add Current View
+Focus Next
+Focus Previous
+Video Export
+FFmpeg Options (Advanced)
+Start Recording
+Record Camera Views
+Record Camera Views + GLTF + VAnimation
+Record GLTF Anim
+Record turntable animation
+Record turntable + GLTF + VAnimation
+Tonemapping
+Outline
+ChromaticAberration
+FilmicGrain
+Enable on all materials
+Disable on all materials
+Vignette
+Depth of Field
+SS Ambient Occlusion
+High Precision Normal Buffer
+SSBevel
+Scene
+Clear Scene
+Object Rotations
+Extrude Tube Shapes
+Extrude Circle Tube
+Progressive
+Gradient SVG
+refreshSvg
+Viewer Animations
+Animate
+Animate Reverse
+Add Animation
+Lights
+Add Directional Light
+Add Ambient Light
+Add Point Light
+Add Spot Light
+Cameras (Loaded)
+Add Camera
+ThinFilmLayer Materials
+FragmentClipping Materials
+NoiseBump Materials
+Image Export
+Download .png
+Download .jpeg
+Download .webp
+Anisotropy Materials
+Make Anisotropy
+Temporal AA
+HDRi Ground
+SS Global illumination (Dev)
+Screen Space Contact Shadows
+Simple Text
+Text SVG Options
+Add Text
+Frame Fade
+Velocity Buffer (TAA)
+Model Stage
+Prompt Local File
+Prompt URL
+Refresh Placeholder Transform
+Load sample model
+Toggle Placeholders
+Import Stage Config
+KHR Material Variants
+CustomBumpMap Materials
+Enable CustomBumpMap
+Parallax Mapping
+CSS3D Renderer
+Attach iframe
+S3 Connection
+Connect
+Scrollable Camera View Preview (Dev)
+Show/Edit Code
+UV Unwrapping (xAtlas)
+Unwrap Selected Geometry
+Configurator
+objects
+Add objects group (empty)
+Add objects group (local folder)
+materials
+Add materials group (empty)
+Add materials group (local folder)
+Download JSON/Zip
+Load JSON/Zip
+Import Path
+Refresh UI
+Clear All
+Parallax Camera Controller
+Widgets
+Refresh
+Rhino 3dm loader
+Virtual Cameras
+Generate Geometry
+Generate plane
+Generate sphere
+Generate box
+Generate circle
+Generate torus
+Generate cylinder
+Interaction Prompt
+startAnimation
+stopAnimation
+Rainbow Diamond Coloring
+Color All Items
+Share Link
+Share editor link
+Share viewer link
+Physics
+stepPhysics
+step
+Make Root Bodies
+Simplify Modifier (meshopt)
+Simplify All
+Simplify Selected
+Snow Fall Particles
+Wave Ground
+Pose Plugin
+Gem Refraction
+Watch Hands Time
+refresh
+Material Configurator
+Select a material to see or add variations
+Clear variations
+Remove completely
+Add Variation
+Refresh Ui
+Apply All
+Extras
+Disable RGBM
+Enable MSAA
+Disable Depth(z) Prepass
+Enable Debug
+Clear local storage
+Clear caches
+Auto GPU instance all
+Auto Center All Geometries
+Switch Node
+All nodes
+Add Node
+Drag and drop a 3D file here
+Hide
+Delete

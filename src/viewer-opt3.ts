@@ -51,14 +51,20 @@ if (typeof _obj3dProto.updateWorldMatrix !== 'function') {
     }
 }
 
-const BG_COLOR = '#ffffff'
+const BG_COLOR = initialUrlParams.get('bg') ? decodeURIComponent(initialUrlParams.get('bg') as string) : '#ffffff'
+// editor parity: recipe mirrors ring-editor METAL_LIBRARY['14K Yellow Gold'] + rich scene env
+const USE_LITE_ENV = initialUrlParams.get('liteenv') === '1'
 const metalProfile = {
-    color: '#c5ad6d', metalness: 1, roughness: 0, reflectivity: 0.5, envIntensity: 1.6,
-    clearcoat: 0, clearcoatRoughness: 0.08, specularIntensity: 1.0, specularColor: '#ffffff',
+    color: '#f0ce6e', metalness: 1, roughness: 0.05, reflectivity: 0.5, envIntensity: 2.6,
+    clearcoat: 0.15, clearcoatRoughness: 0.1, specularIntensity: 1.35, specularColor: '#ffffff',
     sheen: 0, sheenRoughness: 1, iridescence: 0, iridescenceIOR: 1.3,
-    anisotropy: 0, anisotropyRotation: 0, emissive: '#000000',
+    anisotropy: 0, anisotropyRotation: 0, emissive: '#2b1d05',
     transmission: 0.0, thickness: 0, attenuationDistance: 0, attenuationColor: '#ffffff',
 }
+// metal override: ?metal=#hex (e.g. ?metal=%23ffffff for pure white)
+const _metalParam = initialUrlParams.get('metal')
+if (_metalParam) metalProfile.color = decodeURIComponent(_metalParam)
+else if (runtimeConfig.metalColor) metalProfile.color = runtimeConfig.metalColor
 const DIAMOND_NAME_RE = /diamond|diamonds|gem|stone|solit(er|a)|soliter|brilliant|brillant|cz|moissanite|ruby|sapphire|emerald/i
 const DIAMOND_PROFILE = {
     color: '#ffffff', envMapIntensity: 2.8, envMapRotation: 0, dispersion: 0.02,
@@ -76,6 +82,9 @@ let staticShadow: any = null
 
 // ---- CAMERA: 3DJV / Option 1 style via WebGI built-in OrbitControls ----
 const DEFAULT_FOV = 45
+const fitFactor = parseFloat(initialUrlParams.get('fit') || '') || 1.15
+const modelScaleFactor = 1 / fitFactor
+let framingUntil = 0
 let controls: any = null
 let minRadius = 4
 let maxRadius = 15
@@ -267,7 +276,8 @@ function frameModel() {
     const s = 1.4 * r
     minRadius = Math.max(s, 0.7 * d)
     maxRadius = Math.max(s, 3 * d)
-    fitDistance = d * 1.15
+    fitDistance = d * fitFactor
+    framingUntil = Date.now() + 2200
 
     const cam = viewer.scene.activeCamera
     const co = cam.cameraObject
@@ -286,6 +296,10 @@ function frameModel() {
         const raw = co || cam
         raw.position.set(0, fitDistance * 0.35, fitDistance)
         controls.update()
+    }
+    if (modelScaleFactor !== 1) {
+        root.scale.multiplyScalar(modelScaleFactor)
+        root.updateMatrixWorld?.(true)
     }
     cam.setDirty?.()
     viewer.setDirty()
@@ -345,8 +359,10 @@ async function setup() {
         try { (viewer.scene as any).fixedEnvMapDirection = true } catch {}
         try { (viewer.renderer as any).stableNoise = true } catch {}
 
-        // load metal env for the scene (lights metal)
-        const envSrc = runtimeConfig.environmentPath || './assets/env_metal_001.hdr'
+        // load metal env for the scene (lights metal) — editor parity
+        const envSrc = initialUrlParams.get('env')
+            ? decodeURIComponent(initialUrlParams.get('env') as string)
+            : (USE_LITE_ENV ? './assets/env_metal_001.hdr' : './assets/env_metal_studio.hdr')
         let metalEnvironment: any = null
         try {
             const manager = viewer.getPlugin(AssetManagerPlugin) as any
@@ -354,7 +370,7 @@ async function setup() {
             if (env && env.assetType === 'texture') {
                 await viewer.scene.setEnvironment(env)
                 metalEnvironment = env
-                viewer.scene.envMapIntensity = 1.0
+                viewer.scene.envMapIntensity = USE_LITE_ENV ? 1.1 : 1.25
                 if (typeof viewer.scene.refreshEnvMapIntensity === 'function') viewer.scene.refreshEnvMapIntensity()
             }
         } catch (e) { console.warn('env import', e) }
@@ -400,10 +416,27 @@ async function setup() {
         // ---- preFrame: drive WebGI built-in OrbitControls (damping, orbit, no autorotate) ----
         viewer.addEventListener('preFrame', () => {
             if (!modelLoaded) return
+            if (Date.now() < framingUntil) {
+                const _cam = viewer.scene.activeCamera
+                const _co = _cam.cameraObject || _cam
+                _co.position.set(0, fitDistance * 0.35, fitDistance)
+            }
             if (controls) controls.update()
             try { const rr = (viewer.renderer as any).rendererObject; if (rr?.shadowMap) rr.shadowMap.needsUpdate = true } catch {}
             viewer.setDirty()
         })
+
+        // ---- render watchdog: some engine builds stop driving frames; force them ----
+        const _wd = () => {
+            try {
+                viewer.setDirty()
+                const rr = (viewer.renderer as any)
+                if (rr?.renderFrame) rr.renderFrame()
+                if (rr?.nextFrame) rr.nextFrame()
+            } catch {}
+            requestAnimationFrame(_wd)
+        }
+        requestAnimationFrame(_wd)
 
         // ---- metal color control UI ----
         const panel = document.getElementById('metal-panel') as HTMLElement
@@ -418,6 +451,45 @@ async function setup() {
         colorInput?.addEventListener('input', (e: any) => {
             setMetalColor(e.target.value)
         })
+
+        ;(window as any).__viewer3 = viewer
+        ;(window as any).__envState = () => {
+            const s = viewer.scene
+            return {
+                envLoaded: !!s.environmentMap,
+                envMapIntensity: s.envMapIntensity,
+                bg: s.background?.getHexString?.() || String(s.background)
+            }
+        }
+        ;(window as any).__meshAudit = () => {
+            const root = getRingRoot()
+            const out: any[] = []
+            if (root?.traverse) root.traverse((ch: any) => {
+                if (!ch?.isMesh || !ch.material) return
+                const m = Array.isArray(ch.material) ? ch.material[0] : ch.material
+                out.push({
+                    name: (ch.name || m?.name || '') + '',
+                    diamond: isDiamondMesh(ch),
+                    type: m?.type,
+                    opacity: m?.opacity, transparent: m?.transparent,
+                    color: m?.color?.getHexString?.(),
+                    envInt: m?.envMapIntensity
+                })
+            })
+            return out
+        }
+        ;(window as any).__camProbe = () => {
+            const cam = viewer.scene.activeCamera
+            const co = cam.cameraObject || cam
+            return {
+                pos: co.position.toArray().map((n: number) => +n.toFixed(3)),
+                fov: co.fov,
+                lookAt: cam.lookAtTarget ? String(cam.lookAtTarget) : null,
+                controlsAutoRotate: controls?.autoRotate,
+                minD: controls?.minDistance, maxD: controls?.maxDistance,
+                fitDistance, modelScale: (getRingRoot() as any)?.scale?.toArray()
+            }
+        }
 
     } catch (err) {
         console.error('setup error', err)

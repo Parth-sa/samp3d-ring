@@ -53,7 +53,7 @@
     <span class="title">Metal</span>
     <span class="metal-option active" data-color="#c2c2c3"><span class="metal-swatch" style="background:#c2c2c3"></span><span class="name">Platinum</span></span>
     <span class="metal-option" data-color="#e8eaed"><span class="metal-swatch" style="background:#e8eaed"></span><span class="name">White</span></span>
-    <span class="metal-option" data-color="#c5ad6d"><span class="metal-swatch" style="background:#c5ad6d"></span><span class="name">Yellow</span></span>
+    <span class="metal-option" data-color="#d4af37" data-overrides='{"envIntensity":2.4,"specularIntensity":1.35,"reflectivity":0.62,"roughness":0.05,"clearcoat":0.15,"clearcoatRoughness":0.09,"specularColor":"#ffe9a8","emissive":"#2b1d05"}'><span class="metal-swatch" style="background:radial-gradient(circle at 30% 30%,#f6d96b 0%,#d4af37 55%,#a67c00 100%)"></span><span class="name">Yellow</span></span>
     <span class="metal-option" data-color="#e8a48c"><span class="metal-swatch" style="background:#e8a48c"></span><span class="name">Rose</span></span>
     <span class="metal-option" data-color="#181818" data-overrides='{"envIntensity":4.2,"specularIntensity":1.6,"clearcoat":1,"clearcoatRoughness":0.08}'><span class="metal-swatch" style="background:#181818;background-image:linear-gradient(135deg,#181818 40%,#4a4a50 60%,#181818)"></span><span class="name">Black</span></span>
 </div>
@@ -68,7 +68,7 @@
     <span class="metal-option" data-color="#1a1a1a"><span class="metal-swatch" style="background:#1a1a1a"></span><span class="name">Black</span></span>
 </div>
 
-<script src="webgi-orbit4.js?metal=%23c2c2c3"></script>
+<script src="webgi-orbit4.js?metal=%23c2c2c3&env=./assets/env_metal_studio.hdr"></script>
 <script>
     (function () {
         var metalOptions = document.querySelectorAll('.metal-option');
@@ -107,6 +107,34 @@
         var bgSwitcher = document.getElementById('bg-switcher');
         wire(metalSwitcher.querySelectorAll('.metal-option'), '__optSetMetalProfile');
         wire(bgSwitcher.querySelectorAll('.metal-option'), '__optSetBackground');
+
+        (function applyQueryParams() {
+            var q = {};
+            location.search.replace(/^\?/, '').split('&').forEach(function (kv) {
+                var p = kv.split('=');
+                if (p[0]) q[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || '');
+            });
+            function pickBy(switcher, key) {
+                var val = (q[key] || '').toLowerCase();
+                if (!val) return null;
+                var active = null;
+                switcher.querySelectorAll('.metal-option').forEach(function (opt) {
+                    var name = (opt.querySelector('.name') || {}).textContent || '';
+                    if (name.trim().toLowerCase() === val) active = opt;
+                });
+                if (active) {
+                    setActive(switcher.querySelectorAll('.metal-option'), active);
+                    active.click();
+                }
+                return active;
+            }
+            pickBy(metalSwitcher, 'metal');
+            pickBy(bgSwitcher, 'bg');
+            if (String(q['ui']) === '0' || String(q['ui']).toLowerCase() === 'false') {
+                metalSwitcher.style.display = 'none';
+                bgSwitcher.style.display = 'none';
+            }
+        })();
     })();
 </script>
 </body>

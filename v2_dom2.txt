@@ -1,0 +1,23 @@
+rootChars 47
+div
+  div#_rht_toaster
+  div.h-screen.w-screen.relative.flex
+    header.flex.items-center.justify-between.p-4
+      div.flex.items-center.h-full.shrink-0
+        a.mr-3.sm:mr-8.h-full.max-w-[150px]
+          img.h-full
+        nav.hidden.sm:flex.gap-x-unit-lg.text-sm
+          a.z-0.group.relative.items-center
+            svg
+              path
+            span.block.lg:ml-3 "Explore"
+      div.flex.items-center.justify-end.gap-unit-lg
+        div.flex.justify-end.
+        button.z-0.group.relative.inline-flex
+          svg
+            path
+          span.block.lg:ml-3 "Share"
+        button.z-0.group.relative.justify-center "Get started for free"
+    div..h-full.overflow-hidden.relative
+      div.w-full.h-full
+        div#webgi-canvas-container.w-full.h-full.flex

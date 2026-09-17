@@ -117,7 +117,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"FRly":[function(require,module,exports) {
+})({"yh9p":[function(require,module,exports) {
 'use strict'
 
 exports.byteLength = byteLength
@@ -269,7 +269,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],"Quj6":[function(require,module,exports) {
+},{}],"JgNJ":[function(require,module,exports) {
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
@@ -356,14 +356,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],"aqZJ":[function(require,module,exports) {
+},{}],"REa7":[function(require,module,exports) {
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],"aMB2":[function(require,module,exports) {
+},{}],"dskh":[function(require,module,exports) {
 
 var global = arguments[3];
 /*!
@@ -2156,7 +2156,7 @@ function isnan (val) {
   return val !== val // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":"FRly","ieee754":"Quj6","isarray":"aqZJ","buffer":"aMB2"}],"rbXN":[function(require,module,exports) {
+},{"base64-js":"yh9p","ieee754":"JgNJ","isarray":"REa7","buffer":"dskh"}],"PsTk":[function(require,module,exports) {
 var Buffer = require("buffer").Buffer;
 "use strict";
 
@@ -72222,7 +72222,7 @@ var __webpackgi_exports__AAssetManagerProcessStatePlugin = exports.AAssetManager
   __webpackgi_exports__zipSync = exports.zipSync = __webpackgi_exports__.Xo9,
   __webpackgi_exports__zlib = exports.zlib = __webpackgi_exports__.LNO,
   __webpackgi_exports__zlibSync = exports.zlibSync = __webpackgi_exports__.iZP;
-},{"buffer":"aMB2"}],"Ijp4":[function(require,module,exports) {
+},{"buffer":"dskh"}],"bvz9":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -72238,6 +72238,12 @@ Object.defineProperty(exports, "AmbientLight", {
   enumerable: true,
   get: function () {
     return _webgi.AmbientLight;
+  }
+});
+Object.defineProperty(exports, "AnisotropyPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.AnisotropyPlugin;
   }
 });
 Object.defineProperty(exports, "AssetImporter", {
@@ -72264,6 +72270,24 @@ Object.defineProperty(exports, "Box3", {
     return _webgi.Box3;
   }
 });
+Object.defineProperty(exports, "BoxGeometry", {
+  enumerable: true,
+  get: function () {
+    return _webgi.BoxGeometry;
+  }
+});
+Object.defineProperty(exports, "CameraUiPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.CameraUiPlugin;
+  }
+});
+Object.defineProperty(exports, "CameraViewPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.CameraViewPlugin;
+  }
+});
 Object.defineProperty(exports, "CanvasTexture", {
   enumerable: true,
   get: function () {
@@ -72276,6 +72300,18 @@ Object.defineProperty(exports, "ChromaticAberrationPlugin", {
     return _webgi.ChromaticAberrationPlugin;
   }
 });
+Object.defineProperty(exports, "CircleGeometry", {
+  enumerable: true,
+  get: function () {
+    return _webgi.CircleGeometry;
+  }
+});
+Object.defineProperty(exports, "ClearcoatTintPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.ClearcoatTintPlugin;
+  }
+});
 Object.defineProperty(exports, "Color", {
   enumerable: true,
   get: function () {
@@ -72286,6 +72322,12 @@ Object.defineProperty(exports, "ContactShadowGroundPlugin", {
   enumerable: true,
   get: function () {
     return _webgi.ContactShadowGroundPlugin;
+  }
+});
+Object.defineProperty(exports, "CustomBumpMapPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.CustomBumpMapPlugin;
   }
 });
 Object.defineProperty(exports, "CylinderGeometry", {
@@ -72304,6 +72346,12 @@ Object.defineProperty(exports, "DataTexture", {
   enumerable: true,
   get: function () {
     return _webgi.DataTexture;
+  }
+});
+Object.defineProperty(exports, "DepthOfFieldPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.DepthOfFieldPlugin;
   }
 });
 Object.defineProperty(exports, "DiamondPlugin", {
@@ -72354,6 +72402,12 @@ Object.defineProperty(exports, "FrameFadePlugin", {
     return _webgi.FrameFadePlugin;
   }
 });
+Object.defineProperty(exports, "FullScreenPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.FullScreenPlugin;
+  }
+});
 Object.defineProperty(exports, "GBufferPlugin", {
   enumerable: true,
   get: function () {
@@ -72372,10 +72426,22 @@ Object.defineProperty(exports, "GroundPlugin", {
     return _webgi.GroundPlugin;
   }
 });
+Object.defineProperty(exports, "HDRiGroundPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.HDRiGroundPlugin;
+  }
+});
 Object.defineProperty(exports, "IcosahedronGeometry", {
   enumerable: true,
   get: function () {
     return _webgi.IcosahedronGeometry;
+  }
+});
+Object.defineProperty(exports, "LUTPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.LUTPlugin;
   }
 });
 Object.defineProperty(exports, "Matrix4", {
@@ -72408,10 +72474,34 @@ Object.defineProperty(exports, "MeshStandardMaterial", {
     return _webgi.MeshStandardMaterial;
   }
 });
+Object.defineProperty(exports, "MeshStandardMaterial2", {
+  enumerable: true,
+  get: function () {
+    return _webgi.MeshStandardMaterial2;
+  }
+});
+Object.defineProperty(exports, "NoiseBumpMaterialPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.NoiseBumpMaterialPlugin;
+  }
+});
+Object.defineProperty(exports, "NormalBufferPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.NormalBufferPlugin;
+  }
+});
 Object.defineProperty(exports, "Object3D", {
   enumerable: true,
   get: function () {
     return _webgi.Object3D;
+  }
+});
+Object.defineProperty(exports, "OutlinePlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.OutlinePlugin;
   }
 });
 Object.defineProperty(exports, "PMREMGenerator", {
@@ -72444,6 +72534,12 @@ Object.defineProperty(exports, "RandomizedDirectionalLightPlugin", {
     return _webgi.RandomizedDirectionalLightPlugin;
   }
 });
+Object.defineProperty(exports, "Raycaster", {
+  enumerable: true,
+  get: function () {
+    return _webgi.Raycaster;
+  }
+});
 Object.defineProperty(exports, "Rhino3dmLoader2", {
   enumerable: true,
   get: function () {
@@ -72474,10 +72570,40 @@ Object.defineProperty(exports, "ShadowMaterial", {
     return _webgi.ShadowMaterial;
   }
 });
+Object.defineProperty(exports, "SimpleTextPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.SimpleTextPlugin;
+  }
+});
+Object.defineProperty(exports, "SphereGeometry", {
+  enumerable: true,
+  get: function () {
+    return _webgi.SphereGeometry;
+  }
+});
+Object.defineProperty(exports, "SwitchNodePlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.SwitchNodePlugin;
+  }
+});
 Object.defineProperty(exports, "TemporalAAPlugin", {
   enumerable: true,
   get: function () {
     return _webgi.TemporalAAPlugin;
+  }
+});
+Object.defineProperty(exports, "TextureLoader", {
+  enumerable: true,
+  get: function () {
+    return _webgi.TextureLoader;
+  }
+});
+Object.defineProperty(exports, "ThinFilmLayerPlugin", {
+  enumerable: true,
+  get: function () {
+    return _webgi.ThinFilmLayerPlugin;
   }
 });
 Object.defineProperty(exports, "TonemapPlugin", {
@@ -72492,10 +72618,22 @@ Object.defineProperty(exports, "TorusGeometry", {
     return _webgi.TorusGeometry;
   }
 });
+Object.defineProperty(exports, "Vector2", {
+  enumerable: true,
+  get: function () {
+    return _webgi.Vector2;
+  }
+});
 Object.defineProperty(exports, "Vector3", {
   enumerable: true,
   get: function () {
     return _webgi.Vector3;
+  }
+});
+Object.defineProperty(exports, "Vector4", {
+  enumerable: true,
+  get: function () {
+    return _webgi.Vector4;
   }
 });
 Object.defineProperty(exports, "ViewerApp", {
@@ -72511,7 +72649,7 @@ Object.defineProperty(exports, "VignettePlugin", {
   }
 });
 var _webgi = require("webgi");
-},{"webgi":"rbXN"}],"hxGN":[function(require,module,exports) {
+},{"webgi":"PsTk"}],"Clrz":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -72731,7 +72869,7 @@ function _patchGlbWithDiamondMetadata() {
   }));
   return _patchGlbWithDiamondMetadata.apply(this, arguments);
 }
-},{}],"hK92":[function(require,module,exports) {
+},{}],"RUgw":[function(require,module,exports) {
 "use strict";
 
 var _webgiReExports = require("./webgi-re-exports");
@@ -72823,6 +72961,9 @@ var staticShadow = null;
 var metalEnvironment = null;
 // ---- CAMERA: 3DJV / Option 1 style via WebGI built-in OrbitControls ----
 var DEFAULT_FOV = 45;
+var fitFactor = parseFloat(initialUrlParams.get('fit') || '') || 1.15;
+var modelScaleFactor = 1 / fitFactor;
+var framingUntil = 0;
 var controls = null;
 var minRadius = 4;
 var maxRadius = 15;
@@ -73102,7 +73243,8 @@ function frameModel() {
   var s = 1.4 * r;
   minRadius = Math.max(s, 0.7 * d);
   maxRadius = Math.max(s, 3 * d);
-  fitDistance = d * 1.15;
+  fitDistance = d * fitFactor;
+  framingUntil = Date.now() + 2200;
   var cam = viewer.scene.activeCamera;
   var co = cam.cameraObject;
   if (co && 'fov' in co) co.fov = DEFAULT_FOV;else if ('fov' in cam) cam.fov = DEFAULT_FOV;
@@ -73118,6 +73260,11 @@ function frameModel() {
     var raw = co || cam;
     raw.position.set(0, fitDistance * 0.35, fitDistance);
     controls.update();
+  }
+  if (modelScaleFactor !== 1) {
+    var _root$updateMatrixWor4;
+    root.scale.multiplyScalar(modelScaleFactor);
+    (_root$updateMatrixWor4 = root.updateMatrixWorld) === null || _root$updateMatrixWor4 === void 0 || _root$updateMatrixWor4.call(root, true);
   }
   (_cam$setDirty = cam.setDirty) === null || _cam$setDirty === void 0 || _cam$setDirty.call(cam);
   viewer.setDirty();
@@ -73145,7 +73292,7 @@ function _setup() {
             r.physicallyCorrectLights = true;
             r.outputEncoding = 3001;
             r.toneMapping = 4;
-            r.toneMappingExposure = 1.2;
+            r.toneMappingExposure = 1.3;
           }
           _dpr = window.devicePixelRatio || 1;
           viewer.renderer.displayCanvasScaling = Math.min(Math.max(_dpr, 2), 2.5);
@@ -73173,15 +73320,15 @@ function _setup() {
         case 4:
           tonemap = _context.v;
           if (tonemap) {
-            tonemap.exposure = 1.16;
-            tonemap.saturation = 1.91;
-            tonemap.contrast = 1.48;
+            tonemap.exposure = 1.3;
+            tonemap.saturation = 1.35;
+            tonemap.contrast = 1.15;
           }
           _context.n = 5;
           return viewer.addPlugin(_webgiReExports.SSAOPlugin);
         case 5:
           ssao = _context.v;
-          if (ssao) ssao.intensity = 0.25;
+          if (ssao) ssao.intensity = 0.1;
           _context.p = 6;
           _context.n = 7;
           return viewer.addPlugin(_webgiReExports.EXRLoadPlugin);
@@ -73219,8 +73366,8 @@ function _setup() {
         case 16:
           bl = _context.v;
           if (bl) {
-            bl.intensity = 0.16;
-            bl.threshold = 0.92;
+            bl.intensity = 0.1;
+            bl.threshold = 0.95;
           }
           _context.n = 18;
           break;
@@ -73233,7 +73380,7 @@ function _setup() {
           return viewer.addPlugin(_webgiReExports.VignettePlugin);
         case 19:
           vg = _context.v;
-          if (vg) vg.power = 0.78;
+          if (vg) vg.power = 0;
           _context.n = 21;
           break;
         case 20:
@@ -73293,7 +73440,7 @@ function _setup() {
           key.shadow.camera.right = 20;
           key.shadow.camera.top = 20;
           key.shadow.camera.bottom = -20;
-          ambient = new _webgiReExports.AmbientLight(0xffffff, 0.5);
+          ambient = new _webgiReExports.AmbientLight(0xffffff, 0.7);
           viewer.scene.add(key);
           viewer.scene.add(ambient);
           cam = viewer.scene.activeCamera;
@@ -73317,7 +73464,7 @@ function _setup() {
             viewer.renderer.stableNoise = true;
           } catch (_unused11) {}
           // load metal env for the scene (lights metal)
-          envSrc = runtimeConfig.environmentPath || './assets/env_metal_001.hdr';
+          envSrc = initialUrlParams.get('env') ? decodeURIComponent(initialUrlParams.get('env')) : runtimeConfig.environmentPath || './assets/env_metal_001.hdr';
           _context.p = 31;
           manager = viewer.getPlugin(_webgiReExports.AssetManagerPlugin);
           _context.n = 32;
@@ -73332,7 +73479,7 @@ function _setup() {
           return viewer.scene.setEnvironment(env);
         case 33:
           metalEnvironment = env;
-          viewer.scene.envMapIntensity = 1.6;
+          viewer.scene.envMapIntensity = 1.9;
           if (typeof viewer.scene.refreshEnvMapIntensity === 'function') viewer.scene.refreshEnvMapIntensity();
         case 34:
           _context.n = 36;
@@ -73426,6 +73573,11 @@ function _setup() {
           // ---- preFrame: drive WebGI built-in OrbitControls (damping, orbit, no autorotate) ----
           viewer.addEventListener('preFrame', function () {
             if (!modelLoaded) return;
+            if (Date.now() < framingUntil) {
+              var _cam = viewer.scene.activeCamera;
+              var _co = _cam.cameraObject || _cam;
+              _co.position.set(0, fitDistance * 0.35, fitDistance);
+            }
             if (controls) controls.update();
             try {
               var rr = viewer.renderer.rendererObject;
@@ -73464,5 +73616,5 @@ function _setup() {
   return _setup.apply(this, arguments);
 }
 setup();
-},{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"hxGN"}]},{},["hK92"], null)
-//# sourceMappingURL=viewer-opt4.b0d614f0.js.map
+},{"./webgi-re-exports":"bvz9","./webgiDiamondPatch":"Clrz"}]},{},["RUgw"], null)
+//# sourceMappingURL=webgi-orbit4.js.map

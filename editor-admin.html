@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Larajewels · 3D Editor Admin</title>
+<style>
+    :root { --gold:#b98a2f; --panel:#151515; --panel2:#1d1d1d; --line:#2c2c2c; --text:#e9e6df; --muted:#9a958a; }
+    * { box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:#0d0d0d; color:var(--text); margin:0; padding:28px; line-height:1.5; }
+    h1 { font-family:Georgia,serif; letter-spacing:.18em; text-transform:uppercase; font-size:18px; color:#fff; margin:0 0 4px; }
+    p.hint { color:var(--muted); font-size:12.5px; margin:0 0 20px; }
+    label { display:inline-block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:14px 0 6px; }
+    input, select, textarea { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:13px; width:100%; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+    .row > div { flex:1; min-width:150px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+    .card h2 { font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); margin:0 0 12px; }
+    .head-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    button { cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:8px; padding:9px 14px; font-size:12px; }
+    button.primary { background:linear-gradient(135deg,var(--gold),var(--gold-2,#c99a38)); border:none; color:#1a1a1a; font-weight:700; }
+    button.danger { color:#e08686; }
+    .toolbar { display:flex; gap:8px; margin:18px 0; flex-wrap:wrap; }
+    .row-label { display:block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:10px 0 5px; }
+    .checkgrid { display:flex; gap:6px 12px; flex-wrap:wrap; align-items:center; }
+    .checkgrid label { font-size:12px; letter-spacing:0; text-transform:none; color:var(--text); margin:0; display:flex; align-items:center; gap:5px; }
+    .checkgrid input { width:auto; }
+    textarea#out { min-height:150px; font-family:Consolas,monospace; font-size:12px; }
+    #url-wrap { display:none; margin-top:10px; }
+    table.mats { width:100%; border-collapse:collapse; margin-top:6px; }
+    table.mats td { padding:4px 0; font-size:12px; color:var(--muted); }
+    table.mats td:first-child { color:var(--text); }
+    summary.comp-name { cursor:pointer; color:var(--text); font-weight:600; margin-bottom:4px; }
+    select.comp-type { width:auto; }
+</style>
+</head>
+<body>
+<h1>3D Editor Admin — Component / Material Mapping</h1>
+<p class="hint">Define which parts of a GLB model are editable, what material each uses, and which properties are exposed. The generated JSON loads in <b>ring-editor.html?config=&lt;json&gt;</b>.</p>
+
+<div class="card">
+    <h2>Model</h2>
+    <div class="row">
+        <div><label>Config ID</label><input id="cfg-id" value="LRS-02" placeholder="unique id"></div>
+        <div><label>Display Name</label><input id="cfg-name" value="Loria Solitaire"></div>
+    </div>
+    <div class="row">
+        <div><label>Model GLB URL</label><input id="cfg-model" value="./assets/LRS-02.glb"></div>
+        <div><label>Metal Environment (.hdr/.exr)</label><input id="cfg-env" value="./assets/env_metal_studio.hdr"></div>
+        <div><label>Gem Environment (.exr)</label><input id="cfg-gem" value="./assets/env_gem_002.exr"></div>
+    </div>
+</div>
+
+<div id="components"></div>
+<button id="add-comp">+ Add Component</button>
+
+<div class="toolbar">
+    <button class="primary" id="gene">Generate JSON</button>
+    <button id="copy">Copy to Clipboard</button>
+    <button id="open-editor">Open in Editor</button>
+    <button id="download">Download config.json</button>
+</div>
+
+<textarea id="out" readonly placeholder="Generated component config appears here…"></textarea>
+<div id="url-wrap"><label>Editor link (open in new tab)</label><input id="url" readonly></div>
+<div id="adm-err" style="position:fixed;left:8px;bottom:8px;z-index:99;display:none;max-width:60vw;max-height:40vh;overflow:auto;
+    background:rgba(18,18,18,.95);border:1px solid #ff5f56;color:#ff9d97;border-radius:10px;padding:8px 12px;
+    font:10.5px ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;cursor:pointer"></div>
+<script>
+(function(){var d=document.getElementById('adm-err'),n=0;function a(m){n++;d.style.display='block';d.textContent='#'+n+' '+m;};
+window.addEventListener('error',function(e){a('onerror: '+(e.message||e.type));return false;},true);
+window.addEventListener('unhandledrejection',function(e){var r=e.reason;a('rejection: '+(r&&r.message?r.message:String(r)));});
+var oe=console.error.bind(console);console.error=function(){try{oe.apply(console,arguments)}catch(_){}
+try{a(Array.prototype.slice.call(arguments).map(function(x){return x instanceof Error?(x.message):String(x)}).join(' ').slice(0,400))}catch(_){}};
+d.addEventListener('click',function(){d.style.display='none'});})();
+</script>
+
+<script>
+'use strict';
+const $=(id)=>document.getElementById(id);
+const METALS=['14K White Gold','18K White Gold','14K Yellow Gold','18K Yellow Gold','14K Rose Gold','18K Rose Gold','Platinum'];
+const STONES=['Natural Diamond','Lab-Grown Diamond','Moissanite','Sapphire','Emerald','Ruby','Other Gemstone'];
+const SHAPES=['Round','Oval','Cushion','Emerald','Princess','Pear','Radiant','Marquise','Asscher','Heart','Baguette'];
+const COLORS=['D','E','F','G','H','I','J','K'];
+const CLARITY=['FL','IF','VVS1','VVS2','VS1','VS2','SI1','SI2'];
+const METAL_PROPS=['metalType','metalColor'];
+const STONE_PROPS=['stoneType','shape','carat','color','clarity'];
+
+let idx=0;
+const compBox=$('components');
+function addComp(tpl){
+  const t=tpl||{id:'comp'+idx,label:'Component '+idx,type:'metal',match:['band','shank'],defaults:{metalType:'18K',metalColor:'Platinum'},editable:METAL_PROPS};
+  idx++;
+  const c=document.createElement('div'); c.className='card';
+  const m = t.defaults;
+  const isStone = t.type==='stone';
+  c.innerHTML=`
+    <div class="head-row">
+      <h2 style="margin:0">Component</h2>
+      <button class="danger rm">Remove</button>
+    </div>
+    <div class="row">
+      <div><label>ID</label><input class="f-id" value="${t.id}"></div>
+      <div><label>Label</label><input class="f-label" value="${t.label}"></div>
+      <div><label>Type</label>
+        <select class="f-type comp-type">
+          <option value="metal"${!isStone?' selected':''}>Metal</option>
+          <option value="stone"${isStone?' selected':''}>Diamond / Stone</option>
+        </select>
+      </div>
+    </div>
+    <div><label>Mesh name matchers (regex fragments, matched against "meshName materialName")</label>
+      <input class="f-match" value="${(t.match||[]).join(', ')}" placeholder="band, shank  |  diamond, center, oval cs"></div>
+    <div class="row">
+      <div><label>Default Metal</label><select class="f-metal-def">
+        ${METALS.map(x=>`<option ${m.metalColor===x?'selected':''}>${x}</option>`).join('')}
+      </select></div>
+      <div><label>Karat</label><select class="f-karat">
+        ${['9K','10K','14K','18K','22K'].map(x=>`<option ${m.metalType===x?'selected':''}>${x}</option>`).join('')}
+      </select></div>
+      <div style="min-width:90px"><label>Ref Carat</label><input class="f-carat-ref" type="number" step="0.1" value="${t.refCarat||1}"></div>
+    </div>
+    <div class="stone-only" style="${isStone?'':'display:none'}">
+      <div class="row">
+        <div><label>Stone Type</label><select class="f-stone-def">${STONES.map(x=>`<option ${m.stoneType===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div><label>Shape</label><select class="f-shape-def">${SHAPES.map(x=>`<option ${m.shape===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div><label>Carat</label><input class="f-carat-def" type="number" step="0.05" value="${m.carat||1}"></div>
+      </div>
+      <div class="row">
+        <div><label>Color</label><select class="f-color-def">${COLORS.map(x=>`<option ${m.color===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div><label>Clarity</label><select class="f-clarity-def">${CLARITY.map(x=>`<option ${m.clarity===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      </div>
+    </div>
+    <div><label>Editable properties</label>
+      <div class="checkgrid" data-editable='${JSON.stringify(t.editable||METAL_PROPS)}'>
+        <label><input type="checkbox" class="chk-metalType" ${(t.editable||[]).includes('metalType')?'checked':''}>Karat</label>
+        <label><input type="checkbox" class="chk-metalColor" ${(t.editable||[]).includes('metalColor')?'checked':''}>Metal Color</label>
+        <label><input type="checkbox" class="chk-stoneType" ${(t.editable||[]).includes('stoneType')?'checked':''}>Stone Type</label>
+        <label><input type="checkbox" class="chk-shape" ${(t.editable||[]).includes('shape')?'checked':''}>Shape</label>
+        <label><input type="checkbox" class="chk-carat" ${(t.editable||[]).includes('carat')?'checked':''}>Carat</label>
+        <label><input type="checkbox" class="chk-color" ${(t.editable||[]).includes('color')?'checked':''}>Color</label>
+        <label><input type="checkbox" class="chk-clarity" ${(t.editable||[]).includes('clarity')?'checked':''}>Clarity</label>
+      </div>
+    </div>`;
+  const typeSel=c.querySelector('.f-type');
+  typeSel.addEventListener('change',()=>{ c.querySelector('.stone-only').style.display=typeSel.value==='stone'?'':'none'; });
+  c.querySelector('.rm').addEventListener('click',()=>c.remove());
+  compBox.appendChild(c);
+  return c;
+}
+
+$('add-comp').addEventListener('click',()=>addComp());
+// seed 3 components
+addComp({id:'center',label:'Center Stone',type:'stone',match:['diamond','marquise','stone','gem'],defaults:{stoneType:'Natural Diamond',shape:'Round',carat:2.0,color:'D',clarity:'VVS1'},refCarat:2.0,editable:STONE_PROPS});
+addComp({id:'band',label:'Ring Band',type:'metal',match:['band','shank','metal 01','mesh','profile'],defaults:{metalType:'18K',metalColor:'Platinum'},editable:METAL_PROPS});
+addComp({id:'prongs',label:'Prongs',type:'metal',match:['prong','claw','bezel'],defaults:{metalType:'18K',metalColor:'White Gold'},editable:METAL_PROPS});
+
+function editableOf(card){
+  const e=[];
+  ['metalType','metalColor','stoneType','shape','carat','color','clarity'].forEach(k=>{
+    if(card.querySelector('.chk-'+k).checked) e.push(k);
+  });
+  return e;
+}
+
+function collect(){
+  const comps=[];
+  compBox.querySelectorAll(':scope > .card').forEach(c=>{
+    const type=c.querySelector('.f-type').value;
+    const metalColor=c.querySelector('.f-metal-def').value;
+    const metalType=c.querySelector('.f-karat').value;
+    const stoneType=c.querySelector('.f-stone-def').value;
+    const shape=c.querySelector('.f-shape-def').value;
+    const carat=parseFloat(c.querySelector('.f-carat-def').value||'1');
+    const color=c.querySelector('.f-color-def').value;
+    const clarity=c.querySelector('.f-clarity-def').value;
+    const defaults= type==='stone' ? {stoneType,shape,carat,color,clarity} : {metalType,metalColor};
+    const d={ id:c.querySelector('.f-id').value.trim(), label:c.querySelector('.f-label').value.trim(), type,
+      match:(c.querySelector('.f-match').value.split(',').map(s=>s.trim()).filter(Boolean)), defaults, editable:editableOf(c) };
+    if(type==='stone' && c.querySelector('.f-carat-ref').value) d.refCarat=parseFloat(c.querySelector('.f-carat-ref').value);
+    comps.push(d);
+  });
+  return { id:$('cfg-id').value.trim(), name:$('cfg-name').value.trim(), modelUrl:$('cfg-model').value.trim(),
+           envUrl:$('cfg-env').value.trim(), gemEnvUrl:$('cfg-gem').value.trim() || undefined, components:comps };
+}
+
+$('gene').addEventListener('click',()=>{
+  const cfg=collect();
+  $('out').value=JSON.stringify(cfg,null,2);
+  const u=new URL(location.origin+location.pathname.replace(/editor-admin\.html$/,'ring-editor.html'));
+  u.searchParams.set('config',encodeURIComponent(JSON.stringify(cfg)));
+  u.searchParams.set('model',cfg.modelUrl);
+  $('url').value=u.toString();
+  $('url-wrap').style.display='block';
+});
+$('copy').addEventListener('click',async()=>{
+  if(!$('out').value){$('gene').click();}
+  try{ await navigator.clipboard.writeText($('out').value); alert('Config copied'); }
+  catch(e){ $('out').select(); document.execCommand('copy'); }
+});
+$('open-editor').addEventListener('click',()=>{
+  if(!$('out').value){$('gene').click();}
+  if($('url').value) window.open($('url').value,'_blank');
+});
+$('download').addEventListener('click',()=>{
+  if(!$('out').value){$('gene').click();}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([$('out').value],{type:'application/json'}));
+  a.download=($('cfg-id').value||'ring')+'-components.json'; a.click();
+});
+</script>
+</body>
+</html>

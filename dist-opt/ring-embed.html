@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ring Viewer</title>
+    <style>* { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+        #wrapper { width: 100%; height: 100%; position: relative; }
+        #webgi-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+        #loader {
+            position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+            background: #ffffff; color: #333; font-size: 15px; transition: opacity .4s;
+        }
+        #loader.hidden { opacity: 0; pointer-events: none; }</style>
+</head>
+<body>
+    <div id="wrapper">
+        <canvas id="webgi-canvas"></canvas>
+    </div>
+    <div id="loader">Loading ring &hellip;</div>
+    <script src="webgi-orbit4.js"></script>
+</body>
+</html>

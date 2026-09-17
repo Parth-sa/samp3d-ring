@@ -1,0 +1,204 @@
+{{ 'webgi-viewer.css' | asset_url | stylesheet_tag }}
+
+{%- assign viewer_base = section.settings.iframe_url | default: 'https://ring-options.pages.dev/ring-clean' -%}
+{%- assign viewer_metal = section.settings.metal | default: 'platinum' -%}
+{%- assign viewer_bg = section.settings.background | default: 'white' -%}
+{%- assign viewer_ui = section.settings.hide_ui | default: false -%}
+{%- assign iframe_src = viewer_base -%}
+{%- assign iframe_src = iframe_src | append: '?metal=' | append: viewer_metal | append: '&bg=' | append: viewer_bg -%}
+{%- if viewer_ui -%}
+  {%- assign iframe_src = iframe_src | append: '&ui=0' -%}
+{%- endif -%}
+
+<div class="larajewels-viewer" style="position:relative;width:100%;height:{{ section.settings.viewer_height }}px;overflow:hidden;border-radius:{{ section.settings.border_radius }}px;background:{{ section.settings.background_color }};{{ section.settings.custom_css }}">
+    <iframe
+        id="larajewels-viewer-frame"
+        src="{{ iframe_src }}"
+        title="Larajewels 3D Ring Viewer"
+        loading="lazy"
+        allowfullscreen
+        style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block;">
+    </iframe>
+
+    <div class="larajewels-overlay" id="larajewels-overlay" style="position:absolute;inset:0;z-index:10;background:{{ section.settings.overlay_bg_color }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .45s ease;">
+        <div class="larajewels-brand" style="font-family:{{ section.settings.brand_font }};font-size:{{ section.settings.brand_size }}px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:{{ section.settings.brand_color }};">{{ section.settings.brand_text | default: 'Larajewels' }}</div>
+        <div class="larajewels-spinner" style="width:38px;height:38px;border-radius:50%;border:2px solid {{ section.settings.brand_color }}22;border-top-color:{{ section.settings.brand_color }};animation:larajewels-spin 0.85s linear infinite;"></div>
+        <div class="larajewels-loading-text" style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:{{ section.settings.brand_color }}aa;">Loading 3D viewer</div>
+    </div>
+</div>
+
+<style>
+    @keyframes larajewels-spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+    (function () {
+        var overlay = document.getElementById('larajewels-overlay');
+        var frame = document.getElementById('larajewels-viewer-frame');
+        if (!overlay || !frame) return;
+        var hidden = false;
+        function hide() {
+            if (hidden) return;
+            hidden = true;
+            overlay.style.opacity = '0';
+            setTimeout(function () { overlay.style.display = 'none'; }, 500);
+        }
+        frame.addEventListener('load', hide);
+        setTimeout(hide, {{ section.settings.load_timeout | default: 8000 }});
+    })();
+</script>
+
+{% schema %}
+{
+    "name": "Larajewels 3D Viewer (iframe)",
+    "target": "section",
+    "settings": [
+        {
+            "type": "header",
+            "content": "Viewer Source"
+        },
+        {
+            "type": "text",
+            "id": "iframe_url",
+            "label": "Viewer base URL",
+            "default": "https://ring-options.pages.dev/ring-clean",
+            "info": "Clean viewer page embedded as iframe."
+        },
+        {
+            "type": "select",
+            "id": "metal",
+            "label": "Default metal",
+            "options": [
+                { "value": "platinum", "label": "Platinum" },
+                { "value": "white", "label": "White" },
+                { "value": "yellow", "label": "Yellow" },
+                { "value": "rose", "label": "Rose" },
+                { "value": "black", "label": "Black" }
+            ],
+            "default": "platinum"
+        },
+        {
+            "type": "select",
+            "id": "background",
+            "label": "Background",
+            "options": [
+                { "value": "white", "label": "White" },
+                { "value": "ivory", "label": "Ivory" },
+                { "value": "grey", "label": "Grey" },
+                { "value": "blush", "label": "Blush" },
+                { "value": "sage", "label": "Sage" },
+                { "value": "black", "label": "Black" }
+            ],
+            "default": "white"
+        },
+        {
+            "type": "checkbox",
+            "id": "hide_ui",
+            "label": "Hide metal/background switchers",
+            "default": true
+        },
+        {
+            "type": "header",
+            "content": "Display"
+        },
+        {
+            "type": "range",
+            "id": "viewer_height",
+            "label": "Viewer height (px)",
+            "default": 560,
+            "min": 300,
+            "max": 900,
+            "step": 10
+        },
+        {
+            "type": "range",
+            "id": "border_radius",
+            "label": "Corner radius (px)",
+            "default": 12,
+            "min": 0,
+            "max": 40,
+            "step": 2
+        },
+        {
+            "type": "color",
+            "id": "background_color",
+            "label": "Slide background",
+            "default": "#ffffff"
+        },
+        {
+            "type": "textarea",
+            "id": "custom_css",
+            "label": "Custom CSS",
+            "info": "Extra CSS rules for the viewer container.",
+            "default": ""
+        },
+        {
+            "type": "header",
+            "content": "Larajewels Overlay"
+        },
+        {
+            "type": "text",
+            "id": "brand_text",
+            "label": "Brand text",
+            "default": "Larajewels"
+        },
+        {
+            "type": "color",
+            "id": "brand_color",
+            "label": "Brand text / spinner color",
+            "default": "#b98a2f"
+        },
+        {
+            "type": "color",
+            "id": "overlay_bg_color",
+            "label": "Overlay background",
+            "default": "#ffffff"
+        },
+        {
+            "type": "text",
+            "id": "brand_font",
+            "label": "Brand font stack",
+            "default": "Georgia, 'Times New Roman', serif"
+        },
+        {
+            "type": "range",
+            "id": "brand_size",
+            "label": "Brand text size (px)",
+            "default": 20,
+            "min": 12,
+            "max": 48,
+            "step": 1
+        },
+        {
+            "type": "range",
+            "id": "load_timeout",
+            "label": "Overlay max timeout (ms)",
+            "default": 8000,
+            "min": 2000,
+            "max": 20000,
+            "step": 500,
+            "info": "Overlay hides on iframe load or this timeout, whichever first."
+        }
+    ],
+    "presets": [
+        {
+            "name": "Larajewels 3D Viewer (iframe)",
+            "settings": {
+                "iframe_url": "https://ring-options.pages.dev/ring-clean",
+                "metal": "platinum",
+                "background": "white",
+                "hide_ui": true,
+                "viewer_height": 560,
+                "border_radius": 12,
+                "background_color": "#ffffff",
+                "brand_text": "Larajewels",
+                "brand_color": "#b98a2f",
+                "overlay_bg_color": "#ffffff",
+                "brand_font": "Georgia, 'Times New Roman', serif",
+                "brand_size": 20,
+                "load_timeout": 8000
+            }
+        }
+    ]
+}
+{% endschema %}

@@ -128,6 +128,11 @@ function applyMetal(mat: any) {
         if ('specularIntensity' in mat) mat.specularIntensity = metalProfile.specularIntensity
         if ('specularColor' in mat) mat.specularColor = linColor(metalProfile.specularColor)
         if ('clearcoat' in mat) mat.clearcoat = metalProfile.clearcoat
+        if ('clearcoatRoughness' in mat) mat.clearcoatRoughness = metalProfile.clearcoatRoughness
+        if (metalProfile.emissive && 'emissive' in mat) {
+            mat.emissive = linColor(metalProfile.emissive)
+            if ('emissiveIntensity' in mat) mat.emissiveIntensity = 0.35
+        }
     } catch (e) { /* ignore */ }
 }
 

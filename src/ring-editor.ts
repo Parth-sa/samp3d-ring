@@ -160,6 +160,18 @@ const DEFAULT_CONFIGS: Record<string, EditorConfig> = {
               editable: ['metalType', 'metalColor'] },
         ],
     },
+    'LRS-03.glb': {
+        id: 'LRS-03', name: 'Loria Solitaire', modelUrl: './assets/LRS-03.glb',
+        envUrl: './assets/env_metal_studio.hdr', gemEnvUrl: './assets/env_gem_002.exr',
+        components: [
+            { id: 'center', label: 'Center Stone', type: 'stone', match: ['diamond', 'marquise', 'gem'],
+              defaults: { stoneType: 'Natural Diamond', shape: 'Marquise', carat: 1.50, color: 'D', clarity: 'VVS1' }, refCarat: 1.5,
+              editable: ['stoneType', 'shape', 'carat', 'color', 'clarity'] },
+            { id: 'band', label: 'Ring Band', type: 'metal', match: ['mesh', 'profile', 'creation curves', 'user layer', 'finger sizes', 'metal 01'],
+              defaults: { metalType: '18K', metalColor: '18K Rose Gold' },
+              editable: ['metalType', 'metalColor'] },
+        ],
+    },
     'm01_main.glb': {
         id: 'M01', name: 'Round Halo Solitaire', modelUrl: './assets/m01_main.glb',
         envUrl: './assets/env_metal_studio.hdr', gemEnvUrl: './assets/env_gem_002.exr',
@@ -2052,6 +2064,16 @@ async function boot() {
         return
     }
 
+    // ?fit= — framScale factor on top of the auto bounding-box fit (<1 zooms in, >1 zooms out)
+    const fitParam = parseFloat(params.get('fit') || '')
+    if (fitParam > 0 && fitParam !== 1) {
+        try {
+            const eAny: any = editor
+            eAny.fitDistance = (eAny.fitDistance || 8) * fitParam
+            eAny.setView('3d')
+        } catch (e) {}
+    }
+
     // restore design if present
     const designParam = params.get('design')
     if (designParam) {
@@ -2084,6 +2106,24 @@ async function boot() {
         designs: () => editor.getDesign(),
         metalLib: (name: string) => editor.applyMetalLibrary(name),
         bg: (v: string) => editor.applyBackground(v),
+        setFit: (s: number) => {
+            try {
+                const e: any = editor
+                if (!e._fitBase) e._fitBase = e.fitDistance || 8
+                e.fitDistance = e._fitBase * s
+                e.setView('3d')
+            } catch (err) {}
+        },
+        diaScale: (s: number) => {
+            try {
+                const e: any = editor
+                const c = e.findComponent('center')
+                if (!c || s <= 0) return
+                const ref = c.def.refCarat || 1
+                const carat = ref * Math.pow(s, 3)
+                e.setComponentState('center', { carat }, false)
+            } catch (err) {}
+        },
     }
 
     // ---- toolbar wiring ----

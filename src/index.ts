@@ -38,24 +38,24 @@ if (typeof _obj3dProto.updateWorldMatrix !== 'function') {
 const runtimeConfig = (window as any).WEBGI_VIEWER_CONFIG || {}
 const DEFAULT_MODEL_PATH = runtimeConfig.modelPath || './assets/lrs-01.glb'
 const LOCAL_DRACO_DECODER_PATH = runtimeConfig.dracoDecoderPath || './assets/draco/'
-const DEFAULT_ENVIRONMENT_PATH = runtimeConfig.environmentPath || './assets/env_metal_001.hdr'
-const DEFAULT_METAL_ENVIRONMENT_PATH = runtimeConfig.metalEnvironmentPath || './assets/env_metal_001.hdr'
+const DEFAULT_ENVIRONMENT_PATH = runtimeConfig.environmentPath || './assets/env_metal_studio.hdr'
+const DEFAULT_METAL_ENVIRONMENT_PATH = runtimeConfig.metalEnvironmentPath || './assets/env_metal_studio.hdr'
 const DEFAULT_BACKGROUND_COLOR = runtimeConfig.backgroundColor || '#ffffff'
 const DEFAULT_BACKGROUND_IMAGE = runtimeConfig.backgroundImage || './assets/background.jpg'
 const INITIAL_ZOOM_PERCENT = Number.isFinite(runtimeConfig.initialZoomPercent) ? Number(runtimeConfig.initialZoomPercent) : 95
 const DIAMOND_NAME_REGEX = /diamond|diamonds|gem|stone|solit(er|a)|soliter|brilliant|brillant|cz|moissanite|ruby|sapphire|emerald/i
 
-const METAL_PRESETS: Record<string, { color: string; metalness: number; roughness: number; envMapIntensity: number; label: string }> = {
-    yellowGold: { color: '#d4af37', metalness: 1, roughness: 0.15, envMapIntensity: 2.2, label: 'Yellow Gold' },
-    whiteGold: { color: '#e8e8e8', metalness: 1, roughness: 0.1, envMapIntensity: 2.5, label: 'White Gold' },
-    roseGold: { color: '#e8b4a0', metalness: 1, roughness: 0.12, envMapIntensity: 2.2, label: 'Rose Gold' },
-    platinum: { color: '#d4d4d8', metalness: 1, roughness: 0.08, envMapIntensity: 2.8, label: 'Platinum' },
-    palladium: { color: '#c0c0c8', metalness: 1, roughness: 0.1, envMapIntensity: 2.6, label: 'Palladium' },
-    silver: { color: '#e2e2e6', metalness: 1, roughness: 0.05, envMapIntensity: 3.0, label: 'Silver' },
-    gold_24k: { color: '#ffd700', metalness: 1, roughness: 0.1, envMapIntensity: 2.5, label: '24K Gold' },
-    gold_18k: { color: '#d4af37', metalness: 1, roughness: 0.12, envMapIntensity: 2.3, label: '18K Gold' },
-    gold_14k: { color: '#c8a832', metalness: 1, roughness: 0.15, envMapIntensity: 2.0, label: '14K Gold' },
-    gold_9k: { color: '#b8962e', metalness: 1, roughness: 0.18, envMapIntensity: 1.8, label: '9K Gold' },
+const METAL_PRESETS: Record<string, { color: string; metalness: number; roughness: number; envMapIntensity: number; clearcoat: number; clearcoatRoughness: number; specularIntensity: number; emissive: string | null; label: string }> = {
+    yellowGold: { color: '#f0ce6e', metalness: 1, roughness: 0.05, envMapIntensity: 2.60, clearcoat: 0.15, clearcoatRoughness: 0.10, specularIntensity: 1.35, emissive: '#2b1d05', label: 'Yellow Gold' },
+    whiteGold:  { color: '#dcdbd9', metalness: 1, roughness: 0.05, envMapIntensity: 3.40, clearcoat: 0.0,  clearcoatRoughness: 0.10, specularIntensity: 1.15, emissive: null, label: 'White Gold' },
+    roseGold:   { color: '#e8a48c', metalness: 1, roughness: 0.05, envMapIntensity: 2.80, clearcoat: 0.10, clearcoatRoughness: 0.10, specularIntensity: 1.20, emissive: null, label: 'Rose Gold' },
+    platinum:   { color: '#c2c2c3', metalness: 1, roughness: 0.05, envMapIntensity: 2.60, clearcoat: 0.10, clearcoatRoughness: 0.08, specularIntensity: 1.00, emissive: null, label: 'Platinum' },
+    palladium:  { color: '#c0c0c8', metalness: 1, roughness: 0.05, envMapIntensity: 2.80, clearcoat: 0.10, clearcoatRoughness: 0.08, specularIntensity: 1.00, emissive: null, label: 'Palladium' },
+    silver:     { color: '#e2e2e6', metalness: 1, roughness: 0.05, envMapIntensity: 3.20, clearcoat: 0.0,  clearcoatRoughness: 0.10, specularIntensity: 1.10, emissive: null, label: 'Silver' },
+    gold_24k:   { color: '#ffd700', metalness: 1, roughness: 0.05, envMapIntensity: 2.50, clearcoat: 0.15, clearcoatRoughness: 0.10, specularIntensity: 1.35, emissive: '#2b1d05', label: '24K Gold' },
+    gold_18k:   { color: '#d4af37', metalness: 1, roughness: 0.05, envMapIntensity: 2.40, clearcoat: 0.15, clearcoatRoughness: 0.09, specularIntensity: 1.35, emissive: '#2b1d05', label: '18K Gold' },
+    gold_14k:   { color: '#c8a832', metalness: 1, roughness: 0.05, envMapIntensity: 2.60, clearcoat: 0.15, clearcoatRoughness: 0.10, specularIntensity: 1.35, emissive: '#2b1d05', label: '14K Gold' },
+    gold_9k:    { color: '#b8962e', metalness: 1, roughness: 0.05, envMapIntensity: 2.20, clearcoat: 0.15, clearcoatRoughness: 0.10, specularIntensity: 1.30, emissive: '#2b1d05', label: '9K Gold' },
 }
 
 const GEMSTONE_PRESETS: Record<string, { color: string; label: string }> = {
@@ -165,11 +165,13 @@ const diamondProfile: DiamondProfile = {
 }
 
 const metalProfile: MetalProfile = {
-    color: '#c2bfc3',
+    color: '#c2c2c3',
     metalness: 1,
-    roughness: 0,
-    envMapIntensity: 1.0
+    roughness: 0.05,
+    envMapIntensity: 2.60
 }
+
+let currentMetalPreset: typeof METAL_PRESETS['platinum'] = METAL_PRESETS.platinum
 
 function applyRuntimeConfig() {
     const m: any = runtimeConfig.metal || {}
@@ -283,13 +285,18 @@ function applyDiamondMaterial(material: any) {
 function applyMetalMaterial(material: any) {
     if (!material) return
     try {
+        const rec = currentMetalPreset
         if ('color' in material) material.color = createLinearColor(metalProfile.color)
         if ('metalness' in material) material.metalness = metalProfile.metalness
-        if ('roughness' in material) material.roughness = metalProfile.roughness
-        if ('envMapIntensity' in material) material.envMapIntensity = metalProfile.envMapIntensity
-        if ('clearcoat' in material) material.clearcoat = Math.max(material.clearcoat || 0, 0.15)
-        if ('clearcoatRoughness' in material) material.clearcoatRoughness = 0.08
-        if ('specularIntensity' in material) material.specularIntensity = 1.0
+        if ('roughness' in material) material.roughness = rec.roughness
+        if ('envMapIntensity' in material) material.envMapIntensity = rec.envMapIntensity
+        if ('clearcoat' in material) material.clearcoat = rec.clearcoat
+        if ('clearcoatRoughness' in material) material.clearcoatRoughness = rec.clearcoatRoughness
+        if ('specularIntensity' in material) material.specularIntensity = rec.specularIntensity
+        if (rec.emissive && 'emissive' in material) {
+            material.emissive = createLinearColor(rec.emissive)
+            if ('emissiveIntensity' in material) material.emissiveIntensity = 0.35
+        }
         material.needsUpdate = true
     } catch (error) {
         console.warn('applyMetalMaterial failed', error)
@@ -403,6 +410,9 @@ async function loadEnvironmentMap(manager: any, path?: string) {
         if (env && env.assetType === 'texture') {
             ;(env as any).intensity = environmentIntensityValue
             await viewer.scene.setEnvironment(env)
+            const sc: any = viewer.scene
+            sc.envMapIntensity = 1.25
+            if (typeof sc.refreshEnvMapIntensity === 'function') sc.refreshEnvMapIntensity()
             if (diamondPluginInstance) {
                 diamondPluginInstance.envMap = env
                 diamondPluginInstance.forceSceneEnvMap = false
@@ -664,6 +674,7 @@ function bindInput(id: string, onChange: (value: string) => string) {
 function applyMetalPreset(key: string) {
     const p = METAL_PRESETS[key]; if (!p) return
     metalProfile.color = p.color; metalProfile.metalness = p.metalness; metalProfile.roughness = p.roughness; metalProfile.envMapIntensity = p.envMapIntensity
+    currentMetalPreset = p
     ;(document.getElementById('metal-color') as HTMLInputElement).value = p.color
     ;(document.getElementById('metalness') as HTMLInputElement).value = String(p.metalness)
     ;(document.getElementById('metal-roughness') as HTMLInputElement).value = String(p.roughness)

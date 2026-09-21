@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB 3D Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0d10; font-family: 'Segoe UI', Arial, sans-serif; }
+        #container { width: 100%; height: 100%; }
+        .topbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 18px;
+            background: rgba(13, 13, 16, 0.75); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .topbar .title { color: #fff; font-weight: 600; font-size: 14px; margin-right: auto; }
+        .btn {
+            padding: 9px 16px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06); color: #fff; cursor: pointer;
+            font-size: 13px; transition: background 0.2s;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.14); }
+        .btn.primary { background: #f0a500; border-color: #f0a500; color: #17130a; font-weight: 600; }
+        .btn.primary:hover { background: #ffb733; }
+        .hint { color: #888; font-size: 12px; }
+        .loadoverlay {
+            position: fixed; inset: 0; z-index: 200;
+            display: none; align-items: center; justify-content: center; flex-direction: column; gap: 18px;
+            background: rgba(13, 13, 16, 0.92); color: #fff;
+        }
+        .loadoverlay.show { display: flex; }
+        .spinner { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #f0a500; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loadoverlay .msg { font-size: 14px; color: #ccc; }
+        .loadoverlay .msg.error { color: #ff6b6b; }
+        #dropOverlay {
+            position: fixed; inset: 0; z-index: 300; display: none;
+            align-items: center; justify-content: center;
+            border: 4px dashed #f0a500; background: rgba(240, 165, 0, 0.12); color: #f0a500; font-size: 22px; font-weight: 600;
+        }
+        #dropOverlay.drag { display: flex; }
+        .badge {
+            position: fixed; bottom: 16px; right: 18px; z-index: 100;
+            color: #aaa; font-size: 11px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <div class="topbar">
+        <span class="title">GLB 3D Viewer</span>
+        <span class="hint" id="modelName">none loaded</span>
+        <input type="file" id="fileInput" accept=".glb" style="display:none;">
+        <button class="btn" id="openBtn">Open GLB</button>
+        <button class="btn" id="dropHint">Drag &amp; Drop</button>
+        <button class="btn primary" id="resetBtn">Reset View</button>
+    </div>
+
+    <div class="loadoverlay" id="loading">
+        <div class="spinner"></div>
+        <div class="msg" id="loadMsg">Loading model...</div>
+    </div>
+
+    <div id="dropOverlay">DROP YOUR .glb FILE</div>
+    <div class="badge" id="fps">- fps</div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+        const container = document.getElementById('container');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const loadMsg = document.getElementById('loadMsg');
+        const modelNameEl = document.getElementById('modelName');
+        const dropOverlay = document.getElementById('dropOverlay');
+        const fpsEl = document.getElementById('fps');
+
+        let scene, camera, renderer, controls, model;
+        let rendererCreated = false;
+
+        function initViewer() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0d0d10);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 2000);
+            camera.position.set(2, 1.5, 4);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            container.appendChild(renderer.domElement);
+            rendererCreated = true;
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.07;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.2;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+            const key = new THREE.DirectionalLight(0xffffff, 2.2);
+            key.position.set(4, 6, 4);
+            scene.add(key);
+            const fill = new THREE.DirectionalLight(0xffffff, 0.8);
+            fill.position.set(-4, 2, -4);
+            scene.add(fill);
+            const rim = new THREE.DirectionalLight(0x8890ff, 1.0);
+            rim.position.set(-2, 4, -6);
+            scene.add(rim);
+
+            const pmrem = new THREE.PMREMGenerator(renderer);
+            const envScene = new THREE.Scene();
+            envScene.add(new THREE.Mesh(
+                new THREE.SphereGeometry(1, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x3a3a44, side: THREE.BackSide })
+            ));
+            scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+
+            window.addEventListener('resize', onResize);
+            let frames = 0, last = performance.now();
+            function loop() {
+                requestAnimationFrame(loop);
+                controls.update();
+                renderer.render(scene, camera);
+                frames++;
+                if (performance.now() - last > 1000) {
+                    fpsEl.textContent = frames + ' fps';
+                    frames = 0; last = performance.now();
+                }
+            }
+            requestAnimationFrame(loop);
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function clearModel() {
+            if (model) {
+                scene.remove(model);
+                model.traverse((c) => {
+                    if (c.geometry) c.geometry.dispose();
+                    if (c.material) {
+                        (Array.isArray(c.material) ? c.material : [c.material]).forEach((m) => m.dispose());
+                    }
+                });
+                model = null;
+            }
+        }
+
+        function setLoading(on, msg, err = false) {
+            loading.classList.toggle('show', on);
+            loadMsg.textContent = msg;
+            loadMsg.className = 'msg' + (err ? ' error' : '');
+        }
+
+        function fitCamera() {
+            const box = new THREE.Box3().setFromObject(model);
+            if (box.isEmpty()) return;
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+
+            const dist = maxDim * 2.3;
+            const dir = new THREE.Vector3(1, 0.5, 1).normalize();
+            camera.position.copy(center).add(dir.clone().multiplyScalar(dist));
+            camera.near = Math.max(dist / 100, 0.001);
+            camera.far = dist * 100;
+            camera.updateProjectionMatrix();
+            controls.target.copy(center);
+            controls.minDistance = maxDim * 0.4;
+            controls.maxDistance = maxDim * 8;
+            controls.update();
+        }
+
+        function applyToScene(o) {
+            o.traverse((c) => {
+                if (c.isMesh) {
+                    const mat = c.material;
+                    (Array.isArray(mat) ? mat : [mat]).forEach((m) => {
+                        if (m && (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) {
+                            m.envMapIntensity = 1.0;
+                            m.needsUpdate = true;
+                        }
+                    });
+                }
+            });
+        }
+
+        function loadGLB(source, name) {
+            clearModel();
+            setLoading(true, 'Loading model...');
+            const loader = new GLTFLoader();
+            const draco = new DRACOLoader();
+            draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+            loader.setDRACOLoader(draco);
+
+            const onOk = (gltf) => {
+                model = gltf.scene;
+                applyToScene(model);
+                scene.add(model);
+                fitCamera();
+                modelNameEl.textContent = name;
+                setLoading(false, '');
+            };
+            const onErr = (e) => {
+                console.error(e);
+                setLoading(true, 'Failed to load GLB: ' + (e.message || 'unknown error'), true);
+            };
+
+            if (source instanceof File) {
+                source.arrayBuffer().then((ab) => loader.parse(ab, '', onOk, onErr)).catch(onErr);
+            } else {
+                loader.load(source, onOk, undefined, onErr);
+            }
+        }
+
+        function queryModel() {
+            return new URLSearchParams(location.search).get('model');
+        }
+
+        document.getElementById('openBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const f = e.target.files[0];
+            if (f) loadGLB(f, f.name);
+            fileInput.value = '';
+        });
+
+        let dragDepth = 0;
+        window.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; dropOverlay.classList.add('drag'); });
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('dragleave', (e) => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; dropOverlay.classList.remove('drag'); } });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragDepth = 0;
+            dropOverlay.classList.remove('drag');
+            const f = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (f && /\.glb$/i.test(f.name)) loadGLB(f, f.name);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => { if (model) fitCamera(); });
+        document.getElementById('dropHint').addEventListener('click', () => fileInput.click());
+
+        const q = queryModel();
+        if (q) {
+            loadGLB(q, q.split('/').pop());
+        } else {
+            loadGLB('assets/main.glb', 'assets/main.glb');
+        }
+
+        initViewer();
+    </script>
+</body>
+</html>

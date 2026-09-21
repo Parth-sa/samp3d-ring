@@ -117,7 +117,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"yh9p":[function(require,module,exports) {
+})({"FRly":[function(require,module,exports) {
 'use strict'
 
 exports.byteLength = byteLength
@@ -269,7 +269,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],"JgNJ":[function(require,module,exports) {
+},{}],"Quj6":[function(require,module,exports) {
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
@@ -356,14 +356,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],"REa7":[function(require,module,exports) {
+},{}],"aqZJ":[function(require,module,exports) {
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],"dskh":[function(require,module,exports) {
+},{}],"aMB2":[function(require,module,exports) {
 
 var global = arguments[3];
 /*!
@@ -2156,7 +2156,7 @@ function isnan (val) {
   return val !== val // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":"yh9p","ieee754":"JgNJ","isarray":"REa7","buffer":"dskh"}],"PsTk":[function(require,module,exports) {
+},{"base64-js":"FRly","ieee754":"Quj6","isarray":"aqZJ","buffer":"aMB2"}],"rbXN":[function(require,module,exports) {
 var Buffer = require("buffer").Buffer;
 "use strict";
 
@@ -72222,7 +72222,7 @@ var __webpackgi_exports__AAssetManagerProcessStatePlugin = exports.AAssetManager
   __webpackgi_exports__zipSync = exports.zipSync = __webpackgi_exports__.Xo9,
   __webpackgi_exports__zlib = exports.zlib = __webpackgi_exports__.LNO,
   __webpackgi_exports__zlibSync = exports.zlibSync = __webpackgi_exports__.iZP;
-},{"buffer":"dskh"}],"bvz9":[function(require,module,exports) {
+},{"buffer":"aMB2"}],"Ijp4":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -72649,7 +72649,7 @@ Object.defineProperty(exports, "VignettePlugin", {
   }
 });
 var _webgi = require("webgi");
-},{"webgi":"PsTk"}],"Clrz":[function(require,module,exports) {
+},{"webgi":"rbXN"}],"Clrz":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -73029,6 +73029,38 @@ var DEFAULT_CONFIGS = {
       defaults: {
         metalType: '18K',
         metalColor: 'Platinum'
+      },
+      editable: ['metalType', 'metalColor']
+    }]
+  },
+  'LRS-03.glb': {
+    id: 'LRS-03',
+    name: 'Loria Solitaire',
+    modelUrl: './assets/LRS-03.glb',
+    envUrl: './assets/env_metal_studio.hdr',
+    gemEnvUrl: './assets/env_gem_002.exr',
+    components: [{
+      id: 'center',
+      label: 'Center Stone',
+      type: 'stone',
+      match: ['diamond', 'marquise', 'gem'],
+      defaults: {
+        stoneType: 'Natural Diamond',
+        shape: 'Marquise',
+        carat: 1.50,
+        color: 'D',
+        clarity: 'VVS1'
+      },
+      refCarat: 1.5,
+      editable: ['stoneType', 'shape', 'carat', 'color', 'clarity']
+    }, {
+      id: 'band',
+      label: 'Ring Band',
+      type: 'metal',
+      match: ['mesh', 'profile', 'creation curves', 'user layer', 'finger sizes', 'metal 01'],
+      defaults: {
+        metalType: '18K',
+        metalColor: '18K Rose Gold'
       },
       editable: ['metalType', 'metalColor']
     }]
@@ -76420,7 +76452,7 @@ function boot() {
 function _boot() {
   _boot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
     var _document$getElementB3, _document$getElementB5, _document$getElementB7, _document$getElementB8;
-    var editor, params, modelParam, modelUrl, msg, loader, designParam, d, metalsParam, first, add, sheet, liteChip, modelSel, cur, stSections, RUN, stRun, sec, sel, rng, btns, chk, file, swatches, bgList, camViews, metalOpts, metals, pluginToggles, chainElements, animWrap, MODES, modeOf, studSecs, rail, applyMode, dropov, dragDepth, uploadInputs, scaleInputs, applyDesign, _t12, _t13;
+    var editor, params, modelParam, modelUrl, msg, loader, fitParam, eAny, designParam, d, metalsParam, first, add, sheet, liteChip, modelSel, cur, stSections, RUN, stRun, sec, sel, rng, btns, chk, file, swatches, bgList, camViews, metalOpts, metals, pluginToggles, chainElements, animWrap, MODES, modeOf, studSecs, rail, applyMode, dropov, dragDepth, uploadInputs, scaleInputs, applyDesign, _t12, _t13;
     return _regenerator().w(function (_context19) {
       while (1) switch (_context19.p = _context19.n) {
         case 0:
@@ -76477,6 +76509,15 @@ function _boot() {
           showToast('Model failed to load: ' + msg);
           return _context19.a(2);
         case 8:
+          // ?fit= — framScale factor on top of the auto bounding-box fit (<1 zooms in, >1 zooms out)
+          fitParam = parseFloat(params.get('fit') || '');
+          if (fitParam > 0 && fitParam !== 1) {
+            try {
+              eAny = editor;
+              eAny.fitDistance = (eAny.fitDistance || 8) * fitParam;
+              eAny.setView('3d');
+            } catch (e) {}
+          }
           // restore design if present
           designParam = params.get('design');
           if (designParam) {
@@ -76537,6 +76578,26 @@ function _boot() {
             },
             bg: function bg(v) {
               return editor.applyBackground(v);
+            },
+            setFit: function setFit(s) {
+              try {
+                var e = editor;
+                if (!e._fitBase) e._fitBase = e.fitDistance || 8;
+                e.fitDistance = e._fitBase * s;
+                e.setView('3d');
+              } catch (err) {}
+            },
+            diaScale: function diaScale(s) {
+              try {
+                var e = editor;
+                var c = e.findComponent('center');
+                if (!c || s <= 0) return;
+                var ref = c.def.refCarat || 1;
+                var carat = ref * Math.pow(s, 3);
+                e.setComponentState('center', {
+                  carat: carat
+                }, false);
+              } catch (err) {}
             }
           };
           // ---- toolbar wiring ----
@@ -77194,5 +77255,5 @@ function _boot() {
   return _boot.apply(this, arguments);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);else boot();
-},{"./webgi-re-exports":"bvz9","./webgiDiamondPatch":"Clrz"}]},{},["kq7A"], null)
-//# sourceMappingURL=ring-editor.36c55242.js.map
+},{"./webgi-re-exports":"Ijp4","./webgiDiamondPatch":"Clrz"}]},{},["kq7A"], null)
+//# sourceMappingURL=ring-editor.3cfd11e4.js.map
